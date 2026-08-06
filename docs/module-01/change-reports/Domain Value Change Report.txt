@@ -1,0 +1,178 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 – Identity & Authentication
+Domain Value Change Report
+
+Status: Documentation Proposal Only
+Source: Module 01 Corrected Draft v1.12.txt
+Related artifact: Domain Value Approval Plan.txt
+
+1. Purpose
+
+This report records the proposed documentation decisions required to unblock Limited Phase 1 Milestone 2. It does not approve the values and does not modify the authoritative architecture or implementation.
+
+2. Files Created
+
+- Domain Value Approval Plan.txt
+- Domain Value Change Report.txt
+
+3. Implementation Files Modified
+
+None.
+
+4. Proposed Canonical Sets
+
+DV-01 Credential Type
+- PASSWORD
+- EMAIL_VERIFICATION
+- MOBILE_VERIFICATION
+
+DV-02 Credential State
+- CREATED
+- VERIFIED
+- ACTIVE
+- REPLACED
+- COMPROMISED
+- REVOKED
+
+DV-03 Refresh Token Family State
+- ACTIVE
+- REVOKED
+- EXPIRED
+
+DV-04 MFA Enrollment State
+- PENDING_VERIFICATION
+- ACTIVE
+- REPLACEMENT_REQUIRED
+- DISABLED
+
+DV-05 MFA Factor Type
+- TOTP_AUTHENTICATOR
+
+DV-05 MFA Factor State
+- PENDING_VERIFICATION
+- ACTIVE
+- REPLACEMENT_REQUIRED
+- REVOKED
+
+DV-06 Recovery Code Set State
+- ACTIVE
+- EXHAUSTED
+- SUPERSEDED
+- INVALIDATED
+
+DV-06 Recovery Code State
+- ACTIVE
+- CONSUMED
+- INVALIDATED
+
+DV-07 Recovery Evidence Type
+- VERIFIED_EMAIL_CHANNEL
+- VERIFIED_MOBILE_CHANNEL
+- RECOVERY_CODE
+- AUTHENTICATED_SESSION
+- MFA_FACTOR
+- CONTROLLED_BOOTSTRAP_EVIDENCE
+
+DV-08 Recovery Evidence State
+- PENDING
+- VERIFIED
+- REJECTED
+- CONSUMED
+- EXPIRED
+- INVALIDATED
+
+DV-08 Recovery Evidence Boundary
+- EMAIL_CHANNEL
+- MOBILE_CHANNEL
+- RECOVERY_CODE_SET
+- AUTHENTICATED_SESSION
+- MFA_FACTOR
+- CONTROLLED_BOOTSTRAP
+
+DV-09 Recovery Approval Decision
+- APPROVED
+- REJECTED
+
+DV-10 Recovery Attempt Type
+- EVIDENCE_SUBMISSION
+- EVIDENCE_VALIDATION
+- APPROVAL_VALIDATION
+- EXECUTION
+
+DV-10 Recovery Attempt Outcome
+- SUCCEEDED
+- REJECTED
+- FAILED_SECURELY
+- TEMPORARILY_UNAVAILABLE
+
+DV-11 Recovery Notification Type
+- RECOVERY_REQUEST_INITIATED
+- RECOVERY_CHALLENGE_SENT
+- PASSWORD_RESET_COMPLETED
+- MFA_RESET_COMPLETED
+- TRUSTED_DEVICE_REMOVED
+- CONTACT_INFORMATION_UPDATED
+- RECOVERY_COMPLETED
+- SUSPICIOUS_RECOVERY_ATTEMPT
+
+DV-11 Recovery Notification Delivery State
+- PENDING
+- DISPATCHED
+- DELIVERED
+- FAILED
+
+DV-12 Identity Verification State
+- PENDING_VERIFICATION
+- VERIFIED
+
+DV-12 Identifier Verification State
+- UNVERIFIED
+- PENDING_VERIFICATION
+- VERIFIED
+- RETIRED
+- ANONYMIZED
+
+DV-13 Verification Purpose
+- REGISTRATION_VERIFICATION
+- PRIVILEGED_INVITATION_VERIFICATION
+- CONTACT_CHANGE_VERIFICATION
+- PASSWORD_RECOVERY
+- ACCOUNT_RECOVERY
+- MFA_ENROLLMENT
+- MFA_AUTHENTICATION
+- STEP_UP_AUTHENTICATION
+- ADDITIONAL_SECURITY_VERIFICATION
+
+5. Explicit Non-Changes
+
+- C1–C10 ownership and security boundaries are unchanged.
+- Module 02 authorization values were not introduced.
+- Customer and Seller profile terminology was not introduced.
+- Deferred authentication methods remain excluded.
+- C8, C9 and C10 implementation gates remain closed.
+- ADR-M01-011 and API implementation remain closed.
+- No numerical cryptographic value or operational value was proposed.
+- No retention duration, legal policy or infrastructure choice was proposed.
+
+6. Architecture Documents Modified
+
+None. If approved, a separate governance-authorized documentation update will be required before implementation resumes.
+
+7. Source-Code, Prisma and Migration Changes
+
+None.
+
+8. Validation Status
+
+- Pass – Every previously identified missing item has a proposed canonical set.
+- Pass – Each set includes usage semantics.
+- Pass – Affected Parts are identified.
+- Pass – Affected ADRs are identified.
+- Pass – Affected test categories are identified.
+- Pass – Deferred methods are excluded.
+- Pass – Module 02 ownership is preserved.
+- Pass – No implementation artifact was created or changed.
+
+9. Current Milestone Status
+
+Milestone 2 – Domain Layer remains Blocked pending human review and approval of DV-01 through DV-13.

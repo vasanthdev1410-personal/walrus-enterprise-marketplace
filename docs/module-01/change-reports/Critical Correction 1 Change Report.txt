@@ -1,0 +1,131 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.1
+Critical Correction 1 Change Report
+
+Status: Draft
+Scope: Authorization ownership boundary between Module 01 and Module 02 only
+
+1. Source Protection
+
+Original source retained without modification:
+C:\Users\ACER\Documents\Merged File.txt
+
+Corrected copy created:
+Module 01 Corrected Draft v1.1.txt
+
+Former Part 6 content preserved separately:
+Module 02 Part 6 Authorization Source Material.txt
+
+The preserved material is explicitly marked Unapproved Source Material and does not confer Module 02 approval.
+
+2. Sections Changed
+
+Part 1
+- §30 Cross-Module Dependencies: limited Module 01 outputs to identity and authentication outputs; added the authenticated identity context and prohibited direct database coupling.
+- §31 Role Model: replaced with §31 Authentication-to-Authorization Boundary; assigned authorization ownership to Module 02 and removed role ownership from Module 01.
+
+Part 3.2
+- §11 JWT Architecture: removed role and trustLevel authorization claims; added authentication-only context claims and clarified that Module 02 performs authorization evaluation.
+- §12 Access Token Strategy: clarified that access tokens prove authentication and do not grant authorization.
+
+Part 3.3
+- §22 Authentication Middleware: updated the authenticated identity context fields; prohibited business roles, permissions, policies, and decisions in the context; prohibited direct database coupling.
+
+Part 6
+- Replaced the complete former Part 6 authorization/RBAC specification with Part 6 – Authentication-to-Authorization Integration Boundary.
+
+Part 7.1
+- API security and architecture references: changed Module 01 authorization behavior to an integration handoff to Module 02.
+- Enterprise API Architecture layer responsibilities: replaced Module 01 RBAC/permission/policy evaluation responsibilities with the Module 02 authorization integration boundary.
+
+Part 7.2
+- §6 Domain-Driven Design Boundaries: removed Authorization from the Module 01 bounded context and identified it as a Module 02 bounded context.
+- §7 Core Domain Entities: removed Role and Permission entities; limited the entity list to identity and authentication concepts.
+- §8 Aggregate Roots: removed Role as a Module 01 aggregate root.
+- §9 Value Objects: aligned authentication context value objects with the approved boundary.
+- §10 Domain Events: removed RoleAssigned and RoleRevoked; limited Module 01 events to identity and authentication events.
+
+Part 7.3
+- §12 Entity Relationships: removed Role–Permission and Identity–Role database relationships; prohibited cross-module foreign keys and direct database coupling.
+- §15 Indexing & Performance Strategy: replaced Role assignment indexing with authenticated identity context indexing.
+
+Part 7.5
+- Integration Events: removed RoleAssigned and RoleRevoked from Module 01 outputs.
+
+Part 7.6
+- Cross-module outputs, architecture review, and ADR references: aligned authorization references with the Module 02 boundary and proposed boundary ADR.
+
+Part 8
+- Recommended Structure and Parts 8.1–8.6 references: renamed Module 01 authorization testing as authentication-to-authorization boundary testing where applicable.
+- Part 8.2 §§6–10: limited Module 01 tests to authentication enforcement, context integrity, secure handoff, correlation, and integration contracts; assigned authorization behavior testing to Module 02.
+- Part 8.3 security and performance references: limited Module 01 scope to boundary security and handoff performance; assigned authorization security and evaluation performance to Module 02.
+- Part 8.4 reliability and recovery references: removed Role and Permission data recovery from Module 01 and identified Module 02 recovery ownership.
+- Part 8.5 automation and release-readiness references: required boundary tests and Module 02 authorization test evidence without assigning those tests to Module 01.
+- Part 8.6 outputs, acceptance wording, architecture review, and ADR references: aligned testing ownership with the boundary.
+
+Part 9
+- Introductory architecture inputs: treated authorization architecture as a Module 02 dependency.
+- Part 9.4 logging, monitoring, and alerting references: limited Module 01 ownership to authentication-to-authorization handoff telemetry and consumption of Module 02 telemetry contracts.
+- Part 9.5 business-continuity references: identified authorization as a Module 02 dependency.
+- Part 9.6 architecture review and ADR references: removed the former enterprise-authorization ADR from Module 01 ownership and referenced the proposed boundary ADR.
+
+Part 10.5
+- §24 Future Module Guidance: replaced reuse of Module 01 authorization services and policies with use of Module 02 authorization capabilities and contracts.
+
+Part 10.6
+- §26 Cross-Module Outputs: removed Authorization Services, Role Management, Permission Management, RBAC Engine, and Authorization Policies from Module 01 outputs; added the authenticated identity context and boundary contract.
+- §27 Module Acceptance Criteria: separated Module 01 acceptance from Module 02 authorization approval.
+- §28 Final Architecture Review: removed authorization/RBAC from Module 01 ownership.
+- §29 Architecture Decision References: removed the enterprise-authorization ADR from Module 01 ownership and listed the proposed boundary ADR.
+- §30 Module 01 Draft Status: retained Draft status and explicitly withheld certification and implementation approval.
+
+3. Sections Deleted From Module 01
+
+The former Part 6 authorization specification was removed in full, including:
+- Part 6.1 Authorization Foundation
+- Part 6.2 Role-Based Access Control (RBAC)
+- Part 6.3 Resource Protection
+- Part 6.4 Access Governance
+- Part 6.5 Security & Auditing
+- Part 6.6 Governance & Final Approval
+- All Module 01-owned role, permission, assignment, hierarchy, authorization-policy, authorization-decision, temporary-permission, delegated-administration, and authorization-audit artifacts defined by those sections
+
+The content was not discarded; it was copied verbatim into the separate Module 02 source-material file with an unapproved status notice.
+
+4. Sections Added
+
+New Part 6 – Authentication-to-Authorization Integration Boundary:
+- §1 Objective
+- §2 Module 01 Ownership
+- §3 Module 02 Ownership
+- §4 Authenticated Identity Context
+- §5 Request Processing Boundary
+- §6 Failure Boundary
+- §7 Audit and Observability Boundary
+- §8 Testing Boundary
+- §9 Cross-Module Outputs
+- §10 Acceptance Criteria
+- §11 Proposed Architecture Decision Record
+- Part 6 Draft Status
+
+5. ADR Changes
+
+Removed from Module 01 ownership:
+- ADR-M01-004 – Enterprise Authorization Architecture
+
+Added as proposed, not approved:
+- Proposed ADR-M01-004 – Authentication-to-Authorization Boundary
+
+The proposed decision states that Module 01 owns identity and authentication, Module 02 owns authorization, integration uses approved contracts and correlation identifiers, and direct database coupling is prohibited.
+
+The former authorization ADR content remains available only as Module 02 source material.
+
+6. Verification Results
+
+- The original merged specification was not modified.
+- The corrected document retains Draft status.
+- The document does not claim approval or implementation authorization for Corrected Draft v1.1.
+- No remaining section assigns Module 01 ownership of RBAC, roles, permissions, role assignments, authorization policies, or authorization decisions.
+- References to those concepts remain only where they are explicitly excluded from Module 01, assigned to Module 02, consumed through an approved integration contract, or listed as former source material in this change report.
+- No application source code or implementation artifact was created.
+- No other critical, medium, or minor correction was intentionally applied.

@@ -1,0 +1,9 @@
+name: Deploy Development Foundation
+on: { workflow_dispatch: {} }
+permissions: { contents: read, id-token: write }
+jobs:
+  approval-required:
+    environment: development
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deployment foundation only. Live AWS deployment is intentionally disabled pending approved account and network configuration."

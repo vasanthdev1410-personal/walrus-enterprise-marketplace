@@ -1,0 +1,168 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.3
+Critical Issue C2 Change Report
+
+Status: Draft
+Scope: C2 – JWT, Session, Refresh Token, Revocation and Validation Semantics
+
+1. Files
+
+Source preserved without modification:
+Module 01 Corrected Draft v1.2.txt
+
+Corrected copy created:
+Module 01 Corrected Draft v1.3.txt
+
+No application code was created or modified.
+
+No C3 or later correction was applied.
+
+2. Approved C2 Model Applied
+
+- JWT signature and claim validation prove token integrity and issuance, but do not independently prove that the referenced Session remains valid.
+- Every protected request requires current Session-state and Session-Version validation.
+- PostgreSQL is authoritative for Session and Refresh Token state.
+- Redis contains only a non-authoritative Session Validation Projection.
+- Canonical Session states are ACTIVE, REVOKED and EXPIRED.
+- Refresh Tokens are opaque protected credentials with ACTIVE, USED, REVOKED and EXPIRED states.
+- Refresh Token rotation is atomic and creates exactly one successor.
+- Confirmed Refresh Token reuse revokes the token family and associated Session and increments Session Version.
+- Logout, logout-all and security invalidation commit authoritative revocation before reporting success.
+- Revocation is idempotent. Requests beginning validation after committed revocation are rejected; the explicitly defined in-flight boundary applies to requests validated before the commit.
+
+3. Sections Changed
+
+Part 1
+- §14: added the authoritative Session validation rule.
+- §15: replaced the token strategy with explicit access-token, session, refresh-token, rotation, reuse and revocation semantics.
+
+Part 3
+- Part 3.1A §4: clarified the hybrid JWT and server-managed Session model.
+- Part 3.2 §11: distinguished stateless JWT cryptographic validation from state-aware protected-request authentication and added the sessionVersion claim.
+- Part 3.2 §12: replaced the Access Token lifecycle with the canonical state-aware lifecycle.
+- Part 3.2 §13: defined opaque protected Refresh Tokens and their authoritative lifecycle states.
+- Part 3.2 §14: defined atomic single-successor Refresh Token rotation.
+- Part 3.2 §15: defined reuse detection, token-family revocation, Session revocation and Session-Version increment.
+- Part 3.2 §16: defined authoritative, idempotent revocation and the committed-revocation/in-flight-request boundary.
+- Part 3.2 §18: expanded authoritative Session fields and added the non-authoritative Redis Session Validation Projection.
+- Part 3.2 §19: replaced the Session lifecycle with ACTIVE, REVOKED and EXPIRED.
+- Part 3.2 §20: aligned PostgreSQL and Redis storage consistency and failure behavior.
+- Part 3.3 §22: added the ordered protected-request validation procedure.
+- Part 3.3 §24: replaced logout with the authoritative revocation workflow.
+- Part 3.3 §25: replaced logout-all with the authoritative all-session revocation workflow.
+- Part 3.3 §27: added C2 security and audit events.
+
+Part 5
+- Part 5.1 §4: added the C2 Session-validation clarification for ADR-M01-003.
+- Part 5.2 §6: added Session Version, expiration and revocation fields.
+- Part 5.2 §7: replaced Session validation with mandatory per-request state/version validation.
+- Part 5.2 §8: aligned the Session lifecycle with ACTIVE, REVOKED and EXPIRED.
+- Part 5.2 §9: made timeout enforcement part of authoritative Session validation.
+- Part 5.2 §10: aligned PostgreSQL authority and Redis projection behavior.
+- Part 5.4 §16: aligned logout with committed authoritative revocation.
+- Part 5.4 §17: aligned logout-all with committed authoritative revocation for all Sessions.
+- Part 5.4 §18: aligned Session revocation, Refresh Token rotation/reuse and failure behavior.
+- Part 5.4 §20: added distinct monitoring categories for JWT, Session, projection, reuse and propagation failures.
+
+Part 6
+- Proposed ADR-M01-004 §4: required successful JWT, Session-state and Session-Version validation before creating an Authenticated Identity Context.
+
+Part 7
+- Part 7.2 §9: added C2 Session and Refresh Token value objects and domain events.
+- Part 7.3 §11: added Session-to-Refresh-Token-family and family-to-token relationships.
+
+Part 8
+- Part 8.2: added JWT/session/revocation authentication test coverage.
+- Part 8.3: added canonical Session lifecycle, rotation, reuse, logout and concurrency test coverage.
+- Part 8.4: added fail-closed authoritative-state recovery validation.
+
+Part 10
+- Document-version references were updated from v1.2 to v1.3 where applicable.
+
+4. Deletions and Replacements
+
+Replaced or removed as governing rules:
+- The statement that JWTs provide stateless authentication without mandatory current Session validation.
+- Ambiguous Access Token invalidation that depended only on token expiry.
+- Non-canonical Session lifecycle stages used as persisted Session states.
+- Refresh Token rotation semantics that did not guarantee one atomic successor.
+- Revocation behavior without a committed authoritative-state boundary.
+- Logout behavior that could wait for Access Token expiration.
+
+5. Additions
+
+Added:
+- sessionVersion Access Token claim and comparison rule.
+- Mandatory protected-request Session validation order.
+- PostgreSQL authoritative Session and Refresh Token state.
+- Redis Session Validation Projection with fail-closed miss, stale and inconsistency behavior.
+- ACTIVE, REVOKED and EXPIRED canonical Session states.
+- ACTIVE, USED, REVOKED and EXPIRED Refresh Token states.
+- Atomic single-use Refresh Token rotation.
+- Token-family and Session revocation after confirmed reuse.
+- Idempotent logout, logout-all and revocation behavior.
+- Committed-revocation and in-flight-request semantics.
+- Domain relationships, audit events, monitoring categories and C2-specific tests.
+
+6. ADR Status
+
+- ADR-M01-001: C2 Session-validation clarification added; existing status preserved.
+- ADR-M01-003: C2 revocation and rotation clarification added; existing status preserved.
+- Proposed ADR-M01-004 – Authentication-to-Authorization Boundary: C2 authenticated-context validity rule added and retained as Proposed.
+- No proposed ADR was marked Approved.
+
+7. C2 Verification Checklist
+
+JWT and Protected Requests
+- Pass – JWT cryptographic validation is explicitly distinguished from authenticated-request acceptance.
+- Pass – A valid JWT signature alone does not prove current Session validity.
+- Pass – Every protected request validates the referenced Session.
+- Pass – Every protected request validates the token sessionVersion against authoritative current Session Version.
+- Pass – Invalid, missing, expired, revoked or version-mismatched Sessions are rejected.
+
+Authoritative State and Cache
+- Pass – PostgreSQL is authoritative for Session state.
+- Pass – PostgreSQL is authoritative for Refresh Token state.
+- Pass – Redis is explicitly non-authoritative.
+- Pass – Redis contains a bounded Session Validation Projection.
+- Pass – Cache miss requires authoritative lookup before access is accepted.
+- Pass – Stale, inconsistent or unverifiable cache state cannot grant access.
+
+Session Lifecycle
+- Pass – Canonical Session states are ACTIVE, REVOKED and EXPIRED.
+- Pass – Activity, refresh and logout are not incorrectly modeled as canonical Session states.
+- Pass – Idle and absolute expiration are represented and enforced.
+- Pass – Session Version changes invalidate stale Access Tokens.
+
+Refresh Tokens
+- Pass – Refresh Tokens are opaque protected credentials.
+- Pass – Refresh Token states are ACTIVE, USED, REVOKED and EXPIRED.
+- Pass – Rotation consumes the presented token atomically.
+- Pass – Exactly one successor is created by a successful rotation.
+- Pass – Concurrent refresh attempts cannot create two valid successors.
+- Pass – Confirmed reuse revokes the token family and associated Session.
+- Pass – Confirmed reuse increments Session Version.
+
+Revocation and Logout
+- Pass – Logout commits authoritative Session revocation before success.
+- Pass – Logout All Devices revokes all applicable Sessions, including the initiating Session.
+- Pass – Revocation is idempotent.
+- Pass – Requests beginning validation after committed revocation are rejected.
+- Pass – The in-flight boundary is explicitly defined.
+- Pass – Revocation does not depend on waiting for Access Token expiry.
+
+Architecture and Documentation
+- Pass – Parts 1, 3, 5, 6, 7, 8 and 10 use consistent C2 terminology.
+- Pass – Domain relationships and events support the C2 lifecycle.
+- Pass – Monitoring distinguishes token, Session, cache and propagation failures.
+- Pass – Testing covers state, version, rotation, reuse, concurrency, logout and fail-closed recovery.
+- Pass – Proposed ADR-M01-004 remains Proposed.
+- Pass – The document remains Draft.
+- Pass – Module 01 Corrected Draft v1.2.txt remains preserved.
+- Pass – No C3 or later correction was applied.
+
+8. C2 Result
+
+Remaining C2 defects: None found by the C2 validation.
+
+C2 status: Resolved

@@ -1,0 +1,196 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.9
+Critical Issue C8 Change Report
+
+Status: Draft
+Scope: C8 – Event, Command and Reliable Asynchronous Delivery Architecture
+
+1. Files
+
+Source preserved without modification:
+Module 01 Corrected Draft v1.8.txt
+
+Corrected copy created:
+Module 01 Corrected Draft v1.9.txt
+
+No application code, infrastructure, database schema, migration or operational resource was generated.
+No C9 or later correction was applied.
+
+2. C8 Changes Applied
+
+- Replaced the ambiguous Domain Event section with separate internal Domain Event, Integration Event, Integration Command and Audit Event classifications.
+- Added four approved cross-module Command contracts and two approved Integration Event contracts.
+- Added explicit producer, consumer, aggregate, purpose, payload and ownership boundaries.
+- Replaced the incomplete Outbox section with the canonical envelope, Outbox lifecycle, durable Consumer Inbox, idempotency, aggregate ordering, retry, quarantine, redrive, schema evolution, transport boundary, security and reconciliation rules.
+- Added Consumer Inbox logical persistence requirements without generating a physical schema.
+- Added relationship, index, transaction-boundary and access-pattern requirements.
+- Added C8 cross-module ownership protections.
+- Added complete asynchronous delivery tests, monitoring and restoration requirements.
+- Added the C8 implementation gate.
+- Added Proposed ADR-M01-014 and required C8 clarifications to existing Proposed ADRs.
+
+3. Sections Replaced
+
+- Part 7.2 §10 – Domain Events and Persistence Events.
+- Part 7.3 §17 – Transactional Outbox Architecture.
+
+4. Sections Added or Extended
+
+- Part 6 – C8 Asynchronous Ownership Boundary.
+- Part 7.2 – Authoritative message taxonomy and contract catalogues.
+- Part 7.3 – Consumer Inbox, ordering, access patterns, transaction boundaries and reconciliation.
+- Part 8 – C8 Asynchronous Contract and Delivery Testing.
+- Part 9 – C8 Asynchronous Delivery Monitoring and Restoration.
+- Part 10.5 – C8 Asynchronous Integration Implementation Gate.
+- Part 10.6 – C8 outputs and Proposed ADR-M01-014.
+
+5. ADR Changes
+
+- Proposed ADR-M01-014 – Event, Command and Reliable Asynchronous Delivery Architecture was added and remains Proposed.
+- Proposed ADR-M01-004 received non-transfer-of-ownership and Module 02 boundary clarification and remains Proposed.
+- Proposed ADR-M01-009 received the Recovery-boundary clarification and remains Proposed.
+- Proposed ADR-M01-010 received Consumer Inbox and expanded Outbox clarification and remains Proposed.
+- Proposed ADR-M01-011 received synchronous REST/asynchronous contract separation and remains Proposed.
+- Proposed ADR-M01-012 received transport-failure, backlog, quarantine, reconciliation and restoration clarification and remains Proposed.
+- Proposed ADR-M01-013 received transport/payload protection and key-separation clarification and remains Proposed.
+
+6. Complete C8 Verification Checklist
+
+Document Control
+- Pass – v1.8 remains the source document and was not modified by C8 application.
+- Pass – v1.9 exists as a separate corrected copy.
+- Pass – the corrected document version is 1.9.
+- Pass – document status remains Draft.
+- Pass – no C9 terminology or ADR was introduced.
+- Pass – no application or infrastructure artifact was generated.
+
+Message Taxonomy
+- Pass – INTERNAL_DOMAIN_EVENT is distinct from external messages.
+- Pass – INTEGRATION_EVENT reports a committed fact.
+- Pass – INTEGRATION_COMMAND directs one authoritative target.
+- Pass – AUDIT_EVENT remains governed by the C4 immutable-audit architecture.
+- Pass – internal Domain Events are not externally publishable by default.
+- Pass – Command acceptance is explicitly not completion.
+- Pass – AuthenticatedIdentityContextEstablished remains internal.
+- Pass – asynchronous messaging cannot silently replace C3 Recovery authorization.
+
+Ownership and Contract Catalogue
+- Pass – M01-CMD-001 is catalogued for Module 06 Customer profile association.
+- Pass – M01-CMD-002 is catalogued for Module 03 Seller profile association.
+- Pass – M01-CMD-003 is catalogued for Module 02 role-assignment requests.
+- Pass – M02-CMD-001 is catalogued for Module 01 authentication-security-classification changes.
+- Pass – M01-EVT-001 is catalogued for committed Identity authentication-state changes.
+- Pass – M01-EVT-002 is catalogued for committed authentication-security-classification changes.
+- Pass – every Command identifies one authoritative consumer.
+- Pass – Integration Event subscriptions require explicit approval.
+- Pass – the consumer/subscriber register has an explicit approval gate.
+- Pass – Module 01 does not infer target-module completion from Command acceptance.
+- Pass – Module 02 retains roles, permissions, assignments and authorization decisions.
+- Pass – Module 03 retains Seller profiles and onboarding.
+- Pass – Module 06 retains Customer profiles.
+- Pass – no cross-module foreign key is introduced.
+
+Canonical Envelope
+- Pass – globally unique message_id is required.
+- Pass – stable contract_id and contract_name are required.
+- Pass – message_kind is required.
+- Pass – schema_version is required.
+- Pass – producer_context is required.
+- Pass – target_context is required for Commands.
+- Pass – aggregate identity and version are defined.
+- Pass – correlation and causation identifiers are defined.
+- Pass – data classification and payload are defined.
+- Pass – prohibited security and authorization data is explicitly identified.
+
+Delivery and Idempotency
+- Pass – authoritative state and Outbox insertion commit atomically.
+- Pass – publication uses at-least-once semantics.
+- Pass – end-to-end exactly-once delivery is not claimed.
+- Pass – retries retain the original message_id.
+- Pass – transport acknowledgment is not consumer completion.
+- Pass – Redis is not an authoritative Outbox or Inbox.
+- Pass – Outbox states are canonical and monotonic.
+- Pass – publisher leasing supports safe crash recovery.
+- Pass – every authoritative consumer requires durable deduplication.
+- Pass – consumer effect and Inbox completion are atomic where they share a boundary.
+- Pass – completed duplicates perform no second domain effect.
+- Pass – concurrent in-progress duplicates cannot execute concurrently.
+- Pass – message_id reuse with a different fingerprint is rejected as an integrity incident.
+
+Ordering and Failure Handling
+- Pass – no global ordering guarantee is claimed.
+- Pass – aggregate_id and aggregate_version define applicable ordering evidence.
+- Pass – duplicate, stale and future/gapped versions are detected.
+- Pass – stale messages cannot reverse newer state.
+- Pass – a version gap pauses unsafe aggregate processing.
+- Pass – different aggregates may process concurrently.
+- Pass – retryable failures retain original identity and attempt metadata.
+- Pass – non-retryable failures are quarantined.
+- Pass – quarantine cannot silently delete a message.
+- Pass – redrive requires authorization, audit and the original message_id.
+- Pass – corrective messages require a new identifier and causation reference.
+
+Schema and Transport Governance
+- Pass – published schemas are immutable.
+- Pass – additive compatibility requires explicit versioning and consumer compatibility.
+- Pass – breaking changes require a new major contract or approved major version.
+- Pass – unsupported versions fail safely into quarantine.
+- Pass – ASYNC_TRANSPORT_TBD prevents unapproved broker assumptions.
+- Not Applicable – the Phase 1 broker/transport remains Architecture approval TBD.
+- Not Applicable – compatibility-window duration remains Architecture/Operations-TBD.
+- Not Applicable – schema-registry/tooling selection remains Architecture/Operations-TBD.
+- Not Applicable – numerical publisher lease/retry/backoff/quarantine values remain Operations-TBD.
+
+Security and Privacy
+- Pass – encryption in transit and at rest is mandatory.
+- Pass – producer and consumer identities require least privilege.
+- Pass – payload minimization and classification are mandatory.
+- Pass – credentials, tokens, OTPs, MFA secrets and Recovery evidence are prohibited.
+- Pass – Module 01 messages cannot copy Module 02 authorization state.
+- Pass – protected payloads use references or approved C7 encryption.
+- Pass – logs, traces, metrics, quarantine and operations tooling require redaction.
+
+Persistence and Reconciliation
+- Pass – Consumer Inbox logical fields and canonical states are complete.
+- Pass – unique consumer_context plus message_id is required.
+- Pass – completed Inbox records are immutable except approved retention processing.
+- Pass – required Outbox and Inbox access patterns are catalogued.
+- Pass – inbound and outbound transaction boundaries are defined.
+- Pass – reconciliation covers missing intent, publication failure, stuck Inbox, gaps, quarantine and missing outcomes.
+- Pass – reconciliation is idempotent, observable and resumable.
+- Pass – reconciliation cannot infer authentication or authorization grants.
+
+Testing and Operations
+- Pass – duplicate publication and consumption tests are required.
+- Pass – publisher and consumer crash-window tests are required.
+- Pass – ordering, stale-version and version-gap tests are required.
+- Pass – quarantine and controlled-redrive tests are required.
+- Pass – schema compatibility and unsupported-version tests are required.
+- Pass – secret and personal-data leakage tests are required.
+- Pass – Outbox/Inbox backup and restoration tests are required.
+- Pass – transport-outage reconciliation tests are required.
+- Pass – monitoring covers publication, consumption, gaps, quarantine, redrive and reconciliation.
+- Pass – restoration order protects authoritative state and contract compatibility.
+- Not Applicable – numerical monitoring and alert thresholds remain Operations-TBD.
+
+C1–C7 Preservation
+- Pass – C1 universal Identity and module ownership boundaries remain unchanged.
+- Pass – C2 JWT, Session, Refresh Token and revocation semantics remain unchanged.
+- Pass – C3 Recovery Assurance, state machine and dual control remain unchanged.
+- Pass – C4 PostgreSQL authority, Outbox and immutable audit remain unchanged.
+- Pass – C5 REST, DTO, token transport and OpenAPI contracts remain unchanged.
+- Pass – C6 degraded-mode, resilience and restoration rules remain unchanged.
+- Pass – C7 ES256, KMS, key lifecycle and secret protection remain unchanged.
+
+7. Verification Summary
+
+Pass: 99
+Fail: 0
+Not Applicable: 5
+
+The Not Applicable items are explicitly governed approval values and do not represent remaining C8 architecture defects. Their implementation is blocked by the C8 gate.
+
+8. C8 Result
+
+Remaining C8 defects: None.
+C8 status: Resolved

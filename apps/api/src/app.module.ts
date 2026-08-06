@@ -1,0 +1,23 @@
+import { MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
+import { ConfigurationModule } from './platform/configuration/configuration.module';
+import { PrismaModule } from './modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
+import { GlobalExceptionFilter } from './platform/errors/global-exception.filter';
+import { HealthController } from './platform/health/health.controller';
+import { HealthService } from './platform/health/health.service';
+import { PlatformLogger } from './platform/logging/platform-logger.service';
+import { RequestLoggingMiddleware } from './platform/logging/request-logging.middleware';
+import { MetricsService } from './platform/metrics/metrics.service';
+import { RequestContextMiddleware } from './platform/request-context/request-context.middleware';
+import { IdentityAuthenticationModule } from './modules/identity-authentication/identity-authentication.module';
+
+@Module({
+  imports: [ConfigurationModule, PrismaModule, IdentityAuthenticationModule],
+  controllers: [HealthController],
+  providers: [HealthService, MetricsService, PlatformLogger, GlobalExceptionFilter],
+  exports: [PlatformLogger],
+})
+export class AppModule implements NestModule {
+  public configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestContextMiddleware, RequestLoggingMiddleware).forRoutes('*');
+  }
+}

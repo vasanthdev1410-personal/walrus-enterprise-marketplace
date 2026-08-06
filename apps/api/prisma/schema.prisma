@@ -1,0 +1,787 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum IdentityState {
+  PENDING_VERIFICATION
+  ACTIVE
+  LOCKED
+  SUSPENDED
+  DISABLED
+  DELETED
+}
+
+enum IdentityVerificationState {
+  PENDING_VERIFICATION
+  VERIFIED
+}
+
+enum IdentifierType {
+  EMAIL
+  MOBILE
+}
+
+enum IdentifierVerificationState {
+  UNVERIFIED
+  PENDING_VERIFICATION
+  VERIFIED
+  RETIRED
+  ANONYMIZED
+}
+
+enum CredentialType {
+  PASSWORD
+  EMAIL_VERIFICATION
+  MOBILE_VERIFICATION
+}
+
+enum CredentialState {
+  CREATED
+  VERIFIED
+  ACTIVE
+  REPLACED
+  COMPROMISED
+  REVOKED
+}
+
+enum CredentialHistoryEventType {
+  CREATED
+  VERIFIED
+  ACTIVATED
+  REPLACED
+  MARKED_COMPROMISED
+  REVOKED
+}
+
+enum AuthenticationSecurityClassification {
+  STANDARD_AUTHENTICATION
+  PRIVILEGED_ADMIN_AUTHENTICATION
+  SUPER_ADMIN_AUTHENTICATION
+}
+
+enum ClassificationAssignmentState {
+  EFFECTIVE
+  ENDED
+}
+
+enum MfaEnrollmentState {
+  PENDING_VERIFICATION
+  ACTIVE
+  REPLACEMENT_REQUIRED
+  DISABLED
+}
+
+enum MfaFactorType {
+  TOTP_AUTHENTICATOR
+}
+
+enum MfaFactorState {
+  PENDING_VERIFICATION
+  ACTIVE
+  REPLACEMENT_REQUIRED
+  REVOKED
+}
+
+enum RecoveryCodeSetState {
+  ACTIVE
+  EXHAUSTED
+  SUPERSEDED
+  INVALIDATED
+}
+
+enum RecoveryCodeState {
+  ACTIVE
+  CONSUMED
+  INVALIDATED
+}
+
+enum TrustedDeviceState {
+  PENDING
+  TRUSTED
+  EXPIRED
+  REVOKED
+  BLOCKED
+}
+
+enum SessionClass {
+  INTERACTIVE_WEB
+  INTERACTIVE_MOBILE
+  RECOVERY
+}
+
+enum SessionState {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum AuthenticationAssuranceLevel {
+  AAL0
+  AAL1
+  AAL2
+}
+
+enum AuthenticationMethod {
+  PASSWORD
+  EMAIL_OTP
+  SMS_OTP
+  TOTP_AUTHENTICATOR
+}
+
+enum RefreshTokenFamilyState {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum RefreshTokenState {
+  ACTIVE
+  USED
+  REVOKED
+  EXPIRED
+}
+
+enum VerificationPurpose {
+  REGISTRATION_VERIFICATION
+  PRIVILEGED_INVITATION_VERIFICATION
+  CONTACT_CHANGE_VERIFICATION
+  PASSWORD_RECOVERY
+  ACCOUNT_RECOVERY
+  MFA_ENROLLMENT
+  MFA_AUTHENTICATION
+  STEP_UP_AUTHENTICATION
+  ADDITIONAL_SECURITY_VERIFICATION
+}
+
+enum VerificationChannel {
+  EMAIL
+  SMS
+  AUTHENTICATOR_APPLICATION
+}
+
+enum VerificationChallengeState {
+  CREATED
+  PENDING
+  CHALLENGE_ISSUED
+  VERIFIED
+  EXPIRED
+  FAILED
+  CANCELLED
+}
+
+enum VerificationAttemptOutcome {
+  SUCCEEDED
+  REJECTED
+  EXPIRED
+  RATE_LIMITED
+  FAILED_SECURELY
+  TEMPORARILY_UNAVAILABLE
+}
+
+enum OtpEvidenceState {
+  ACTIVE
+  CONSUMED
+  EXPIRED
+  INVALIDATED
+}
+
+enum RecoveryOperationClass {
+  PASSWORD_RESET
+  MFA_FACTOR_REPLACEMENT
+  RECOVERY_CODE_REGENERATION
+  VERIFIED_EMAIL_CHANGE
+  VERIFIED_MOBILE_CHANGE
+  IDENTITY_UNLOCK
+  COMPROMISED_CREDENTIAL_RECOVERY
+  PRIVILEGED_ACCOUNT_RECOVERY
+  SUPER_ADMIN_EMERGENCY_RECOVERY
+}
+
+enum RecoveryState {
+  REQUESTED
+  EVIDENCE_PENDING
+  EVIDENCE_VERIFIED
+  APPROVAL_PENDING
+  APPROVED
+  EXECUTING
+  COMPLETED
+  REJECTED
+  CANCELLED
+  EXPIRED
+  FAILED_SECURELY
+}
+
+enum RecoveryAssuranceLevel {
+  RA0
+  RA1
+  RA2
+}
+
+enum RecoveryEvidenceType {
+  VERIFIED_EMAIL_CHANNEL
+  VERIFIED_MOBILE_CHANNEL
+  RECOVERY_CODE
+  AUTHENTICATED_SESSION
+  MFA_FACTOR
+  CONTROLLED_BOOTSTRAP_EVIDENCE
+}
+
+enum RecoveryEvidenceState {
+  PENDING
+  VERIFIED
+  REJECTED
+  CONSUMED
+  EXPIRED
+  INVALIDATED
+}
+
+enum RecoveryEvidenceBoundary {
+  EMAIL_CHANNEL
+  MOBILE_CHANNEL
+  RECOVERY_CODE_SET
+  AUTHENTICATED_SESSION
+  MFA_FACTOR
+  CONTROLLED_BOOTSTRAP
+}
+
+enum RecoveryApprovalDecision {
+  APPROVED
+  REJECTED
+}
+
+enum RecoveryAttemptType {
+  EVIDENCE_SUBMISSION
+  EVIDENCE_VALIDATION
+  APPROVAL_VALIDATION
+  EXECUTION
+}
+
+enum RecoveryAttemptOutcome {
+  SUCCEEDED
+  REJECTED
+  FAILED_SECURELY
+  TEMPORARILY_UNAVAILABLE
+}
+
+enum RecoveryNotificationType {
+  RECOVERY_REQUEST_INITIATED
+  RECOVERY_CHALLENGE_SENT
+  PASSWORD_RESET_COMPLETED
+  MFA_RESET_COMPLETED
+  TRUSTED_DEVICE_REMOVED
+  CONTACT_INFORMATION_UPDATED
+  RECOVERY_COMPLETED
+  SUSPICIOUS_RECOVERY_ATTEMPT
+}
+
+enum RecoveryNotificationDeliveryState {
+  PENDING
+  DISPATCHED
+  DELIVERED
+  FAILED
+}
+
+enum ApiIdempotencyProcessingState {
+  PROCESSING
+  COMPLETED
+}
+
+model ApiIdempotencyRecord {
+  apiIdempotencyId     String                        @id @map("api_idempotency_id") @db.Uuid
+  identityOrClientScope String                       @map("identity_or_client_scope") @db.Text
+  operationType        String                        @map("operation_type") @db.Text
+  idempotencyKey       String                        @map("idempotency_key") @db.Text
+  requestFingerprint   String                        @map("request_fingerprint") @db.Text
+  processingState      ApiIdempotencyProcessingState @map("processing_state")
+  responseReference    String?                       @map("response_reference") @db.Text
+  createdAt            DateTime                      @map("created_at") @db.Timestamptz(6)
+  completedAt          DateTime?                     @map("completed_at") @db.Timestamptz(6)
+  expiresAt            DateTime?                     @map("expires_at") @db.Timestamptz(6)
+
+  @@unique([identityOrClientScope, operationType, idempotencyKey])
+  @@index([processingState, createdAt])
+  @@index([expiresAt])
+  @@map("api_idempotency_records")
+}
+
+model Identity {
+  identityId          String                    @id @map("identity_id") @db.Uuid
+  identityState       IdentityState             @map("identity_state")
+  verificationState   IdentityVerificationState @map("verification_state")
+  aggregateVersion    Int                       @map("aggregate_version")
+  createdAt           DateTime                  @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                  @map("updated_at") @db.Timestamptz(6)
+  lockedUntil         DateTime?                 @map("locked_until") @db.Timestamptz(6)
+  disabledAt          DateTime?                 @map("disabled_at") @db.Timestamptz(6)
+  anonymizedAt        DateTime?                 @map("anonymized_at") @db.Timestamptz(6)
+  deletionRequestedAt DateTime?                 @map("deletion_requested_at") @db.Timestamptz(6)
+
+  identifiers               IdentityIdentifier[]
+  credentials               Credential[]
+  credentialHistory         CredentialHistoryRecord[]
+  passwordHistory           PasswordHistoryRecord[]
+  classificationAssignments AuthenticationSecurityClassificationAssignment[]
+  mfaEnrollments            MfaEnrollment[]
+  recoveryCodeSets          RecoveryCodeSet[]
+  trustedDevices            TrustedDevice[]
+  stateTransitions          IdentityStateTransition[]
+  sessions                  Session[]
+  verificationChallenges    VerificationChallenge[]
+  recoveryRequests          RecoveryRequest[]
+
+  @@index([identityState])
+  @@index([lockedUntil])
+  @@map("identities")
+}
+
+model IdentityIdentifier {
+  identifierId             String                      @id @map("identifier_id") @db.Uuid
+  identityId               String                      @map("identity_id") @db.Uuid
+  identifierType           IdentifierType              @map("identifier_type")
+  protectedNormalizedValue String                      @map("protected_normalized_value") @db.Text
+  lookupDigest             String                      @map("lookup_digest") @db.Text
+  lookupKeyVersion         String                      @map("lookup_key_version") @db.Text
+  verificationState        IdentifierVerificationState @map("verification_state")
+  isPrimary                Boolean                     @map("is_primary")
+  createdAt                DateTime                    @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime                    @map("updated_at") @db.Timestamptz(6)
+  verifiedAt               DateTime?                   @map("verified_at") @db.Timestamptz(6)
+  retiredAt                DateTime?                   @map("retired_at") @db.Timestamptz(6)
+  anonymizedAt             DateTime?                   @map("anonymized_at") @db.Timestamptz(6)
+  identity                 Identity                    @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+
+  @@unique([identifierType, lookupDigest])
+  @@index([identityId, identifierType, verificationState])
+  @@index([lookupKeyVersion])
+  @@map("identity_identifiers")
+}
+
+model Credential {
+  credentialId         String          @id @map("credential_id") @db.Uuid
+  identityId           String          @map("identity_id") @db.Uuid
+  credentialType       CredentialType  @map("credential_type")
+  credentialVersion    Int             @map("credential_version")
+  credentialState      CredentialState @map("credential_state")
+  protectedSecret      String          @map("protected_secret") @db.Text
+  protectionKeyVersion String?         @map("protection_key_version") @db.Text
+  createdAt            DateTime        @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime        @map("updated_at") @db.Timestamptz(6)
+  lastUsedAt           DateTime?       @map("last_used_at") @db.Timestamptz(6)
+  compromisedAt        DateTime?       @map("compromised_at") @db.Timestamptz(6)
+  revokedAt            DateTime?       @map("revoked_at") @db.Timestamptz(6)
+  replacedAt           DateTime?       @map("replaced_at") @db.Timestamptz(6)
+  identity             Identity        @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+
+  @@index([identityId, credentialType, credentialState])
+  @@map("credentials")
+}
+
+model CredentialHistoryRecord {
+  credentialHistoryId      String                     @id @map("credential_history_id") @db.Uuid
+  identityId               String                     @map("identity_id") @db.Uuid
+  credentialType           CredentialType             @map("credential_type")
+  credentialVersion        Int                        @map("credential_version")
+  protectedHistoricalValue String?                    @map("protected_historical_value") @db.Text
+  eventType                CredentialHistoryEventType @map("event_type")
+  createdAt                DateTime                   @map("created_at") @db.Timestamptz(6)
+  sourceCredentialId       String?                    @map("source_credential_id") @db.Uuid
+  correlationId            String?                    @map("correlation_id") @db.Uuid
+  identity                 Identity                   @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+
+  @@index([identityId, createdAt(sort: Desc)])
+  @@map("credential_history_records")
+}
+
+model PasswordHistoryRecord {
+  passwordHistoryId      String   @id @map("password_history_id") @db.Uuid
+  identityId             String   @map("identity_id") @db.Uuid
+  passwordHash           String   @map("password_hash") @db.Text
+  hashAlgorithmReference String   @map("hash_algorithm_reference") @db.Text
+  createdAt              DateTime @map("created_at") @db.Timestamptz(6)
+  identity               Identity @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+
+  @@index([identityId, createdAt(sort: Desc)])
+  @@map("password_history_records")
+}
+
+model AuthenticationSecurityClassificationAssignment {
+  classificationAssignmentId String                               @id @map("classification_assignment_id") @db.Uuid
+  identityId                 String                               @map("identity_id") @db.Uuid
+  classification             AuthenticationSecurityClassification
+  effectiveAt                DateTime                             @map("effective_at") @db.Timestamptz(6)
+  assignmentState            ClassificationAssignmentState        @map("assignment_state")
+  aggregateVersion           Int                                  @map("aggregate_version")
+  createdAt                  DateTime                             @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime                             @map("updated_at") @db.Timestamptz(6)
+  endedAt                    DateTime?                            @map("ended_at") @db.Timestamptz(6)
+  sourceContractReference    String?                              @map("source_contract_reference") @db.Text
+  reasonCode                 String?                              @map("reason_code") @db.Text
+  identity                   Identity                             @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+
+  @@index([identityId, assignmentState])
+  @@index([classification, assignmentState])
+  @@map("authentication_security_classification_assignments")
+}
+
+model MfaEnrollment {
+  mfaEnrollmentId       String             @id @map("mfa_enrollment_id") @db.Uuid
+  identityId            String             @map("identity_id") @db.Uuid
+  enrollmentState       MfaEnrollmentState @map("enrollment_state")
+  createdAt             DateTime           @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime           @map("updated_at") @db.Timestamptz(6)
+  activatedAt           DateTime?          @map("activated_at") @db.Timestamptz(6)
+  disabledAt            DateTime?          @map("disabled_at") @db.Timestamptz(6)
+  replacementRequiredAt DateTime?          @map("replacement_required_at") @db.Timestamptz(6)
+  identity              Identity           @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+  factors               MfaFactor[]
+
+  @@index([identityId, enrollmentState])
+  @@map("mfa_enrollments")
+}
+
+model MfaFactor {
+  mfaFactorId                String         @id @map("mfa_factor_id") @db.Uuid
+  mfaEnrollmentId            String         @map("mfa_enrollment_id") @db.Uuid
+  factorType                 MfaFactorType  @map("factor_type")
+  factorState                MfaFactorState @map("factor_state")
+  encryptedSecretOrReference String         @map("encrypted_secret_or_reference") @db.Text
+  encryptionKeyVersion       String         @map("encryption_key_version") @db.Text
+  createdAt                  DateTime       @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime       @map("updated_at") @db.Timestamptz(6)
+  verifiedAt                 DateTime?      @map("verified_at") @db.Timestamptz(6)
+  lastUsedAt                 DateTime?      @map("last_used_at") @db.Timestamptz(6)
+  revokedAt                  DateTime?      @map("revoked_at") @db.Timestamptz(6)
+  replacementReason          String?        @map("replacement_reason") @db.Text
+  lastAcceptedTimeStep       BigInt?        @map("last_accepted_time_step")
+  enrollment                 MfaEnrollment  @relation(fields: [mfaEnrollmentId], references: [mfaEnrollmentId], onDelete: Restrict)
+
+  @@index([mfaEnrollmentId, factorState])
+  @@index([factorType, factorState])
+  @@map("mfa_factors")
+}
+
+model RecoveryCodeSet {
+  recoveryCodeSetId  String               @id @map("recovery_code_set_id") @db.Uuid
+  identityId         String               @map("identity_id") @db.Uuid
+  setVersion         Int                  @map("set_version")
+  setState           RecoveryCodeSetState @map("set_state")
+  createdAt          DateTime             @map("created_at") @db.Timestamptz(6)
+  invalidatedAt      DateTime?            @map("invalidated_at") @db.Timestamptz(6)
+  invalidationReason String?              @map("invalidation_reason") @db.Text
+  identity           Identity             @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+  codes              RecoveryCodeRecord[]
+
+  @@unique([identityId, setVersion])
+  @@index([identityId, setState])
+  @@map("recovery_code_sets")
+}
+
+model RecoveryCodeRecord {
+  recoveryCodeId    String            @id @map("recovery_code_id") @db.Uuid
+  recoveryCodeSetId String            @map("recovery_code_set_id") @db.Uuid
+  codeDigest        String            @unique @map("code_digest") @db.Text
+  codeState         RecoveryCodeState @map("code_state")
+  createdAt         DateTime          @map("created_at") @db.Timestamptz(6)
+  consumedAt        DateTime?         @map("consumed_at") @db.Timestamptz(6)
+  invalidatedAt     DateTime?         @map("invalidated_at") @db.Timestamptz(6)
+  codeSet           RecoveryCodeSet   @relation(fields: [recoveryCodeSetId], references: [recoveryCodeSetId], onDelete: Restrict)
+
+  @@index([recoveryCodeSetId, codeState])
+  @@map("recovery_code_records")
+}
+
+model TrustedDevice {
+  trustedDeviceId            String             @id @map("trusted_device_id") @db.Uuid
+  identityId                 String             @map("identity_id") @db.Uuid
+  protectedDeviceFingerprint String             @map("protected_device_fingerprint") @db.Text
+  deviceState                TrustedDeviceState @map("device_state")
+  trustExpiresAt             DateTime           @map("trust_expires_at") @db.Timestamptz(6)
+  aggregateVersion           Int                @map("aggregate_version")
+  createdAt                  DateTime           @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime           @map("updated_at") @db.Timestamptz(6)
+  lastSeenAt                 DateTime?          @map("last_seen_at") @db.Timestamptz(6)
+  revokedAt                  DateTime?          @map("revoked_at") @db.Timestamptz(6)
+  revocationReason           String?            @map("revocation_reason") @db.Text
+  identity                   Identity           @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+
+  @@unique([identityId, protectedDeviceFingerprint])
+  @@index([identityId, deviceState])
+  @@index([trustExpiresAt])
+  @@map("trusted_devices")
+}
+
+model IdentityStateTransition {
+  identityStateTransitionId String         @id @map("identity_state_transition_id") @db.Uuid
+  identityId                String         @map("identity_id") @db.Uuid
+  fromState                 IdentityState? @map("from_state")
+  toState                   IdentityState  @map("to_state")
+  stateVersion              Int            @map("state_version")
+  transitionedAt            DateTime       @map("transitioned_at") @db.Timestamptz(6)
+  createdAt                 DateTime       @map("created_at") @db.Timestamptz(6)
+  reasonCode                String?        @map("reason_code") @db.Text
+  correlationId             String?        @map("correlation_id") @db.Uuid
+  causationId               String?        @map("causation_id") @db.Uuid
+  sourceReference           String?        @map("source_reference") @db.Text
+  identity                  Identity       @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+
+  @@unique([identityId, stateVersion])
+  @@index([identityId, transitionedAt(sort: Desc)])
+  @@index([toState, transitionedAt])
+  @@index([correlationId])
+  @@map("identity_state_transitions")
+}
+
+model Session {
+  sessionId                                     String                               @id @map("session_id") @db.Uuid
+  identityId                                    String                               @map("identity_id") @db.Uuid
+  sessionClass                                  SessionClass                         @map("session_class")
+  sessionState                                  SessionState                         @map("session_state")
+  sessionVersion                                Int                                  @map("session_version")
+  authenticationAssurance                       AuthenticationAssuranceLevel         @map("authentication_assurance")
+  authenticationSecurityClassificationReference AuthenticationSecurityClassification @map("authentication_security_classification_reference")
+  authenticationMethods                         AuthenticationMethod[]               @map("authentication_methods")
+  createdAt                                     DateTime                             @map("created_at") @db.Timestamptz(6)
+  lastActivityAt                                DateTime                             @map("last_activity_at") @db.Timestamptz(6)
+  idleExpiresAt                                 DateTime                             @map("idle_expires_at") @db.Timestamptz(6)
+  absoluteExpiresAt                             DateTime                             @map("absolute_expires_at") @db.Timestamptz(6)
+  aggregateVersion                              Int                                  @map("aggregate_version")
+  revokedAt                                     DateTime?                            @map("revoked_at") @db.Timestamptz(6)
+  revocationReason                              String?                              @map("revocation_reason") @db.Text
+  deviceSessionId                               String?                              @map("device_session_id") @db.Uuid
+  mfaVerifiedAt                                 DateTime?                            @map("mfa_verified_at") @db.Timestamptz(6)
+  correlationId                                 String?                              @map("correlation_id") @db.Uuid
+  identity                                      Identity                             @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+  tokenFamilies                                 RefreshTokenFamily[]
+
+  @@index([identityId, sessionState])
+  @@index([sessionId, sessionVersion, sessionState])
+  @@index([idleExpiresAt, sessionState])
+  @@index([absoluteExpiresAt, sessionState])
+  @@index([deviceSessionId])
+  @@map("sessions")
+}
+
+model RefreshTokenFamily {
+  tokenFamilyId    String                  @id @map("token_family_id") @db.Uuid
+  sessionId        String                  @map("session_id") @db.Uuid
+  familyState      RefreshTokenFamilyState @map("family_state")
+  aggregateVersion Int                     @map("aggregate_version")
+  createdAt        DateTime                @map("created_at") @db.Timestamptz(6)
+  revokedAt        DateTime?               @map("revoked_at") @db.Timestamptz(6)
+  revocationReason String?                 @map("revocation_reason") @db.Text
+  reuseDetectedAt  DateTime?               @map("reuse_detected_at") @db.Timestamptz(6)
+  session          Session                 @relation(fields: [sessionId], references: [sessionId], onDelete: Restrict)
+  tokens           RefreshTokenRecord[]    @relation("TokenFamily")
+
+  @@index([sessionId])
+  @@index([familyState])
+  @@map("refresh_token_families")
+}
+
+model RefreshTokenRecord {
+  refreshTokenId   String              @id @map("refresh_token_id") @db.Uuid
+  tokenFamilyId    String              @map("token_family_id") @db.Uuid
+  tokenDigest      String              @unique @map("token_digest") @db.Text
+  tokenState       RefreshTokenState   @map("token_state")
+  issuedAt         DateTime            @map("issued_at") @db.Timestamptz(6)
+  expiresAt        DateTime            @map("expires_at") @db.Timestamptz(6)
+  createdAt        DateTime            @map("created_at") @db.Timestamptz(6)
+  consumedAt       DateTime?           @map("consumed_at") @db.Timestamptz(6)
+  revokedAt        DateTime?           @map("revoked_at") @db.Timestamptz(6)
+  successorTokenId String?             @unique @map("successor_token_id") @db.Uuid
+  parentTokenId    String?             @unique @map("parent_token_id") @db.Uuid
+  reuseDetectedAt  DateTime?           @map("reuse_detected_at") @db.Timestamptz(6)
+  family           RefreshTokenFamily  @relation("TokenFamily", fields: [tokenFamilyId], references: [tokenFamilyId], onDelete: Restrict)
+  successor        RefreshTokenRecord? @relation("TokenSuccessor", fields: [successorTokenId], references: [refreshTokenId], onDelete: Restrict)
+  predecessor      RefreshTokenRecord? @relation("TokenSuccessor")
+  parent           RefreshTokenRecord? @relation("TokenParent", fields: [parentTokenId], references: [refreshTokenId], onDelete: Restrict)
+  child            RefreshTokenRecord? @relation("TokenParent")
+
+  @@index([tokenFamilyId, tokenState])
+  @@index([expiresAt])
+  @@map("refresh_token_records")
+}
+
+model VerificationChallenge {
+  challengeId                   String                     @id @map("challenge_id") @db.Uuid
+  identityId                    String?                    @map("identity_id") @db.Uuid
+  purpose                       VerificationPurpose
+  channelType                   VerificationChannel        @map("channel_type")
+  protectedDestinationReference String                     @map("protected_destination_reference") @db.Text
+  challengeDigest               String                     @map("challenge_digest") @db.Text
+  challengeState                VerificationChallengeState @map("challenge_state")
+  attemptCount                  Int                        @map("attempt_count")
+  maximumAttempts               Int                        @map("maximum_attempts")
+  expiresAt                     DateTime                   @map("expires_at") @db.Timestamptz(6)
+  aggregateVersion              Int                        @map("aggregate_version")
+  createdAt                     DateTime                   @map("created_at") @db.Timestamptz(6)
+  updatedAt                     DateTime                   @map("updated_at") @db.Timestamptz(6)
+  consumedAt                    DateTime?                  @map("consumed_at") @db.Timestamptz(6)
+  cancelledAt                   DateTime?                  @map("cancelled_at") @db.Timestamptz(6)
+  correlationId                 String?                    @map("correlation_id") @db.Uuid
+  identity                      Identity?                  @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+  attempts                      VerificationAttempt[]
+  otpEvidence                   OtpEvidenceRecord[]
+
+  @@index([identityId, purpose, challengeState])
+  @@index([protectedDestinationReference, purpose, challengeState])
+  @@index([expiresAt, challengeState])
+  @@map("verification_challenges")
+}
+
+model VerificationAttempt {
+  verificationAttemptId String                     @id @map("verification_attempt_id") @db.Uuid
+  challengeId           String                     @map("challenge_id") @db.Uuid
+  outcome               VerificationAttemptOutcome
+  attemptedAt           DateTime                   @map("attempted_at") @db.Timestamptz(6)
+  createdAt             DateTime                   @map("created_at") @db.Timestamptz(6)
+  sourceIpReference     String?                    @map("source_ip_reference") @db.Text
+  deviceReference       String?                    @map("device_reference") @db.Text
+  failureReason         String?                    @map("failure_reason") @db.Text
+  challenge             VerificationChallenge      @relation(fields: [challengeId], references: [challengeId], onDelete: Restrict)
+
+  @@index([challengeId, attemptedAt])
+  @@map("verification_attempts")
+}
+
+model OtpEvidenceRecord {
+  otpEvidenceId  String                @id @map("otp_evidence_id") @db.Uuid
+  challengeId    String                @map("challenge_id") @db.Uuid
+  evidenceDigest String                @map("evidence_digest") @db.Text
+  evidenceState  OtpEvidenceState      @map("evidence_state")
+  expiresAt      DateTime              @map("expires_at") @db.Timestamptz(6)
+  createdAt      DateTime              @map("created_at") @db.Timestamptz(6)
+  consumedAt     DateTime?             @map("consumed_at") @db.Timestamptz(6)
+  challenge      VerificationChallenge @relation(fields: [challengeId], references: [challengeId], onDelete: Restrict)
+
+  @@index([challengeId, evidenceState])
+  @@map("otp_evidence_records")
+}
+
+model RecoveryRequest {
+  recoveryRequestId     String                       @id @map("recovery_request_id") @db.Uuid
+  identityId            String                       @map("identity_id") @db.Uuid
+  operationClass        RecoveryOperationClass       @map("operation_class")
+  recoveryState         RecoveryState                @map("recovery_state")
+  recoveryAssurance     RecoveryAssuranceLevel       @map("recovery_assurance")
+  recoveryPolicyVersion String                       @map("recovery_policy_version") @db.Text
+  permittedOperation    RecoveryOperationClass       @map("permitted_operation")
+  stateVersion          Int                          @map("state_version")
+  expiresAt             DateTime                     @map("expires_at") @db.Timestamptz(6)
+  aggregateVersion      Int                          @map("aggregate_version")
+  createdAt             DateTime                     @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                     @map("updated_at") @db.Timestamptz(6)
+  approvedAt            DateTime?                    @map("approved_at") @db.Timestamptz(6)
+  executionStartedAt    DateTime?                    @map("execution_started_at") @db.Timestamptz(6)
+  completedAt           DateTime?                    @map("completed_at") @db.Timestamptz(6)
+  terminalReason        String?                      @map("terminal_reason") @db.Text
+  idempotencyKey        String?                      @map("idempotency_key") @db.Text
+  correlationId         String?                      @map("correlation_id") @db.Uuid
+  identity              Identity                     @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
+  evidence              RecoveryEvidenceRecord[]
+  approvals             RecoveryApprovalRecord[]
+  attempts              RecoveryAttempt[]
+  transitions           RecoveryStateTransition[]
+  notifications         RecoveryNotificationRecord[]
+
+  @@unique([identityId, operationClass, idempotencyKey])
+  @@index([identityId, recoveryState])
+  @@index([recoveryState, expiresAt])
+  @@index([operationClass, recoveryState])
+  @@map("recovery_requests")
+}
+
+model RecoveryEvidenceRecord {
+  recoveryEvidenceId           String                   @id @map("recovery_evidence_id") @db.Uuid
+  recoveryRequestId            String                   @map("recovery_request_id") @db.Uuid
+  evidenceType                 RecoveryEvidenceType     @map("evidence_type")
+  protectedEvidenceOrReference String                   @map("protected_evidence_or_reference") @db.Text
+  evidenceState                RecoveryEvidenceState    @map("evidence_state")
+  evidenceBoundary             RecoveryEvidenceBoundary @map("evidence_boundary")
+  expiresAt                    DateTime                 @map("expires_at") @db.Timestamptz(6)
+  createdAt                    DateTime                 @map("created_at") @db.Timestamptz(6)
+  verifiedAt                   DateTime?                @map("verified_at") @db.Timestamptz(6)
+  consumedAt                   DateTime?                @map("consumed_at") @db.Timestamptz(6)
+  failureReason                String?                  @map("failure_reason") @db.Text
+  request                      RecoveryRequest          @relation(fields: [recoveryRequestId], references: [recoveryRequestId], onDelete: Restrict)
+
+  @@index([recoveryRequestId, evidenceState])
+  @@index([expiresAt])
+  @@map("recovery_evidence_records")
+}
+
+model RecoveryApprovalRecord {
+  recoveryApprovalId             String                   @id @map("recovery_approval_id") @db.Uuid
+  recoveryRequestId              String                   @map("recovery_request_id") @db.Uuid
+  recoveredIdentityId            String                   @map("recovered_identity_id") @db.Uuid
+  operationClass                 RecoveryOperationClass   @map("operation_class")
+  approverIdentityId             String                   @map("approver_identity_id") @db.Uuid
+  authorizationEvidenceReference String                   @map("authorization_evidence_reference") @db.Text
+  decision                       RecoveryApprovalDecision
+  decidedAt                      DateTime                 @map("decided_at") @db.Timestamptz(6)
+  expiresAt                      DateTime                 @map("expires_at") @db.Timestamptz(6)
+  createdAt                      DateTime                 @map("created_at") @db.Timestamptz(6)
+  request                        RecoveryRequest          @relation(fields: [recoveryRequestId], references: [recoveryRequestId], onDelete: Restrict)
+
+  @@unique([recoveryRequestId, approverIdentityId])
+  @@index([recoveryRequestId, decision])
+  @@index([approverIdentityId, decidedAt])
+  @@index([expiresAt])
+  @@map("recovery_approval_records")
+}
+
+model RecoveryAttempt {
+  recoveryAttemptId String                 @id @map("recovery_attempt_id") @db.Uuid
+  recoveryRequestId String                 @map("recovery_request_id") @db.Uuid
+  attemptType       RecoveryAttemptType    @map("attempt_type")
+  outcome           RecoveryAttemptOutcome
+  attemptedAt       DateTime               @map("attempted_at") @db.Timestamptz(6)
+  createdAt         DateTime               @map("created_at") @db.Timestamptz(6)
+  failureReason     String?                @map("failure_reason") @db.Text
+  sourceIpReference String?                @map("source_ip_reference") @db.Text
+  deviceReference   String?                @map("device_reference") @db.Text
+  request           RecoveryRequest        @relation(fields: [recoveryRequestId], references: [recoveryRequestId], onDelete: Restrict)
+
+  @@index([recoveryRequestId, attemptedAt])
+  @@map("recovery_attempts")
+}
+
+model RecoveryStateTransition {
+  recoveryTransitionId String          @id @map("recovery_transition_id") @db.Uuid
+  recoveryRequestId    String          @map("recovery_request_id") @db.Uuid
+  fromState            RecoveryState   @map("from_state")
+  toState              RecoveryState   @map("to_state")
+  stateVersion         Int             @map("state_version")
+  transitionedAt       DateTime        @map("transitioned_at") @db.Timestamptz(6)
+  createdAt            DateTime        @map("created_at") @db.Timestamptz(6)
+  actorIdentityId      String?         @map("actor_identity_id") @db.Uuid
+  reasonCode           String?         @map("reason_code") @db.Text
+  correlationId        String?         @map("correlation_id") @db.Uuid
+  request              RecoveryRequest @relation(fields: [recoveryRequestId], references: [recoveryRequestId], onDelete: Restrict)
+
+  @@unique([recoveryRequestId, stateVersion])
+  @@index([recoveryRequestId, transitionedAt])
+  @@map("recovery_state_transitions")
+}
+
+model RecoveryNotificationRecord {
+  recoveryNotificationId String                            @id @map("recovery_notification_id") @db.Uuid
+  recoveryRequestId      String                            @map("recovery_request_id") @db.Uuid
+  notificationType       RecoveryNotificationType          @map("notification_type")
+  deliveryState          RecoveryNotificationDeliveryState @map("delivery_state")
+  destinationReference   String                            @map("destination_reference") @db.Text
+  createdAt              DateTime                          @map("created_at") @db.Timestamptz(6)
+  deliveredAt            DateTime?                         @map("delivered_at") @db.Timestamptz(6)
+  failedAt               DateTime?                         @map("failed_at") @db.Timestamptz(6)
+  failureReason          String?                           @map("failure_reason") @db.Text
+  request                RecoveryRequest                   @relation(fields: [recoveryRequestId], references: [recoveryRequestId], onDelete: Restrict)
+
+  @@index([recoveryRequestId, deliveryState])
+  @@map("recovery_notification_records")
+}

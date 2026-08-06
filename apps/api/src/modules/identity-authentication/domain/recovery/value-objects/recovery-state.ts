@@ -1,0 +1,14 @@
+export const RECOVERY_STATES = [
+  'REQUESTED',
+  'EVIDENCE_PENDING',
+  'EVIDENCE_VERIFIED',
+  'APPROVAL_PENDING',
+  'APPROVED',
+  'EXECUTING',
+  'COMPLETED',
+  'REJECTED',
+  'CANCELLED',
+  'EXPIRED',
+  'FAILED_SECURELY',
+] as const;
+export type RecoveryState = (typeof RECOVERY_STATES)[number];

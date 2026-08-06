@@ -1,0 +1,199 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.8
+Critical Issue C7 Change Report
+
+Status: Draft
+Scope: C7 – Cryptographic key, JWT signing, encryption and secret lifecycle architecture
+
+1. Files
+
+Source preserved without modification:
+Module 01 Corrected Draft v1.7.txt
+
+Corrected copy created:
+Module 01 Corrected Draft v1.8.txt
+
+No application code, infrastructure, database schema, migration or operational resource was created.
+No C8 or later correction was applied.
+
+2. C7 Architecture Applied
+
+- ES256 is the approved Phase 1 JWT signing algorithm.
+- Production signing uses a non-exportable AWS KMS asymmetric ECC_NIST_P256 key with ECDSA_SHA_256.
+- JWT signing, encryption, lookup/HMAC, CSRF, audit-integrity and provider secrets have separated purposes and access policies.
+- Signing keys use GENERATED, ACTIVE_SIGNING, VERIFY_ONLY, RETIRED, DESTROYED and COMPROMISED lifecycle states.
+- Normal rotation, verification overlap and emergency compromise response are deterministic.
+- M01-KEY-001 defines the public JWKS contract and is represented in the endpoint, DTO, rate-limit and degraded-mode catalogues.
+- Reversible secrets use authenticated envelope encryption with a non-exportable KMS KEK.
+- Passwords use Argon2id with versioned, Security-approved parameters and progressive rehash.
+- PostgreSQL remains authoritative; Redis remains a non-authoritative projection/cache.
+- All unresolved numerical security and operational values remain explicit TBDs and block affected production approval.
+
+3. Sections Changed or Added
+
+Part 3
+- Part 3.1B §8: replaced incomplete password hashing guidance with Argon2id profile, benchmarking, progressive-rehash and denial-of-service governance.
+- Part 3.2: added the C7 JWT header policy.
+- Part 3.2 §17: replaced generic key management with the authoritative cryptographic asset inventory, key-use separation, KMS signing model, lifecycle, rotation, compromise, JWKS, verification, envelope-encryption, digest/random-value, environment-isolation and audit contracts.
+- Part 3.3: added the ordered cryptographic validation boundary.
+
+Part 4
+- Added verification, MFA, Recovery Code, Trusted Device and encrypted-secret storage requirements.
+
+Part 7
+- Added cryptographic metadata and sensitive-data persistence additions without adding Module 02 or profile data.
+- Added stable cryptographic errors.
+- Added JWKS DTO, endpoint exposure, rate-limit and degraded-mode contracts.
+- Added JWKS/OpenAPI and security-scheme governance.
+
+Part 8
+- Added algorithm-confusion, header, signature, lifecycle, rotation, compromise, JWKS, encryption, secret-leakage, parameter-profile and C1–C6 regression tests.
+
+Part 9
+- Added key/secret operational ownership, least privilege, monitoring, alerting and restoration order.
+
+Part 10
+- Added the C7 production-readiness gate.
+- Added Proposed ADR-M01-013 and C7 clarifications to affected ADR references.
+
+4. Deletions and Replacements
+
+- Replaced the incomplete password-hashing rule; no unrelated credential rule was deleted.
+- Replaced the incomplete token-signing/key-management section; no C1–C6 ownership, token/session/revocation, Recovery, persistence, API or resilience rule was removed.
+- No Module 02 role/permission table, Customer profile field, Seller profile field or cross-module foreign key was introduced.
+
+5. ADR Changes
+
+- Proposed ADR-M01-013 – Cryptographic Key, JWT Signing, Encryption and Secret Lifecycle Architecture was added and remains Proposed.
+- Existing affected ADR references received C7 consistency clarifications only.
+- All previously Proposed ADRs remain Proposed.
+
+6. Complete C7 Verification Checklist
+
+Document Control
+- Pass – v1.7 remains the source and was not modified by C7 application.
+- Pass – v1.8 was created as a separate corrected copy.
+- Pass – document version is 1.8.
+- Pass – document status remains Draft.
+- Pass – no C8 correction was applied.
+- Pass – no application or infrastructure artifact was generated.
+
+Algorithm and Signing Ownership
+- Pass – ES256 is the single approved Phase 1 signing algorithm.
+- Pass – production signing uses AWS KMS ECC_NIST_P256 with ECDSA_SHA_256.
+- Pass – production private signing material is non-exportable.
+- Pass – only the Module 01 signing role may request signatures.
+- Pass – token input cannot select the verification algorithm.
+- Pass – alg=none and unexpected algorithms fail closed.
+- Pass – kid and typ are mandatory and validated.
+- Pass – exact issuer and audience are environment-specific approved configuration.
+- Not Applicable – literal issuer and audience values remain deployment-configuration TBD pending approved domains/environments.
+
+Cryptographic Inventory and Separation
+- Pass – authoritative cryptographic asset inventory exists.
+- Pass – every asset has an owner, purpose, storage and exportability rule.
+- Pass – signing, encryption, lookup/HMAC, CSRF, audit and provider credentials have separate purposes.
+- Pass – least-privilege access is required.
+- Pass – production and lower-environment keys/secrets are isolated.
+- Pass – cross-environment tokens fail validation.
+
+Signing-Key Lifecycle and Rotation
+- Pass – GENERATED is defined.
+- Pass – ACTIVE_SIGNING is defined.
+- Pass – VERIFY_ONLY is defined.
+- Pass – RETIRED is defined.
+- Pass – DESTROYED is defined.
+- Pass – COMPROMISED is defined.
+- Pass – exactly one normal ACTIVE_SIGNING key is permitted per environment and issuer.
+- Pass – only ACTIVE_SIGNING may sign.
+- Pass – VERIFY_ONLY may verify but cannot sign.
+- Pass – retired, destroyed and compromised keys cannot sign or verify.
+- Pass – normal rotation order is deterministic.
+- Pass – overlap is tied to maximum Access Token lifetime, clock skew and propagation allowance.
+- Not Applicable – numerical Access Token lifetime, clock skew, propagation and retention values remain Security/Operations-TBD and are production-gated.
+- Pass – lifecycle changes require separation of duties, audit and change control.
+
+Compromise Handling
+- Pass – suspected or confirmed compromise immediately stops signing.
+- Pass – compromised kid tokens are rejected regardless of otherwise valid signature/session state.
+- Pass – bounded JWKS/verifier cache invalidation is required.
+- Pass – incident scope may trigger authentication epoch or Session Version invalidation.
+- Pass – verifier reconciliation and forensic metadata preservation are required.
+- Pass – a compromised key cannot return after restoration.
+
+JWKS and Verification
+- Pass – M01-KEY-001 defines GET /api/v1/.well-known/jwks.json.
+- Pass – exposure is PUBLIC_ANONYMOUS over mandatory HTTPS.
+- Pass – response contains approved public JWK members only.
+- Pass – private parameters and storage metadata are prohibited.
+- Pass – JWKS caching is bounded by rotation/propagation policy.
+- Pass – unknown kid permits at most one bounded, coalesced refresh.
+- Pass – unresolved trusted key fails verification closed.
+- Pass – endpoint catalogue includes M01-KEY-001.
+- Pass – operation-specific DTO catalogue includes M01-KEY-001.
+- Pass – rate-limit catalogue includes JWKS_PUBLIC.
+- Pass – degraded-mode catalogue covers M01-KEY-001.
+- Pass – OpenAPI governance describes JWKS and ES256 bearer security.
+- Pass – ordered middleware validation precedes authenticated-context construction.
+
+Encryption, Digests and Passwords
+- Pass – reversible secrets use authenticated envelope encryption.
+- Pass – KMS owns the non-exportable KEK.
+- Pass – ciphertext metadata includes required algorithm/key/context information.
+- Pass – encryption context binds environment, module, record type and record identifier.
+- Pass – altered ciphertext, wrong context or unavailable key fails closed.
+- Pass – plaintext secrets are bounded to memory and prohibited from logs/persistence.
+- Pass – rewrap/re-encryption is idempotent and verifiable.
+- Pass – refresh tokens, OTPs and Recovery Codes use CSPRNG, purpose binding, protected digests and safe comparison.
+- Not Applicable – numerical entropy and digest profiles remain Security-TBD and block affected implementation approval.
+- Pass – Argon2id is the approved password-hashing algorithm.
+- Pass – password-hash parameter profiles are versioned.
+- Pass – progressive rehash occurs only after successful authentication.
+- Pass – production-equivalent benchmarking and denial-of-service controls are required.
+- Not Applicable – Argon2id numerical memory, time, parallelism, output and salt values remain Security-TBD.
+
+Persistence, Audit and Operations
+- Pass – PostgreSQL remains authoritative.
+- Pass – Redis remains non-authoritative.
+- Pass – key metadata and secret records do not store private signing material.
+- Pass – cryptographic audit events are append-only through the existing C4 audit model.
+- Pass – audit events prohibit key material, plaintext secrets and token values.
+- Pass – Secrets Manager/KMS access, rotation and break-glass actions are controlled and audited.
+- Pass – monitoring covers signing, JWKS, KMS, decrypt, lifecycle and compromise conditions.
+- Pass – restoration order restores trusted cryptographic dependencies before traffic.
+- Not Applicable – exact AWS account, region, IAM identifiers, schedules and alert thresholds remain deployment/operations TBD and are production-gated.
+
+Testing and Regression
+- Pass – algorithm-confusion and JWT-header tests are required.
+- Pass – signing/verification and malformed-signature tests are required.
+- Pass – lifecycle, overlap and rotation tests are required.
+- Pass – compromise and cache-invalidation tests are required.
+- Pass – JWKS contract and refresh-storm tests are required.
+- Pass – envelope-encryption and context/tamper tests are required.
+- Pass – secret-leakage tests cover logs, traces, metrics and errors.
+- Pass – Argon2id profile and progressive-rehash tests are required.
+- Pass – C1–C6 regression tests are required.
+
+Preservation of Approved Architecture
+- Pass – C1 universal Identity and cross-module ownership boundaries remain unchanged.
+- Pass – C2 JWT, Session, Refresh Token, Redis projection and revocation semantics remain unchanged.
+- Pass – C3 Recovery Assurance, state machine, policy and dual-control rules remain unchanged.
+- Pass – C4 logical persistence, outbox and immutable-audit architecture remain unchanged.
+- Pass – C5 API, token transport, DTO, error, rate-limit and OpenAPI architecture remains authoritative and was extended only for JWKS.
+- Pass – C6 resilience, failure, degraded-mode and production-gate architecture remains authoritative and was extended only for JWKS/key dependencies.
+- Pass – roles and permissions remain exclusively owned by Module 02.
+- Pass – Customer and Seller profiles remain outside Module 01.
+- Pass – no cross-module foreign key was introduced.
+
+7. Verification Summary
+
+Pass: 90
+Fail: 0
+Not Applicable: 5
+
+The Not Applicable items are deliberately unresolved numerical or deployment-specific values whose owners and production gates are explicitly defined. They are not remaining C7 architecture defects.
+
+8. C7 Result
+
+Remaining C7 defects: None.
+C7 status: Resolved

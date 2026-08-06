@@ -1,0 +1,7 @@
+* @walrus/engineering
+/.github/ @walrus/platform @walrus/security
+/apps/api/ @walrus/backend @walrus/security
+/apps/web/ @walrus/frontend
+/apps/mobile/ @walrus/mobile
+/infrastructure/ @walrus/platform @walrus/security
+/docs/security/ @walrus/security

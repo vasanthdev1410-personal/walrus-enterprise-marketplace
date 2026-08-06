@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@walrus/config": ["../../packages/config/src/index.ts"],
+      "@walrus/shared": ["../../packages/shared/src/index.ts"],
+      "@walrus/types": ["../../packages/types/src/index.ts"]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+name: Deploy Production Foundation
+on: { workflow_dispatch: {} }
+permissions: { contents: read, id-token: write }
+jobs:
+  approval-required:
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deployment is disabled in Module 00. Product Owner and CTO approval plus approved AWS inputs are mandatory."

@@ -1,0 +1,209 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.2
+Critical Issue C1 Change Report
+
+Status: Draft
+Scope: C1 – Identity types remain entangled with authorization concepts
+
+1. Files
+
+Source preserved without modification:
+Module 01 Corrected Draft v1.1.txt
+
+Corrected copy created:
+Module 01 Corrected Draft v1.2.txt
+
+No application code was created or modified.
+
+No C2 or later correction was applied.
+
+2. Approved Ownership Model Applied
+
+Concept	Authoritative Owner
+Universal Identity and authentication lifecycle	Module 01 – Identity & Authentication
+Customer profile and customer business data	Module 06 – Customer Management
+Seller profile, seller organization, onboarding and seller business status	Module 03 – Seller Management
+Authentication-security classifications	Module 01 – Identity & Authentication
+Session Authentication Assurance	Module 01 – Identity & Authentication
+Roles, permissions, assignments and authorization decisions	Module 02 – Role & Permission Management
+
+3. Sections Changed
+
+Part 1
+- Document heading: replaced User Types terminology with Universal Identity ownership terminology.
+- §2 Scope: renamed Customer, Seller, Admin and Super Admin entry activities as universal Identity registration, provisioning or bootstrap workflows.
+- §§5–9: replaced Module 01 identity types with the universal Identity, Customer profile boundary, Seller profile boundary, Admin authentication-security classification and Super Admin authentication-security classification.
+- §16: replaced separate Customer, Seller and Admin identity lifecycles with one universal Identity lifecycle and cross-module profile/role coordination.
+- §20 and Decision Summary: aligned acceptance and decisions with one universal Identity, coordinated privileged provisioning and authentication-security classifications.
+- §22: separated Identity state, verification state, authentication-security classification, profile state and authorization state.
+- §23: replaced the Level 0–5 trust model with AAL0, AAL1 and AAL2.
+- §26: renamed Reserved Identity Types to Reserved Identity Categories.
+- §31: expanded the authentication-to-authorization boundary to include profile ownership.
+- §33: replaced trust calculation with session-scoped Authentication Assurance calculation.
+- §34: added the authoritative ownership and state relationship map.
+- §35: replaced Admin-only invitation flow with coordinated Admin and Super Admin provisioning workflows.
+- §37: aligned Super Admin bootstrap with universal Identity provisioning and Module 02 role assignment.
+- §40: replaced User Types and Trust Model output terminology with Universal Identity Ownership and Authentication Assurance Model.
+
+Part 2
+- §§3–7: replaced registration types with universal Identity entry workflows and explicit Module 02, Module 03 and Module 06 coordination.
+- §29: updated registration outputs to universal Identity, profile-association requests and Module 02 role-assignment requests.
+
+Part 3
+- Part 3.2 ADR-M01-001 reference: added the C1 universal-session, authentication-only JWT and Module 02 authorization clarification.
+- Part 3.2 §11: prohibited profile, user-type, role, permission and authorization-decision JWT claims; defined acr and amr as authentication claims.
+- Part 3.2 §18: replaced Trust Level with Authentication Assurance and prohibited roles, permissions and profiles in sessions.
+- Part 3.3 §22: required Module 02 to resolve authorization from its own data and profile modules to resolve their own profile information.
+
+Part 4
+- Part 4.1 ADR-M01-002 reference: added the C1 authentication-security classification and AAL2 clarification.
+- Part 4.1 §5: aligned optional MFA wording with STANDARD_AUTHENTICATION.
+- Part 4.4 §16: replaced identity-type-based MFA policy with authentication-security-classification policy.
+- Part 4.4 acceptance criteria: replaced identity-type terminology with authentication-security-classification terminology.
+
+Part 5
+- Part 5.1 ADR-M01-003 reference: added the C1 channel/purpose session classification and authentication-only session clarification.
+- Part 5.1 §5: removed Customer, Seller, Admin and Super Admin session types; added INTERACTIVE_WEB, INTERACTIVE_MOBILE, RECOVERY and deferred MACHINE session classes.
+- Part 5.2 §6: updated session initialization fields and prohibited Module 02 authorization data.
+- Part 5.2 §9: selected timeout policy by Module 01 authentication-security classification.
+- Part 5.4 §19: selected concurrent-session policy by authentication-security classification rather than identity type.
+
+Part 6
+- §3: added Module 02 ownership of role assignment and revocation, versioned/idempotent cross-module requests or events, secure partial-failure behavior and prohibition of direct record modification.
+- §11 Proposed ADR-M01-004: expanded the proposed decision to record universal Identity, profile, authorization, security-classification, assurance, JWT, session and database ownership boundaries.
+
+Part 7
+- Part 7.2 §6: added a bounded-context ownership map for Modules 01, 02, 03 and 06.
+- Part 7.2 §9: added Authentication Security Classification as a Module 01 value object.
+- Part 7.3 §12: prohibited foreign keys to Module 02, Module 03 and Module 06 data; required stable Identity Identifier contracts.
+- Part 7.3 §13: removed role and permission from Module 01 schema examples and added Module 01 authentication entities.
+
+Part 8
+- Reviewed for C1 consistency. Existing authentication-to-authorization testing boundaries already assign authorization testing to Module 02. No additional C1 text replacement was required.
+
+Part 9
+- Reviewed for C1 consistency. Existing observability boundaries already treat Module 02 authorization as an integration dependency. No additional C1 text replacement was required.
+
+Part 10
+- Part 10.5 §24 already used Module 02 authorization contracts and required no additional C1 replacement.
+- Part 10.6 §26: added the universal Identity, Module 01 security-classification and assurance ownership, Module 03 and Module 06 profile ownership, and authentication-only JWT/session rule.
+- Part 10.6 §29: recorded that ADR-M01-001, ADR-M01-002 and ADR-M01-003 contain C1 clarifications while Proposed ADR-M01-004 remains Proposed.
+
+4. Deletions
+
+Deleted as Module 01 concepts:
+- Customer Identity type
+- Seller Identity type
+- Admin Identity type
+- Super Admin Identity type
+- Customer Session type
+- Seller Session type
+- Admin Session type
+- Super Admin Session type
+- Level 0–5 trust hierarchy
+- Role and permission Module 01 database examples
+- Role, permission, profile and user-type JWT/session fields
+
+5. Additions
+
+Added:
+- One universal Module 01 Identity per individual
+- Customer profile ownership in Module 06
+- Seller profile and onboarding ownership in Module 03
+- Role, permission and authorization ownership in Module 02
+- STANDARD_AUTHENTICATION
+- PRIVILEGED_ADMIN_AUTHENTICATION
+- SUPER_ADMIN_AUTHENTICATION
+- AAL0, AAL1 and AAL2
+- Session-scoped Authentication Assurance
+- Authentication-only acr and amr semantics
+- Coordinated privileged role/classification workflow
+- Versioned and idempotent cross-module role-change integration
+- DDD context ownership map
+- Cross-module database and foreign-key prohibition
+
+6. ADR Status
+
+- ADR-M01-001: C1 scope clarification added.
+- ADR-M01-002: C1 scope clarification added.
+- ADR-M01-003: C1 scope clarification added.
+- Proposed ADR-M01-004 – Authentication-to-Authorization Boundary: expanded and retained as Proposed.
+- No proposed ADR was marked Approved.
+
+7. Full C1 Verification Checklist
+
+Identity Ownership
+- Pass – Module 01 defines one universal Identity per individual.
+- Pass – Customer is no longer a Module 01 Identity type.
+- Pass – Seller is no longer a Module 01 Identity type.
+- Pass – Admin is no longer a Module 01 Identity type.
+- Pass – Super Admin is no longer a Module 01 Identity type.
+- Pass – One Identity may reference both Customer and Seller profiles.
+
+Profile Ownership
+- Pass – Customer profile ownership is assigned exclusively to Module 06.
+- Pass – Seller profile and onboarding ownership is assigned exclusively to Module 03.
+- Pass – Customer and Seller profile records are excluded from the Module 01 domain and database.
+- Pass – Cross-module foreign keys and direct database access are prohibited.
+
+Authentication Security
+- Pass – Admin authentication-security classification is explicitly non-authorizing.
+- Pass – Super Admin authentication-security classification is explicitly non-authorizing.
+- Pass – Module 01 classifications control authentication policy only.
+- Pass – Authentication-security classifications cannot grant permissions or application access.
+
+Authorization
+- Pass – Admin role ownership is assigned exclusively to Module 02.
+- Pass – Super Admin role ownership is assigned exclusively to Module 02.
+- Pass – Customer and Seller authorization roles are assigned to Module 02.
+- Pass – Module 01 persistence excludes role and permission assignments.
+- Pass – Module 02 resolves assignments through the universal Identity Identifier.
+- Pass – Module 02 remains responsible for authorization decisions.
+- Pass – Role assignment and revocation remain Module 02 operations.
+- Pass – Required Module 01 session or classification changes use approved versioned and idempotent integration.
+
+Registration and Provisioning
+- Pass – Registration creates or resolves only the universal Identity.
+- Pass – Customer registration coordinates with Module 06.
+- Pass – Seller registration coordinates with Module 03.
+- Pass – Privileged provisioning requires Module 01 authentication setup and Module 02 role assignment.
+- Pass – Partial workflow failure cannot grant privileged access.
+- Pass – Privileged workflow transitions are auditable and idempotent.
+
+Sessions
+- Pass – Customer, Seller, Admin and Super Admin session types are removed.
+- Pass – Session classes represent authentication channel or purpose.
+- Pass – Sessions contain Authentication Assurance.
+- Pass – Sessions exclude business roles and permissions.
+- Pass – Privileged timeout policy uses Module 01 authentication-security classification.
+
+JWT and Authenticated Identity Context
+- Pass – Role, permission, profile and user-type claims are prohibited.
+- Pass – sub identifies the universal Identity.
+- Pass – amr contains authentication methods completed.
+- Pass – acr represents session Authentication Assurance.
+- Pass – The authenticated identity context excludes authorization decisions.
+- Pass – Module 02 resolves roles from its own authoritative state.
+
+Authentication Assurance
+- Pass – The Level 0–5 trust hierarchy is removed.
+- Pass – AAL0, AAL1 and AAL2 are defined.
+- Pass – Authentication Assurance is session-scoped.
+- Pass – MFA enrollment alone does not produce AAL2.
+- Pass – Successful MFA establishes AAL2 for the relevant authentication event.
+- Pass – Role and profile state are excluded from assurance calculation.
+
+Documentation and ADR Consistency
+- Pass – Parts 1–10 use the same ownership model.
+- Pass – User Types terminology is removed from the Part 1 title and output list.
+- Pass – Trust Model terminology is replaced by Authentication Assurance Model.
+- Pass – Role and permission are removed from Module 01 schema examples.
+- Pass – Proposed ADR-M01-004 remains Proposed.
+- Pass – The corrected document remains Draft.
+- Pass – No C2 or later correction was applied.
+
+8. C1 Result
+
+Remaining C1 defects: None found by the narrow C1 validation.
+
+C1 status: Resolved

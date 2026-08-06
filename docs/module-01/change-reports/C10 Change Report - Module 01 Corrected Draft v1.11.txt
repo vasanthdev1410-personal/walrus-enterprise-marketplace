@@ -1,0 +1,190 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.11
+Critical Issue C10 Change Report
+
+Status: Draft
+Scope: C10 – Privacy, Notice, Consent, Retention and Identity Lifecycle Architecture
+
+1. Files and Scope
+
+Source preserved: Module 01 Corrected Draft v1.10.txt
+Corrected copy: Module 01 Corrected Draft v1.11.txt
+No application code, infrastructure, physical schema or migration was generated. No C11 change was applied.
+
+2. Changes Applied
+
+- Replaced Privacy/Data Minimization with purpose and legal-basis governance.
+- Replaced generic Terms/Privacy acceptance with separate Terms, Notice and Consent evidence/lifecycles.
+- Replaced Identifier reuse with tombstoning, eligibility and anti-history-transfer rules.
+- Replaced soft deletion with the canonical deletion state machine, invalidation and cross-module boundaries.
+- Added privacy ownership, request taxonomy/state machine and orchestrator gate.
+- Added six logical privacy evidence/lifecycle record definitions.
+- Added M01-ID-005 and updated endpoint, DTO and degraded-mode catalogues to 41 operations.
+- Added three gated C8 privacy coordination contracts.
+- Added age/guardian, residency, transfer and recipient gates.
+- Added C10 testing, monitoring, restoration and implementation gates.
+- Added Proposed ADR-M01-016; all Proposed ADRs remain Proposed.
+
+3. Full C10 Verification Checklist
+
+Document Control
+- Pass – v1.10 remains preserved as the source.
+- Pass – v1.11 exists separately.
+- Pass – version is 1.11.
+- Pass – status remains Draft.
+- Pass – no C11 content exists.
+- Pass – no implementation artifact was generated.
+
+Privacy Ownership
+- Pass – Module 01 owns only Identity/authentication privacy execution.
+- Pass – Module 02 retains roles and authorization.
+- Pass – Module 03 retains Seller profiles/onboarding.
+- Pass – Module 06 retains Customer profiles.
+- Pass – ENTERPRISE_PRIVACY_ORCHESTRATOR_TBD is explicit.
+- Pass – Module 01 completion is not enterprise-wide completion.
+- Pass – cross-module modification is prohibited.
+
+Purpose and Legal Basis
+- Pass – Processing-Purpose Catalogue exists.
+- Pass – canonical Module 01 purposes are catalogued.
+- Pass – every purpose requires data, retention, recipient and approval metadata.
+- Pass – Legal owns legal-basis selection.
+- Pass – APPLICABLE_PRIVACY_REGIME_TBD prevents invented legislation.
+- Pass – unapproved purposes cannot be implemented.
+- Pass – Module 01 data minimization boundaries are preserved.
+
+Terms, Notice and Consent
+- Pass – Terms acceptance is distinct from Privacy Notice acknowledgement.
+- Pass – Notice acknowledgement is distinct from consent.
+- Pass – consent is collected only for an approved consent-based purpose.
+- Pass – consent is purpose-specific and versioned.
+- Pass – canonical Consent states exist.
+- Pass – withdrawal behavior is deterministic.
+- Pass – withdrawal does not automatically delete Identity.
+- Pass – withdrawal does not erase unrelated evidence or other-module data.
+- Pass – registration requires valid evidence appropriate to its workflow.
+
+Deletion Lifecycle
+- Pass – all canonical Deletion states exist.
+- Pass – state transitions and terminal states are defined.
+- Pass – AAL2/request verification precedes validation.
+- Pass – dependency and hold evaluation precedes scheduling.
+- Pass – unapproved state skipping is prohibited.
+- Pass – cancellation is policy/state bound.
+- Pass – active Sessions and Refresh Token Families are revoked.
+- Pass – Session Version/authentication epoch is incremented where applicable.
+- Pass – Credentials, MFA, Devices, Recovery Codes and workflows are addressed.
+- Pass – required C9 Audit evidence is preserved.
+- Pass – C8 coordination intent is required.
+- Pass – deletion cannot create authenticated access.
+- Pass – pseudonymization/encryption alone is not called anonymization.
+
+Identifier Tombstoning and Reuse
+- Pass – ACTIVE, RETIRED, TOMBSTONED, REUSE_ELIGIBLE and REASSIGNED exist.
+- Pass – protected collision reference is required.
+- Pass – deleted identifiers are not immediately reusable.
+- Pass – reuse requires retention, fraud, Recovery, dependency and hold checks.
+- Pass – anti-impersonation waiting period is approval-gated.
+- Pass – historical authentication state never transfers.
+- Pass – reuse is prohibited until policy approval.
+
+Privacy Requests
+- Pass – canonical request types exist without asserting legal applicability.
+- Pass – Legal/Privacy approval owns eligibility and outcomes.
+- Pass – canonical request states exist.
+- Pass – PARTIALLY_COMPLETED identifies outstanding owners.
+- Pass – partial completion is not reported as completion.
+- Pass – concurrency protection and monotonic terminal transitions are required.
+
+Logical Records
+- Pass – Terms Acceptance Receipt is append-only and does not imply consent.
+- Pass – Privacy Notice Receipt is append-only and does not imply consent.
+- Pass – Consent Record preserves historical evidence.
+- Pass – Privacy Request includes policy/version/idempotency lifecycle data.
+- Pass – Identifier Tombstone cannot authenticate or transfer history.
+- Pass – Privacy Execution Record contains no exported personal-data payload.
+- Pass – legal-hold details remain non-public.
+
+API and DTO Contracts
+- Pass – M01-ID-002 remains a Module 01 deletion-request operation.
+- Pass – M01-ID-003 cancellation remains state/policy bound through C10 rules.
+- Pass – M01-ID-005 safely exposes Module 01 deletion status.
+- Pass – M01-ID-005 prohibits legal-hold and internal-case disclosure.
+- Pass – endpoint catalogue contains 41 operations.
+- Pass – degraded-mode coverage includes M01-ID-005.
+- Pass – DTO catalogue includes M01-ID-005.
+- Pass – no public enterprise-wide privacy API was invented.
+
+Asynchronous Coordination
+- Pass – M01-CMD-004 reports Module 01 outcome only.
+- Pass – PRV-CMD-001 is owned by the future approved orchestrator.
+- Pass – M01-EVT-003 reports a committed privacy-state fact.
+- Pass – all three contracts remain implementation-blocked.
+- Pass – messages prohibit exported personal data, holds and authentication secrets.
+- Pass – C8 ownership, idempotency and delivery semantics remain authoritative.
+
+Security, Audit and Compliance Gates
+- Pass – authoritative Session validation remains required by existing C5 rules.
+- Pass – deletion requests retain AAL2 requirements.
+- Pass – Module 02 authorizes privacy operators.
+- Pass – C9 legal-hold and audit integrity are preserved.
+- Pass – anonymization uses C9 transformation/checkpoint controls.
+- Pass – age and guardian decisions are explicitly gated.
+- Pass – residency, transfer, provider and subprocessor decisions are gated.
+- Not Applicable – applicable privacy regimes remain Legal-TBD.
+- Not Applicable – age/guardian policy remains Business/Legal/Privacy-TBD.
+- Not Applicable – residency/transfer/subprocessor rules remain approval TBD.
+- Not Applicable – deletion waiting/cancellation durations remain Business/Legal/Privacy-TBD.
+- Not Applicable – identifier-reuse waiting period remains Business/Security/Legal-TBD.
+- Not Applicable – enterprise privacy-orchestrator ownership remains TBD.
+
+Testing and Operations
+- Pass – Terms/Notice/Consent separation tests are required.
+- Pass – Consent lifecycle tests are required.
+- Pass – Deletion state/concurrency/cancellation tests are required.
+- Pass – Legal-hold tests are required.
+- Pass – Session/token/Credential/MFA/Device/Recovery invalidation tests are required.
+- Pass – Tombstone and history-transfer tests are required.
+- Pass – Cross-module partial-completion tests are required.
+- Pass – Export/minimization and retention tests are required.
+- Pass – C9 integrity-preserving anonymization tests are required.
+- Pass – C8 idempotency and backup/restore tests are required.
+- Pass – monitoring covers pending, held, partial, failed and reuse states.
+- Pass – restoration preserves all C10 evidence and coordination state.
+
+C1–C9 Preservation
+- Pass – C1 universal Identity and ownership remain unchanged.
+- Pass – C2 JWT, Session, token and revocation remain unchanged.
+- Pass – C3 Recovery assurance and dual control remain unchanged.
+- Pass – C4 PostgreSQL/persistence authority remains unchanged.
+- Pass – C5 REST/OpenAPI governance remains unchanged and is consistently extended.
+- Pass – C6 resilience/degraded behavior remains unchanged and is consistently extended.
+- Pass – C7 cryptographic/key rules remain unchanged.
+- Pass – C8 event/command delivery rules remain unchanged.
+- Pass – C9 audit integrity, archive and legal-hold rules remain unchanged.
+
+4. Full Verification Summary
+
+Pass: 116
+Fail: 0
+Not Applicable: 6
+
+5. C10-Only Narrow Validation
+
+- Pass – purpose and legal-basis governance exists.
+- Pass – Terms, Notice and Consent are separated.
+- Pass – deterministic deletion lifecycle exists.
+- Pass – identifier tombstoning/reuse architecture exists.
+- Pass – privacy ownership and orchestrator boundary exist.
+- Pass – logical privacy records exist.
+- Pass – API/DTO/degraded catalogues are internally consistent.
+- Pass – privacy coordination contracts are gated.
+- Pass – age, guardian, residency and transfer decisions remain explicit TBDs.
+- Pass – C1–C9 decisions remain preserved.
+- Pass – all Proposed ADRs remain Proposed.
+- Pass – document remains Draft.
+
+6. C10 Result
+
+Remaining C10 defects: None.
+C10 status: Resolved

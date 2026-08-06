@@ -1,0 +1,566 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 – Identity & Authentication
+Domain Value Approval Plan
+
+Status: Proposed – Human Approval Required
+Authoritative source reviewed: Module 01 Corrected Draft v1.12.txt
+Purpose: Resolve canonical domain type and state sets required before Limited Phase 1 Domain Layer implementation.
+
+Governance Rules
+
+1. Every value below is proposed and is not approved by creation of this plan.
+2. No implementation may use a proposed value until the complete set containing it is approved.
+3. Values use uppercase snake case to match the existing Module 01 canonical terminology.
+4. Deferred authentication methods are not included in Phase 1 value sets.
+5. These values describe Module 01 authentication state only. They grant no Module 02 role, permission or authorization.
+6. Approval shall update the affected Module 01 domain-value catalogue and ADR-M01-010 before implementation resumes.
+
+DV-01 – Credential Type
+
+Why required
+
+Credential requires credential_type, uniqueness is enforced per Identity and credential type, and repository/index contracts load the current credential by type. An unconstrained string would permit unsupported authentication mechanisms.
+
+Proposed canonical values
+
+PASSWORD
+- Represents the approved password authentication credential.
+- Stores only an approved protected password-hash representation.
+
+EMAIL_VERIFICATION
+- Represents the approved email-verification credential classification described in Part 3.
+- It does not replace Verification Challenge or OTP Evidence records.
+
+MOBILE_VERIFICATION
+- Represents the approved mobile-verification credential classification described in Part 3.
+- It does not replace Verification Challenge or OTP Evidence records.
+
+Explicitly not included
+
+PASSKEY, HARDWARE_KEY, OAUTH_PROVIDER and ENTERPRISE_SSO remain deferred.
+
+Affected Parts
+
+Part 3.1 §5 Credential Architecture; Part 4 Verification; Part 7.2 §§7–9; Part 7.3 §§12–14 and §18.
+
+Affected ADRs
+
+ADR-M01-001; ADR-M01-002; Limited ADR-M01-010; Limited ADR-M01-013.
+
+Affected tests
+
+Credential type allowlist; deferred-type rejection; one active Credential per Identity/type; no raw credential material.
+
+DV-02 – Credential State
+
+Why required
+
+Credential requires credential_state, timestamp consistency and one current active Credential per type. The document describes Created, Verified, Active, Updated and Revoked, plus compromise and replacement timestamps, but does not define one persistence enum.
+
+Proposed canonical values
+
+CREATED
+- Protected credential record exists but is not yet eligible for authentication.
+
+VERIFIED
+- Required credential verification has completed but activation has not completed.
+
+ACTIVE
+- The current Credential is eligible for authentication when all other Identity and Session policies permit it.
+
+REPLACED
+- A newer Credential superseded this record; implements the documented Updated lifecycle without mutating history.
+
+COMPROMISED
+- The Credential is suspected or confirmed compromised and is ineligible for authentication.
+
+REVOKED
+- The Credential was intentionally invalidated and is ineligible for authentication.
+
+Terminal-state rule
+
+REPLACED, COMPROMISED and REVOKED never transition back to ACTIVE. A new Credential record is required.
+
+Affected Parts
+
+Part 3.1 §5; Part 3.2 credential validation; Part 5.5 Recovery; Part 7.2 §§7–9; Part 7.3 §§12–16 and §18.
+
+Affected ADRs
+
+ADR-M01-001; ADR-M01-009; Limited ADR-M01-010; Limited ADR-M01-013.
+
+Affected tests
+
+Allowed transitions; terminal-state enforcement; active-current uniqueness; compromised/revoked rejection; timestamp/state consistency.
+
+DV-03 – Refresh Token Family State
+
+Why required
+
+Refresh Token Family requires family_state. Family revocation must be monotonic and every token belongs to one family. Token states are already approved, but the family state set is missing.
+
+Proposed canonical values
+
+ACTIVE
+- The family may contain one currently active rotating Refresh Token.
+
+REVOKED
+- The complete family is invalidated by logout, security response, Recovery or reuse detection.
+
+EXPIRED
+- The family reached its approved absolute expiry without a security revocation.
+
+Terminal-state rule
+
+REVOKED and EXPIRED never return to ACTIVE.
+
+Affected Parts
+
+Part 3.3 §§13–16 and §§18–20; Part 5 Session Management; Part 7.2 §§7–9; Part 7.3 §§12–18.
+
+Affected ADRs
+
+ADR-M01-001; ADR-M01-003; Limited ADR-M01-010.
+
+Affected tests
+
+Monotonic family revocation; family/session ownership; expired-family rejection; reuse-response structural invariants.
+
+DV-04 – MFA Enrollment State
+
+Why required
+
+MFA Enrollment requires enrollment_state and controls whether its Factors may become usable. Incomplete enrollment must not activate MFA.
+
+Proposed canonical values
+
+PENDING_VERIFICATION
+- Enrollment exists but no Factor has completed the required confirmation.
+
+ACTIVE
+- Enrollment contains at least one approved verified active Factor.
+
+REPLACEMENT_REQUIRED
+- Security policy requires factor replacement before the enrollment can satisfy applicable MFA policy.
+
+DISABLED
+- Enrollment was intentionally disabled and cannot satisfy MFA.
+
+Affected Parts
+
+Part 1 §§12, 23 and 33; Part 4.4 §§16–20; Part 5.5 Recovery; Part 7.2 §§7–9; Part 7.3 §§12–16 and §18.
+
+Affected ADRs
+
+ADR-M01-002; ADR-M01-009; Limited ADR-M01-010; Limited ADR-M01-013.
+
+Affected tests
+
+Incomplete enrollment cannot be ACTIVE; ACTIVE requires a verified Factor; replacement and disabled states cannot establish AAL2.
+
+DV-05 – MFA Factor Type and State
+
+Why required
+
+MFA Factor requires factor_type and factor_state. Only authenticator applications are approved as the Phase 1 MFA method. Deferred factors must not enter persistence.
+
+Proposed canonical factor type
+
+TOTP_AUTHENTICATOR
+- Time-based authenticator-application factor approved for Phase 1.
+
+Explicitly not included
+
+PASSKEY, HARDWARE_SECURITY_KEY, PUSH, SMS_MFA, EMAIL_MFA and BIOMETRIC remain unapproved or deferred as MFA factors.
+
+Proposed canonical factor states
+
+PENDING_VERIFICATION
+- Protected factor material exists, but confirmation has not succeeded.
+
+ACTIVE
+- Factor has been verified and may participate in an approved MFA authentication event.
+
+REPLACEMENT_REQUIRED
+- Factor remains recorded but cannot satisfy privileged MFA until replaced under approved policy.
+
+REVOKED
+- Factor was invalidated and can never authenticate again.
+
+Affected Parts
+
+Part 1 §§13, 23 and 33; Part 4.1 §5; Part 4.4 §§16–20; Part 5.5; Part 7.2 §§7–9; Part 7.3 §§12–14 and §18.
+
+Affected ADRs
+
+ADR-M01-002; ADR-M01-009; Limited ADR-M01-010; Limited ADR-M01-013.
+
+Affected tests
+
+Type allowlist; deferred-type rejection; ACTIVE requires verified_at; REVOKED cannot reactivate; enrollment/factor consistency; no AAL2 from enrollment alone.
+
+DV-06 – Recovery Code Set State and Recovery Code State
+
+Why required
+
+Only one active Recovery Code Set may exist per Identity. New set activation invalidates prior unused codes. Individual codes must be single-use and never reactivated.
+
+Proposed Recovery Code Set states
+
+ACTIVE
+- Current set containing one or more eligible unused codes.
+
+EXHAUSTED
+- Every code in the set has been consumed or invalidated.
+
+SUPERSEDED
+- A newer set replaced this set and all remaining codes were invalidated.
+
+INVALIDATED
+- Security, Recovery or Identity lifecycle action invalidated the set without replacement.
+
+Proposed Recovery Code states
+
+ACTIVE
+- Protected digest exists and the code is eligible as Recovery evidence under an approved policy.
+
+CONSUMED
+- Code was atomically accepted once and is permanently unusable.
+
+INVALIDATED
+- Code became unusable without successful consumption.
+
+Affected Parts
+
+Part 4.4 §19; Part 5.5 §§21–23; Part 7.2 §§7–9; Part 7.3 §§12–16 and §18.
+
+Affected ADRs
+
+ADR-M01-002; ADR-M01-009; Limited ADR-M01-010; Limited ADR-M01-013.
+
+Affected tests
+
+One ACTIVE set per Identity; set-version uniqueness; new-set supersession; atomic single use; terminal code states; no raw code storage.
+
+DV-07 – Recovery Evidence Type
+
+Why required
+
+Recovery policy counts independent evidence sources. Evidence type must be explicit so one channel cannot be counted as multiple independent factors.
+
+Proposed canonical values
+
+VERIFIED_EMAIL_CHANNEL
+- Evidence from an approved verified email channel.
+
+VERIFIED_MOBILE_CHANNEL
+- Evidence from an approved verified mobile channel.
+
+RECOVERY_CODE
+- One valid single-use Recovery code.
+
+AUTHENTICATED_SESSION
+- An existing ordinary Session meeting the policy-selected assurance requirement.
+
+MFA_FACTOR
+- A qualifying retained MFA Factor not suspected of compromise.
+
+CONTROLLED_BOOTSTRAP_EVIDENCE
+- Controlled evidence permitted only for the approved Super Admin emergency path.
+
+HUMAN_APPROVAL is not an evidence type; it remains a separate Recovery Approval Record.
+
+Affected Parts
+
+Part 4 Recovery Codes; Part 5.5 §§21–23; Part 6 authorization boundary; Part 7.2 §§7–9; Part 7.3 §§12–14.
+
+Affected ADRs
+
+ADR-M01-002; ADR-M01-004; ADR-M01-009; Limited ADR-M01-010; Limited ADR-M01-013.
+
+Affected tests
+
+Evidence allowlist; request/operation binding; channel independence; approval/evidence separation; no duplicated compromise boundary.
+
+DV-08 – Recovery Evidence State and Boundary
+
+Why required
+
+Recovery Evidence requires evidence_state and evidence_boundary. Single-use, expiry and independence cannot be enforced consistently with unconstrained strings.
+
+Proposed evidence states
+
+PENDING
+- Evidence was recorded but not yet verified.
+
+VERIFIED
+- Evidence passed approved validation and may contribute to Recovery Assurance.
+
+REJECTED
+- Evidence failed validation and contributes no assurance.
+
+CONSUMED
+- Verified evidence was committed to the request evaluation and cannot be reused.
+
+EXPIRED
+- Evidence passed its permitted validity period.
+
+INVALIDATED
+- Security or request-state change made the evidence unusable.
+
+Proposed evidence boundaries
+
+EMAIL_CHANNEL
+MOBILE_CHANNEL
+RECOVERY_CODE_SET
+AUTHENTICATED_SESSION
+MFA_FACTOR
+CONTROLLED_BOOTSTRAP
+
+Boundary usage
+
+Two records with the same boundary do not automatically satisfy a two-independent-source requirement. The boundary is security metadata, not authorization data.
+
+Affected Parts
+
+Part 5.5 §§21–23; Part 7.2 §§8–9; Part 7.3 §§12–16 and §18.
+
+Affected ADRs
+
+ADR-M01-009; Limited ADR-M01-010; Limited ADR-M01-013.
+
+Affected tests
+
+Single-use transitions; expiry; rejected evidence contributes nothing; boundary independence; request and operation binding.
+
+DV-09 – Recovery Approval Decision
+
+Why required
+
+Recovery Approval Record requires decision and is immutable after decision. Dual-control checks depend on positive decisions from two distinct authorized approvers.
+
+Proposed canonical values
+
+APPROVED
+- Approver issued a positive, request-bound decision before expiry.
+
+REJECTED
+- Approver issued a negative decision; it never contributes to dual control.
+
+Expiration is represented by expires_at and validation outcome, not by rewriting the immutable decision.
+
+Affected Parts
+
+Part 5.5 §§22–23; Part 6 authorization boundary; Part 7.2 §§8–9; Part 7.3 §§12–16 and §18.
+
+Affected ADRs
+
+ADR-M01-004; ADR-M01-009; Limited ADR-M01-010.
+
+Affected tests
+
+Decision allowlist; immutable decision; expired approval rejection; self-approval rejection; distinct-approver uniqueness; only APPROVED counts.
+
+DV-10 – Recovery Attempt Type and Outcome
+
+Why required
+
+Recovery Attempt requires attempt_type and outcome. The record covers evidence and execution attempts and must remain useful without storing secret evidence.
+
+Proposed attempt types
+
+EVIDENCE_SUBMISSION
+- Submission of one Recovery evidence item.
+
+EVIDENCE_VALIDATION
+- Validation of submitted Recovery evidence.
+
+APPROVAL_VALIDATION
+- Validation of request-bound approval evidence and dual-control conditions.
+
+EXECUTION
+- Attempt to perform the one permitted Recovery operation.
+
+Proposed outcomes
+
+SUCCEEDED
+- The specific attempt completed its permitted objective.
+
+REJECTED
+- Input or policy validation rejected the attempt without changing authorized state.
+
+FAILED_SECURELY
+- A security-sensitive attempt failed and no unsafe completion was reported.
+
+TEMPORARILY_UNAVAILABLE
+- A required dependency was unavailable and authoritative Recovery state did not advance.
+
+Affected Parts
+
+Part 5.5 §§21–23; Part 5.6 error model; Part 7.2 §§8–9; Part 7.3 §§12–16.
+
+Affected ADRs
+
+ADR-M01-009; Limited ADR-M01-010; ADR-M01-012 remains deferred for runtime failure behavior.
+
+Affected tests
+
+Attempt type/outcome allowlists; append-only representation; no secret evidence; unavailable outcome does not imply state advancement.
+
+DV-11 – Recovery Notification Type and Delivery State
+
+Why required
+
+Recovery Notification Record requires notification_type and delivery_state. Limited Phase 1 permits the record structure only; delivery remains excluded.
+
+Proposed notification types
+
+RECOVERY_REQUEST_INITIATED
+RECOVERY_CHALLENGE_SENT
+PASSWORD_RESET_COMPLETED
+MFA_RESET_COMPLETED
+TRUSTED_DEVICE_REMOVED
+CONTACT_INFORMATION_UPDATED
+RECOVERY_COMPLETED
+SUSPICIOUS_RECOVERY_ATTEMPT
+
+Each value maps directly to the notification list in Part 5.5 §25.
+
+Proposed delivery states
+
+PENDING
+- Notification intent exists but no delivery attempt is authorized in Limited Phase 1.
+
+DISPATCHED
+- A later approved provider accepted the notification request; this does not prove delivery.
+
+DELIVERED
+- A later approved delivery confirmation was accepted.
+
+FAILED
+- A later approved delivery attempt failed and requires permitted reconciliation.
+
+Affected Parts
+
+Part 5.5 §25; Part 5.6 failure model; Part 7.2 §§7–9; Part 7.3 §§12–16.
+
+Affected ADRs
+
+ADR-M01-009; Limited ADR-M01-010; ADR-M01-012 remains deferred for runtime delivery failure.
+
+Affected tests
+
+Type/state allowlists; PENDING-only construction during Limited Phase 1; delivered/failed timestamp consistency; no notification delivery implementation.
+
+DV-12 – Identity Verification State and Identifier Verification State
+
+Why required
+
+Identity and Identity Identifier both require verification_state, while Module 01 requires email and mobile verification to remain separate. One overloaded enum would make aggregate eligibility and identifier ownership ambiguous.
+
+Proposed Identity Verification State values
+
+PENDING_VERIFICATION
+- The Identity has not satisfied every verification requirement selected by its approved entry workflow.
+
+VERIFIED
+- Every verification requirement selected by the approved entry workflow is satisfied. This establishes verification eligibility only and grants no authorization.
+
+Proposed Identifier Verification State values
+
+UNVERIFIED
+- Identifier exists but no active verification has completed.
+
+PENDING_VERIFICATION
+- An approved verification workflow exists or is awaiting completion.
+
+VERIFIED
+- Control of the identifier was verified by an approved backend workflow.
+
+RETIRED
+- Identifier is no longer eligible as an active authentication or Recovery channel.
+
+ANONYMIZED
+- Identifier value has been irreversibly transformed under a future approved C10 workflow. Limited Phase 1 cannot enter this state.
+
+Clarification
+
+Verification Challenge state remains a separate lifecycle: CREATED, PENDING, CHALLENGE_ISSUED, VERIFIED, EXPIRED, FAILED and CANCELLED.
+
+Affected Parts
+
+Part 1 §§11–12 and §§22–23; Part 2 registration/activation; Part 4 §§3–15; Part 7.2 §§7–9; Part 7.3 §§12–16 and §18.
+
+Affected ADRs
+
+ADR-M01-001; ADR-M01-002; Limited ADR-M01-010; ADR-M01-016 remains excluded for anonymization execution.
+
+Affected tests
+
+Identity/identifier state separation; email/mobile independence; VERIFIED timestamp consistency; activation eligibility; retired identifier rejection; no C10 execution.
+
+DV-13 – Verification Purpose
+
+Why required
+
+Every Verification Challenge is purpose-bound. Purpose controls allowable channels, rate limits, expiry, consumption and whether a result may affect registration, contact verification, MFA or Recovery.
+
+Proposed canonical values
+
+REGISTRATION_VERIFICATION
+- Verify an email or mobile identifier required by a registration workflow.
+
+PRIVILEGED_INVITATION_VERIFICATION
+- Verify the approved invitation channel during privileged Identity provisioning.
+
+CONTACT_CHANGE_VERIFICATION
+- Verify a replacement email or mobile channel under an approved workflow.
+
+PASSWORD_RECOVERY
+- Verify evidence for the PASSWORD_RESET Recovery operation.
+
+ACCOUNT_RECOVERY
+- Verify permitted evidence for another approved Recovery operation.
+
+MFA_ENROLLMENT
+- Confirm the TOTP authenticator during enrollment.
+
+MFA_AUTHENTICATION
+- Validate an MFA challenge following primary authentication.
+
+STEP_UP_AUTHENTICATION
+- Validate a qualifying factor for an approved higher-assurance authentication event.
+
+ADDITIONAL_SECURITY_VERIFICATION
+- Backend-selected security verification that does not fit a weaker client-selected purpose. Clients cannot use it to bypass a more specific purpose.
+
+Affected Parts
+
+Part 2 registration; Part 3 authentication; Part 4 §§3–24; Part 5.5 Recovery; Part 7.1 API contracts remain closed; Part 7.2 §§7–9; Part 7.3 §§12–18.
+
+Affected ADRs
+
+ADR-M01-001; ADR-M01-002; ADR-M01-009; Limited ADR-M01-010; ADR-M01-011 remains closed.
+
+Affected tests
+
+Purpose allowlist; purpose/channel compatibility; Recovery purpose binding; MFA enrollment versus authentication separation; client cannot select a weaker purpose.
+
+Approval Dependencies
+
+The complete plan requires review by the Module 01 Architecture owner, Security Architecture, Database Architecture and QA/Test Architecture. DV-07 through DV-10 additionally require the Module 02 boundary owner to confirm that approval authorization remains external and no role or permission values were introduced.
+
+Approval Options
+
+APPROVE ALL DOMAIN VALUES
+- Approves DV-01 through DV-13 exactly as written for Limited Phase 1 structural implementation.
+
+APPROVE WITH LISTED CHANGES
+- Must identify every changed value and its replacement. Partial informal approval is insufficient.
+
+REJECT
+- Milestone 2 remains blocked and no Domain Layer implementation begins.
+
+Implementation Gate
+
+Milestone 2 may resume only after the canonical sets are approved and the approval explicitly confirms that the approval does not open controllers, APIs, runtime authentication, C8, C9, C10, live cryptography or production deployment.

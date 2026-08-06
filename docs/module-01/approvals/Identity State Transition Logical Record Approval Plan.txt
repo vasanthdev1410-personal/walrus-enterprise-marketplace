@@ -1,0 +1,248 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 – Identity & Authentication
+Identity State Transition Logical Record Approval Plan
+
+Status: Proposed – Human Approval Required
+Authoritative source reviewed: Module 01 Corrected Draft v1.12.txt
+Scope: Identity State Transition logical record only
+
+1. Purpose
+
+Identity State Transition is an Identity Aggregate-owned historical record that captures each committed change to the universal Identity lifecycle state.
+
+It supports deterministic state history and optimistic-concurrency evidence inside Module 01. It is not an Authentication Audit Record, Security State Transition Record, C9 integrity record or external Integration Event.
+
+Limited Phase 1 may model and test this record only after this plan is approved. It shall not publish, archive or cryptographically chain the record.
+
+2. Proposed Required Fields
+
+identity_state_transition_id
+- Immutable UUIDv7 identifier for this transition record.
+- Unique within Module 01.
+
+identity_id
+- UUIDv7 identifier of the owning universal Identity.
+- References only the Module 01 Identity Aggregate Root.
+
+to_state
+- Canonical approved Identity state established by the transition.
+- Uses the existing Identity State values: PENDING_VERIFICATION, ACTIVE, LOCKED, SUSPENDED, DISABLED or DELETED.
+
+state_version
+- Positive monotonic version of the Identity state after this transition commits.
+- Used for ordering and duplicate/concurrency protection.
+
+transitioned_at
+- UTC timestamp at which the authoritative Identity state transition took effect.
+
+created_at
+- UTC timestamp at which the transition record was durably created.
+- Shall be equal to or later than transitioned_at.
+
+3. Proposed Optional Fields
+
+from_state
+- Canonical approved Identity state immediately before the transition.
+- May be null only for the initial Identity-state establishment.
+- No synthetic NONE state is introduced.
+
+reason_code
+- Approved safe reason-code reference explaining the transition.
+- It shall not contain free-form secrets, personal data, roles, permissions or authorization reasoning.
+
+correlation_id
+- Approved correlation identifier connecting the transition with the originating Module 01 operation.
+
+causation_id
+- Approved identifier or protected reference to the immediately causing internal operation or record where available.
+- It shall not turn this record into an external event.
+
+source_reference
+- Protected, minimum reference to an approved Module 01 source operation or approved cross-module contract where applicable.
+- It shall not copy Module 02 roles, permissions, policies or authorization evidence.
+
+4. Proposed Constraints
+
+1. identity_state_transition_id is globally unique.
+2. identity_id is required and references one Module 01 Identity.
+3. state_version is a positive integer.
+4. identity_id plus state_version is unique.
+5. For a non-initial transition, from_state is required and differs from to_state.
+6. from_state may be null only when state_version is 1 and to_state is PENDING_VERIFICATION.
+7. For every transition after version 1, from_state must equal the preceding transition's to_state for the same Identity.
+8. to_state must equal the committed Identity.identity_state for the same resulting aggregate version.
+9. state_version must equal the resulting Identity.aggregate_version for the state-changing transaction.
+10. created_at must not precede transitioned_at.
+11. No transition may bypass the approved Identity lifecycle rules.
+12. The record contains no Customer or Seller profile data.
+13. The record contains no Module 02 role, permission, assignment, policy or authorization decision.
+14. The record contains no password, Credential secret, token, OTP, MFA secret or Recovery evidence.
+15. No cross-module foreign key is permitted.
+
+The preceding-transition continuity rule may require domain validation and transactional locking in addition to database uniqueness constraints. Implementation shall not introduce a database trigger or stored procedure without separate approval.
+
+5. Immutability Rules
+
+- The record is immutable after insertion.
+- Application workflows may not update any field.
+- Application workflows may not delete the record.
+- A correction requires a new valid Identity transition or separately approved corrective migration; historical records are not rewritten.
+- No updated_at, updated_by, deleted_at or deleted_by field is permitted.
+- Immutability in Limited Phase 1 is represented in the domain and tested structurally. C9 database-role enforcement remains excluded.
+
+6. Relationships
+
+Identity to Identity State Transition
+- One-to-many.
+- Identity is the Aggregate Root and authoritative owner.
+- Every transition belongs to exactly one Identity.
+
+Deletion behavior
+- Physical deletion of an Identity shall not cascade-delete transition history.
+- Database relationship should use restrictive deletion behavior.
+- C10 Identity-deletion and anonymization execution remain excluded.
+
+Cross-module relationships
+- None.
+- source_reference, when present, remains a scalar protected contract reference without a foreign key.
+
+7. Versioning Rules
+
+- state_version starts at 1 for the initial Identity-state establishment.
+- Each committed Identity state change increments the Identity Aggregate Version exactly once.
+- The new transition state_version equals that resulting Aggregate Version.
+- Versions are strictly increasing per Identity.
+- Gaps, duplicates and version regression are invalid.
+- A repeated idempotent request that does not change Identity state shall not create another transition.
+- Non-state-changing changes to the Identity Aggregate may advance aggregate_version without creating an Identity State Transition; therefore state_version ordering is authoritative for state transitions but does not require every aggregate version to have a transition record.
+
+8. Index Recommendations
+
+Primary/unique indexes
+- Primary key on identity_state_transition_id.
+- Unique index on identity_id plus state_version.
+
+Approved access-pattern indexes
+- Index on identity_id plus transitioned_at descending for lifecycle history.
+- Index on to_state plus transitioned_at for approved operational state-transition review.
+- Index on correlation_id where present for traceability.
+
+Index restrictions
+- No index on free-form personal data or secret material is permitted.
+- source_reference shall not receive an index until an approved access pattern requires it.
+- Additional indexes require query evidence and write-cost review.
+
+9. Append-Only Rules
+
+- Insert is the only permitted application persistence operation for this record.
+- Save/replace semantics are prohibited.
+- Domain construction requires all required fields at creation.
+- Repository interfaces shall expose append semantics only after the Repository Interface milestone is approved.
+- Prisma update/delete methods shall not be exposed through the domain repository contract.
+- C9 insert-only database roles, cryptographic chaining, immutable archive and legal-hold behavior remain excluded and unimplemented.
+
+10. Affected Module 01 Parts
+
+Part 1
+- §11 Identity States
+- §16 Identity Lifecycle
+- §17 Identity and Security Audit Governance boundary
+- §22 Identity, Verification and Business-Profile Status Separation
+
+Part 2
+- Registration State Machine and Identity activation
+
+Part 3
+- Credential and authentication-state effects where Identity state changes
+
+Part 5
+- Identity lock/unlock and Recovery-related state changes
+
+Part 6
+- Authentication-to-Authorization ownership boundary
+
+Part 7.2
+- Authoritative Persistence Inventory
+- Identity Aggregate boundary
+- Domain Events and internal-state distinction
+
+Part 7.3
+- Logical Schema Catalogue
+- Relationship and Constraint Catalogue
+- Transaction-Boundary Catalogue
+- Index and Approved Access-Pattern Catalogue
+
+Part 8
+- Unit, persistence, concurrency and boundary testing
+
+Part 10
+- Limited Phase 1 implementation governance
+
+11. Affected ADRs
+
+ADR-M01-001 – Hybrid Authentication Architecture
+- Identity lifecycle and authentication-state ownership.
+
+ADR-M01-004 – Authentication-to-Authorization Boundary
+- Confirms that no authorization state is copied into the transition.
+
+ADR-M01-009 – Recovery Assurance Architecture
+- Applies where an approved Recovery operation changes Identity state.
+
+Limited ADR-M01-010 – Logical Data Model and Persistence Security Architecture
+- Requires this approved record definition before domain and Prisma translation.
+
+ADR-M01-014 remains excluded
+- Identity State Transition is not an Integration Event and is not externally published.
+
+ADR-M01-015 remains excluded
+- Identity State Transition is not a C9 Audit Record and receives no integrity chain/archive in Limited Phase 1.
+
+ADR-M01-016 remains excluded
+- No deletion, anonymization, retention or identifier-reuse behavior is authorized.
+
+12. Tests Affected
+
+Domain tests
+- Required-field construction.
+- Initial transition permits null from_state only at state_version 1 to PENDING_VERIFICATION.
+- Later transitions require from_state.
+- from_state and to_state must differ.
+- Positive state_version enforcement.
+- Immutable record behavior.
+- No roles, permissions, profile data or secrets.
+
+Persistence-model tests
+- UUIDv7 identifier representation.
+- Identity foreign-key ownership.
+- Unique identity_id plus state_version.
+- Restrictive Identity deletion behavior.
+- created_at does not precede transitioned_at where database enforcement is approved.
+- No update/delete fields.
+- Required indexes.
+
+Concurrency and transaction tests
+- Duplicate state version rejection.
+- Version regression rejection.
+- Concurrent transitions cannot commit the same state_version.
+- Resulting Identity state/version matches the appended transition.
+- Idempotent no-change request creates no duplicate transition.
+
+Boundary tests
+- No Module 02 authorization fields.
+- No Module 03 or Module 06 profile fields.
+- No Outbox, external publication, audit chain or C10 execution.
+
+13. Approval Statement
+
+APPROVE IDENTITY STATE TRANSITION LOGICAL RECORD
+
+Approval of this statement approves the fields, definitions, constraints, immutability, relationships, versioning, indexes and append-only rules exactly as written for Limited Phase 1 structural implementation.
+
+It does not authorize repositories, Prisma, migrations, APIs, authentication execution, external messaging, C9 audit persistence, C10 privacy execution, live cryptography or production deployment.
+
+14. Current Status
+
+Identity State Transition logical record: Proposed
+Milestone 2 Domain Layer: Paused
+Implementation files changed by this plan: None

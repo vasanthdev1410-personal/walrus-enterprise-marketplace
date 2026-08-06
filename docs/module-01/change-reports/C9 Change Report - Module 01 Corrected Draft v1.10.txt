@@ -1,0 +1,167 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.10
+Critical Issue C9 Change Report
+
+Status: Draft
+Scope: C9 – Security Audit Evidence, Integrity, Retention and Access Architecture
+
+1. Files
+
+Source preserved: Module 01 Corrected Draft v1.9.txt
+Corrected copy created: Module 01 Corrected Draft v1.10.txt
+No code, infrastructure, physical schema or migration was generated. No C10 change was applied.
+
+2. Changes
+
+- Replaced Part 1 §17 with authoritative Module 01/Module 02 audit ownership and mandatory-audit governance.
+- Replaced Authentication and Recovery Audit logical records with insert-only, sequenced, integrity-protected evidence contracts.
+- Added canonical envelope, actors, categories and event-registry governance.
+- Added database-role separation, KMS-backed HMAC-SHA-256 integrity streams, checkpoints and S3 Object Lock archive.
+- Added transaction/failure, access/export, retention/legal-hold, privacy-transformation and time-integrity rules.
+- Added C9 ownership, testing, monitoring/restoration and implementation gates.
+- Added Proposed ADR-M01-015; all Proposed ADRs remain Proposed.
+
+3. Full C9 Verification Checklist
+
+Document Control
+- Pass – v1.9 remains the preserved source.
+- Pass – v1.10 is a separate corrected copy.
+- Pass – version is 1.10.
+- Pass – status remains Draft.
+- Pass – no C10 content exists.
+- Pass – no implementation artifact was generated.
+
+Ownership
+- Pass – Module 01 audit ownership is explicit.
+- Pass – Module 02 authorization-audit ownership is preserved.
+- Pass – only a protected Module 02 decision reference may be stored.
+- Pass – roles and permissions are prohibited from Module 01 evidence.
+- Pass – C8 Audit Events remain separate from Integration Events/Commands.
+
+Audit Envelope
+- Pass – stable Audit Event identifier exists.
+- Pass – stream and monotonic sequence exist.
+- Pass – type, category and schema version exist.
+- Pass – occurred_at and recorded_at are separate.
+- Pass – source service/environment exist.
+- Pass – actor and conditional subject semantics exist.
+- Pass – action, outcome and reason code exist.
+- Pass – correlation and causation exist.
+- Pass – classification exists.
+- Pass – predecessor and current integrity fields exist.
+
+Actors and Registry
+- Pass – anonymous, Identity, Recovery approver, service and system actors exist.
+- Pass – security, deployment and database-maintenance actors exist.
+- Pass – actor type does not grant authorization.
+- Pass – unknown Identity actors are not invented.
+- Pass – canonical categories cover all Module 01 security domains.
+- Pass – unregistered event types cannot be emitted.
+- Pass – registry metadata and ownership are defined.
+
+Persistence Enforcement
+- Pass – AUDIT_WRITER is INSERT-only.
+- Pass – AUDIT_READER cannot mutate.
+- Pass – AUDIT_INTEGRITY_VERIFIER cannot mutate.
+- Pass – AUDIT_ARCHIVER cannot modify PostgreSQL history.
+- Pass – AUDIT_RETENTION_EXECUTOR is policy-bound.
+- Pass – migration access does not imply normal data mutation.
+- Pass – break-glass access requires independent evidence and review.
+- Pass – update/delete lifecycle fields are prohibited.
+- Pass – stream/sequence uniqueness is required.
+
+Cryptographic Integrity
+- Pass – a dedicated C7 audit-integrity key is required.
+- Pass – it is separated from JWT, encryption, lookup and CSRF keys.
+- Pass – KMS-backed HMAC-SHA-256 is approved.
+- Pass – key material is non-exportable.
+- Pass – canonical content and predecessor digest are bound.
+- Pass – environment, stream, sequence, event and schema are bound.
+- Pass – missing records are detectable.
+- Pass – modified records are detectable.
+- Pass – reordered and duplicated records are detectable.
+- Pass – key rotation preserves linked verification.
+- Pass – key compromise triggers range verification and incident response.
+- Not Applicable – integrity-stream partitioning remains Security/Architecture-TBD.
+
+Checkpoints and Archive
+- Pass – sealed checkpoint contents are defined.
+- Pass – checkpoint integrity and archive reference are required.
+- Pass – Amazon S3 encryption and versioning are required.
+- Pass – S3 Object Lock is required.
+- Pass – archive writer cannot overwrite or shorten retention.
+- Pass – PostgreSQL remains operationally authoritative.
+- Pass – Redis remains non-authoritative.
+- Pass – archive failure remains durable and reconcilable.
+- Not Applicable – checkpoint interval/max exposure remain Security/Operations-TBD.
+- Not Applicable – Object Lock mode, retention, account, region and replication remain approval TBD.
+
+Transactions and Failure
+- Pass – security state, Audit Record and archive intent commit atomically.
+- Pass – mandatory Audit insertion failure fails closed.
+- Pass – rejected authentication attempts remain auditable.
+- Pass – archive failure does not reverse committed security state.
+- Pass – archive completion cannot be falsely reported.
+- Not Applicable – per-category integrity/KMS failure matrix remains Security-TBD.
+
+Access and Export
+- Pass – no public Audit API is created.
+- Pass – interactive access requires a current Session and AAL2.
+- Pass – Module 02 authorization is required.
+- Pass – approved purpose/case reference is required.
+- Pass – field minimization and audit-of-audit are required.
+- Pass – bulk export requires separation of duties and dual approval.
+- Pass – exports are encrypted, identified, time-bound and recipient-validated.
+- Pass – authentication-security classification cannot authorize access.
+
+Retention, Legal Hold and Privacy
+- Pass – canonical retention classes exist.
+- Pass – legal hold overrides ordinary retention.
+- Pass – hold changes require authorization and audit.
+- Pass – applications cannot directly release holds.
+- Pass – Identity deletion preserves required evidence.
+- Pass – approved anonymization produces immutable transformation evidence.
+- Pass – integrity remains verifiable after transformation.
+- Not Applicable – exact retention durations remain Compliance/Legal/Security-TBD.
+
+Time Integrity
+- Pass – occurred_at and recorded_at use UTC.
+- Pass – approved time synchronization is mandatory.
+- Pass – clock drift monitoring is mandatory.
+- Pass – late events retain both timestamps.
+- Pass – client time cannot control integrity sequence.
+- Not Applicable – drift thresholds remain Operations/Security-TBD.
+
+Testing and Operations
+- Pass – mutation/deletion/reordering/missing-record tests are required.
+- Pass – database-role and sequence-collision tests are required.
+- Pass – canonicalization, rotation and compromise tests are required.
+- Pass – checkpoint and archive-immutability tests are required.
+- Pass – outage/reconciliation and legal-hold tests are required.
+- Pass – access/export and restore-certification tests are required.
+- Pass – monitoring covers insertion, integrity, archive, access, keys and drift.
+- Pass – restoration validates records, keys, chains, checkpoints, archive and holds.
+- Pass – suspected tampering fails certification and triggers incident response.
+
+C1–C8 Preservation
+- Pass – C1 universal Identity and ownership boundaries remain unchanged.
+- Pass – C2 token, Session and revocation semantics remain unchanged.
+- Pass – C3 Recovery assurance and dual control remain unchanged.
+- Pass – C4 PostgreSQL, Outbox and append-only classifications remain unchanged.
+- Pass – C5 REST/OpenAPI contracts remain unchanged.
+- Pass – C6 resilience and recovery rules remain unchanged.
+- Pass – C7 key separation and cryptographic lifecycle remain unchanged.
+- Pass – C8 event, command, Outbox and Inbox architecture remains unchanged.
+
+4. Verification Summary
+
+Pass: 98
+Fail: 0
+Not Applicable: 6
+
+Not Applicable items are explicit approval gates, not remaining C9 architecture defects.
+
+5. C9 Result
+
+Remaining C9 defects: None.
+C9 status: Resolved

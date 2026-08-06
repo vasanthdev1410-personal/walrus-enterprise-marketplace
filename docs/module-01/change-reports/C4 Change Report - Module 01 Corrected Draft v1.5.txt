@@ -1,0 +1,285 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.5
+Critical Issue C4 Change Report
+
+Status: Draft
+Scope: C4 – Authoritative Logical Data Model and Persistence Security Architecture
+
+1. Interruption Recovery
+
+The existing Module 01 Corrected Draft v1.5.txt was inspected after the interrupted validation.
+
+Result: All approved C4 document changes were already present. The v1.5 document was not recreated or modified during resumed validation.
+
+Source preserved without modification:
+Module 01 Corrected Draft v1.4.txt
+
+Validated corrected copy:
+Module 01 Corrected Draft v1.5.txt
+
+No Prisma schema, migration, SQL or application code was generated.
+
+No C5 or later correction was applied.
+
+2. Approved C4 Architecture Applied
+
+- PostgreSQL is authoritative for Module 01 domain, audit and integration state.
+- Redis remains a rebuildable, non-authoritative Session Validation Projection and temporary-state store.
+- The persistence inventory distinguishes Aggregate Roots, Aggregate-Owned Entities, Append-Only Records, Projections and Integration Records.
+- Identity–Credential one-to-one was replaced with a lifecycle-aware one-to-many model constrained to one active current credential per approved type.
+- A complete logical schema catalogue defines purpose, logical fields, constraints, protection, indexes and lifecycle requirements.
+- Complete relationship, constraint, sensitive-data, retention, transaction-boundary and access-pattern catalogues were added.
+- Authentication and Recovery audit records are append-only and non-deletable through application workflows.
+- A PostgreSQL Transactional Outbox provides atomic event intent and at-least-once external delivery with idempotent consumers.
+- Module 02 authorization data, Customer profile fields, Seller profile fields and cross-module foreign keys remain prohibited.
+
+3. Sections Changed
+
+Part 2
+- Added the C4 reference requiring persistent registration fields and constraints to use the authoritative Part 7 model.
+
+Part 3
+- Added the C4 reference requiring Credential, Session, Refresh Token and revocation persistence to use Part 7.
+
+Part 4
+- Added the C4 reference requiring Verification, OTP, MFA, Recovery Code and Trusted Device persistence to use Part 7.
+
+Part 5
+- Added the C4 reference requiring Session, Device and Recovery persistence to use Part 7.
+
+Part 7.2
+- §7: replaced the incomplete core-entity list with the authoritative persistence inventory.
+- §8: replaced generic aggregate guidance with exact aggregate ownership and transaction boundaries.
+- §9: expanded Value Objects and canonical state ownership.
+- §10: aligned Domain Events with persistence events and Transactional Outbox delivery.
+
+Part 7.3
+- §11: established PostgreSQL authority, Redis non-authority and record-category standards.
+- §12: added the complete logical schema catalogue.
+- §13: added the relationship and constraint catalogue, normalization and identifier-reuse rules.
+- §14: added the sensitive-data storage matrix.
+- §15: added the retention, deletion and anonymization matrix.
+- §16: added the transaction-boundary catalogue.
+- §17: added the Transactional Outbox architecture.
+- §18: added the index and approved access-pattern catalogue.
+- §19: added migration and schema-evolution governance.
+- §20: added the logical-data-model acceptance criteria.
+
+Part 8
+- Added persistence, constraint, concurrency, Outbox, migration, backup and restoration test requirements.
+
+Part 9
+- Added PostgreSQL/Redis operations, migration, backup, restoration and Outbox monitoring requirements.
+
+Part 10
+- Added the C4 persistence implementation gate.
+- Added Proposed ADR-M01-010 and C4 clarification references for affected ADRs.
+
+4. Replacements and Deletions
+
+Replaced or removed as governing rules:
+- Incomplete domain/persistence inventory.
+- Identity–Credential one-to-one cardinality.
+- Generic database guidance without logical fields or constraints.
+- Universal update/delete audit columns applied to immutable records.
+- Unspecified security-event delivery persistence.
+- Generic index guidance without approved access patterns.
+
+5. ADR Status
+
+- ADR-M01-001: C4 Credential, Session Version, Refresh Token digest and PostgreSQL-authority clarification referenced.
+- ADR-M01-002: C4 Verification, OTP, MFA secret, Recovery Code and Trusted Device clarification referenced.
+- ADR-M01-003: C4 Session aggregate, Refresh Token family, rotation, Redis projection and revocation clarification referenced.
+- Proposed ADR-M01-004: cross-module foreign-key and copied-authorization prohibition referenced; remains Proposed.
+- ADR-M01-005: API/persistence independence clarification referenced.
+- Proposed ADR-M01-009: C4 Recovery persistence and Outbox clarification referenced; remains Proposed.
+- Proposed ADR-M01-010 – Identity and Authentication Logical Data Model and Persistence Security Architecture: added and remains Proposed.
+- No proposed ADR was marked Approved.
+
+6. Complete C4 Validation Checklist
+
+Ownership and Boundaries
+- Pass – Module 01 persistence contains only Module 01-owned data.
+- Pass – No Module 02 Role table was introduced.
+- Pass – No Module 02 Permission table was introduced.
+- Pass – No Module 02 assignment, policy or authorization-decision table was introduced.
+- Pass – No Customer profile table or field was introduced.
+- Pass – No Seller profile, organization or onboarding table or field was introduced.
+- Pass – Cross-module foreign keys are explicitly prohibited.
+- Pass – Stable scalar Identity identifiers are required for cross-module contracts.
+- Pass – C1 ownership boundaries remain unchanged.
+
+Entity Completeness
+- Pass – The complete authoritative persistence inventory exists.
+- Pass – Aggregate Roots are distinguished from Aggregate-Owned Entities.
+- Pass – Append-Only Records are distinguished from mutable records.
+- Pass – Projections are distinguished from authoritative records.
+- Pass – Integration Records are distinguished from domain entities.
+- Pass – Redis Session Validation Projection is explicitly non-authoritative.
+- Pass – PostgreSQL is explicitly authoritative.
+- Pass – Entity terminology is aligned between Parts 7.2 and 7.3.
+
+Identity and Registration
+- Pass – Canonical email normalization and protected lookup requirements are defined.
+- Pass – Canonical mobile normalization requirements are defined.
+- Pass – Identifier uniqueness is database-enforced.
+- Pass – Pending and active registration identifier reservation is race-safe.
+- Pass – Verified and unverified identifier state is represented.
+- Pass – Soft-deleted identifiers remain reserved unless an approved reuse policy releases them.
+- Pass – Anonymization behavior is defined.
+- Pass – Concurrent duplicate registration cannot rely only on application checks.
+- Not Applicable – Exact legal/commercial identifier-reuse duration remains an explicitly unapproved TBD and was not invented.
+
+Credentials
+- Pass – Current Credentials and Credential History are modeled separately.
+- Pass – Password History is modeled separately.
+- Pass – Credential type, version and state are represented.
+- Pass – One active current Credential per approved type is constrained.
+- Pass – Credential compromise, revocation and replacement timestamps are supported.
+- Pass – Credential replacement has an approved transaction boundary.
+- Pass – Raw passwords are prohibited from persistence.
+- Pass – Password hashes use approved one-way protection.
+
+Verification, OTP and MFA
+- Pass – Verification Challenge state, attempts and expiry are represented.
+- Pass – OTP values are never persisted raw.
+- Pass – OTP protected digest and single-use requirements are defined.
+- Pass – Verification attempts are append-only.
+- Pass – MFA Enrollment and MFA Factor structures are defined.
+- Pass – MFA factor type, state and lifecycle are represented.
+- Pass – MFA shared secrets require encryption or an approved protected reference.
+- Pass – Encryption key-version metadata is required.
+- Pass – Recovery Code Set and Recovery Code Record are defined.
+- Pass – Recovery codes are stored only as protected digests.
+- Pass – Recovery-code consumption is atomic and single-use.
+- Pass – New Recovery Code Set activation invalidates prior unused codes.
+- Pass – Trusted Devices are Identity-bound, expiring and revocable.
+
+Sessions and Refresh Tokens
+- Pass – PostgreSQL remains authoritative for Session and Refresh Token state.
+- Pass – Redis remains a non-authoritative projection.
+- Pass – Canonical Session states remain ACTIVE, REVOKED and EXPIRED.
+- Pass – Session Version is persisted and concurrency-protected.
+- Pass – Idle and absolute expiration are persisted.
+- Pass – Revoked Session timestamp/reason consistency is constrained.
+- Pass – Sessions exclude roles, permissions, profiles and authorization decisions.
+- Pass – Refresh Token Family belongs to the Session Aggregate.
+- Pass – Refresh Token digests are globally unique.
+- Pass – Raw Refresh Tokens are prohibited from persistence.
+- Pass – Refresh Token states remain ACTIVE, USED, REVOKED and EXPIRED.
+- Pass – Refresh Token consumption is atomic.
+- Pass – Exactly one successor is enforced.
+- Pass – Successor/parent uniqueness is defined.
+- Pass – Refresh Token Family revocation is represented.
+- Pass – Rotation, reuse, logout and logout-all transaction boundaries are defined.
+- Pass – C2 JWT, Session, token, Redis and revocation semantics remain unchanged.
+
+Recovery
+- Pass – Recovery Request persists exactly one operation class.
+- Pass – Canonical C3 Recovery state is persisted.
+- Pass – Recovery Assurance is separate from Authentication Assurance.
+- Pass – Recovery policy version and permitted operation are persisted.
+- Pass – Recovery state/version concurrency is defined.
+- Pass – Recovery evidence is request-bound, protected, expiring and single-use.
+- Pass – Recovery approvals are request-, Identity-, operation- and expiry-bound.
+- Pass – Recovery approver authorization is referenced without copying Module 02 roles or permissions.
+- Pass – Recovery requester self-approval is prohibited by constraint.
+- Pass – Approval uniqueness supports two distinct approvers.
+- Pass – Recovery transitions are append-only and version-unique.
+- Pass – Recovery completion is idempotent.
+- Pass – Recovery completion has an approved transaction boundary.
+- Pass – Required Session, Refresh Token, Trusted Device and Recovery Code invalidation is represented.
+- Pass – C3 Recovery Assurance, matrix, state machine and dual-control rules remain unchanged.
+
+Audit and Integration Events
+- Pass – Authentication Audit Records are append-only.
+- Pass – Recovery Audit Records are append-only.
+- Pass – Audit records are non-deletable through application workflows.
+- Pass – Audit records do not contain ordinary update/delete lifecycle fields.
+- Pass – Audit records prohibit authentication and Recovery secrets.
+- Pass – Correlation, causation, actor and schema-version metadata are supported.
+- Pass – Transactional Outbox Record is fully defined.
+- Pass – Domain state and Outbox insertion commit atomically.
+- Pass – External publication is at-least-once.
+- Pass – Consumers are idempotent by Event Identifier.
+- Pass – Aggregate ordering is preserved or detected where required.
+- Pass – Retry, poison-event alerting and reconciliation are defined.
+- Pass – Redis is not the authoritative Outbox.
+- Pass – API and inbound idempotency records are defined.
+
+Constraints and Indexes
+- Pass – Immutable UUID Version 7 primary identifiers remain required.
+- Pass – Internal foreign-key relationships are defined.
+- Pass – Cross-module foreign keys are prohibited.
+- Pass – Deletion behavior protects security history and audit records.
+- Pass – Required uniqueness constraints are catalogued.
+- Pass – Required state and timestamp check constraints are catalogued.
+- Pass – Nullability is defined through required and optional logical fields.
+- Pass – Optimistic concurrency fields are defined for mutable aggregates.
+- Pass – Indexes map to approved access patterns.
+- Pass – Identifier, Credential, Session and token indexes are defined.
+- Pass – Verification, MFA, Trusted Device and Recovery indexes are defined.
+- Pass – Audit and Outbox indexes are defined.
+- Pass – Expiry-cleanup access patterns are indexed.
+- Pass – Plaintext secrets are prohibited from indexes.
+
+Sensitive Data and Lifecycle
+- Pass – A sensitive-data storage matrix exists.
+- Pass – Values requiring hashing are identified.
+- Pass – Values requiring encryption are identified.
+- Pass – Key-version requirements are defined.
+- Pass – Values that must never be persisted are identified.
+- Pass – Outbox payload minimization and secret exclusion are required.
+- Pass – A retention/deletion/anonymization matrix exists.
+- Pass – Secret destruction is distinguished from record deletion.
+- Pass – Identity deletion does not cascade-delete immutable audit evidence.
+- Pass – Audit retention is separated from mutable entity retention.
+- Not Applicable – Exact legal, regulatory and commercial retention durations remain explicit TBD decisions and were not invented.
+
+Transactions, Migrations and Operations
+- Pass – Registration/identifier reservation transaction is defined.
+- Pass – Credential replacement transaction is defined.
+- Pass – Refresh Token rotation transaction is defined.
+- Pass – Token-reuse response transaction is defined.
+- Pass – Logout and logout-all boundaries are defined.
+- Pass – MFA-reset transaction is defined.
+- Pass – Recovery-completion transaction is defined.
+- Pass – Audit and Outbox atomicity is defined.
+- Pass – Prisma remains the approved migration framework.
+- Pass – Migrations remain forward-only.
+- Pass – Corrective roll-forward migrations remain the recovery strategy.
+- Pass – Expand-and-contract migration behavior is defined.
+- Pass – Backfill verification, idempotency and resumability are defined.
+- Pass – Migration locking, timeouts and deployment ordering are required.
+- Pass – Destructive/data-transforming migrations require additional reviews.
+- Pass – Backup scope covers all security-critical authoritative records.
+- Pass – Restoration must verify Identity, Credential, Session, token, MFA, Recovery, audit and Outbox integrity.
+- Pass – Redis loss requires projection rebuild or authoritative fallback and cannot grant authentication.
+- Not Applicable – Live AWS resources and live production migrations remain outside the C4 documentation correction.
+
+Testing and Governance
+- Pass – Concurrent identifier uniqueness tests are required.
+- Pass – Constraint and foreign-key tests are required.
+- Pass – Token/challenge single-use tests are required.
+- Pass – Concurrent Refresh Token successor tests are required.
+- Pass – Recovery dual-control and idempotency tests are required.
+- Pass – Append-only audit enforcement tests are required.
+- Pass – Outbox atomicity, retry and deduplication tests are required.
+- Pass – Migration compatibility tests are required.
+- Pass – Backup/restoration security-invariant tests are required.
+- Pass – Part 10 contains the C4 persistence implementation gate.
+- Pass – API contracts remain independent from internal persistence structures.
+- Pass – Proposed ADR-M01-004 remains Proposed.
+- Pass – Proposed ADR-M01-009 remains Proposed.
+- Pass – Proposed ADR-M01-010 remains Proposed.
+- Pass – No proposed ADR is marked Approved.
+- Pass – Document status remains Draft.
+- Pass – Module 01 Corrected Draft v1.4.txt remains unchanged.
+- Pass – No Prisma schema, migration, SQL or application code was generated.
+- Pass – No C5 or later correction was applied.
+
+7. C4 Result
+
+Remaining C4 defects: None found by the resumed complete validation.
+
+C4 status: Resolved

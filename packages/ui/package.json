@@ -1,0 +1,31 @@
+{
+  "name": "@walrus/ui",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src --max-warnings=0",
+    "test": "vitest run src",
+    "test:coverage": "vitest run src --coverage",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@vitest/coverage-v8": "4.1.10",
+    "@walrus/eslint-config": "workspace:*",
+    "@walrus/tsconfig": "workspace:*",
+    "eslint": "10.8.0",
+    "react": "19.2.8",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

@@ -1,0 +1,109 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.12
+Final Consolidation Change Report
+
+Status: Draft
+Source preserved: Module 01 Corrected Draft v1.11.txt
+Corrected copy: Module 01 Corrected Draft v1.12.txt
+Scope: Final Review findings M1–M6 and m1–m5 only
+
+1. Scope Control
+
+- No C11 or new business architecture was introduced.
+- C1–C10 ownership, security, privacy and audit decisions were preserved.
+- No application code, physical database schema, migration, infrastructure or deployment resource was generated.
+- All Proposed ADRs remain Proposed.
+- All implementation-gated TBD values remain gated.
+
+2. Major Corrections Applied
+
+M1 – Transactional Outbox alignment
+- Replaced legacy outbox_event_id/event_type/event_schema_version semantics.
+- Established message_id as the single retry/publication identity.
+- Added contract_id, contract_name, message_kind, schema_version, producer_context, conditional target_context, classification and protected payload/reference.
+- Added an explicit legacy-to-canonical mapping and C8 lifecycle/index constraints.
+- Changed the purpose from Domain Event-only publication to approved Integration Events and Integration Commands.
+
+M2 – C10 persistence-catalogue integration
+- Added Privacy Request to Approved Aggregate Roots.
+- Added Terms Acceptance Receipt, Privacy Notice Receipt, Consent Record and Identifier Tombstone to Identity-owned records.
+- Added Privacy Execution Record to the Privacy Request Aggregate.
+- Added Privacy Request aggregate ownership and invariants.
+- Added authoritative relationship/constraint entries for all six C10 records.
+- Added retention/deletion behavior for all six records.
+- Added transaction boundaries for registration evidence, Consent transition, Privacy Request transition, deletion execution and identifier reuse.
+- Added approved access patterns and required indexes.
+
+M3 – C10 contracts moved into C8 catalogue
+- Removed the loose C10 Privacy Coordination Contracts block.
+- Added a Proposed/Gated C10 Privacy Contracts subsection to the authoritative C8 catalogue.
+- Defined M01-CMD-004, PRV-CMD-001 and M01-EVT-003 using structured producer, consumer/subscriber, purpose, minimum payload, classification, completion and gating rules.
+- Preserved ASYNC_TRANSPORT_TBD and privacy-orchestrator gates.
+
+M4 – Privacy/Deletion state mapping
+- Defined Privacy Request State as the orchestration lifecycle.
+- Defined Module 01 Deletion Execution State as the DELETION-specific child lifecycle.
+- Added an authoritative state-to-safe-projection mapping.
+- Defined PARTIALLY_COMPLETED and FAILED_SECURELY behavior without overwriting child state or claiming enterprise completion.
+- Clarified M01-ID-002, M01-ID-003 and M01-ID-005 semantics.
+
+M5 – Unique section identifiers
+- Added a stable hierarchical identifier to every numbered heading using its owning WEMP Document ID and local section number.
+- Added occurrence qualification where an embedded component reused the same local number.
+- All 337 hierarchical section identifiers are unique.
+- Original visible local section numbers and terminology were retained for traceability.
+
+M6 – Final document control
+- Updated the consolidated version to v1.12.
+- Replaced the stale v1.1 footer.
+- Recorded incorporation of C1–C10 and consolidation findings.
+- Preserved Draft and pending-approval status.
+
+3. Minor Corrections Applied
+
+m1 – Legacy terminology
+- Replaced Admin Identity/Super Admin Identity type-like terminology with C1-compliant privileged-access provisioning/bootstrap terminology.
+
+m2 – Encoding
+- Corrected all detected single- and double-encoded UTF-8 mojibake sequences.
+- Restored dashes, arrows, bullets, quotation marks and diagram characters.
+
+m3 – Component versions
+- Added one Component-Version Index at the beginning of the consolidated document.
+- Indexed all 49 embedded WEMP component documents.
+- Clarified that v1.12 is the authoritative consolidated version.
+
+m4 – ADR references
+- Expanded ADR-M01-001/002/003 into ADR-M01-001, ADR-M01-002 and ADR-M01-003.
+
+m5 – DeletionStatus DTO
+- Added the explicit Module01DeletionStatus schema.
+- Defined its twelve permitted safe projection values.
+- Updated M01-ID-005 to return deletionStatus using this schema.
+
+4. Files
+
+Created:
+- Module 01 Corrected Draft v1.12.txt
+- Final Consolidation Change Report.txt
+- Final Consolidation Review Report.txt
+
+Preserved without modification:
+- Module 01 Corrected Draft v1.11.txt
+- All C1–C10 Change Reports
+
+5. Consolidation Result
+
+M1: Resolved
+M2: Resolved
+M3: Resolved
+M4: Resolved
+M5: Resolved
+M6: Resolved
+m1: Resolved
+m2: Resolved
+m3: Resolved
+m4: Resolved
+m5: Resolved
+
+Remaining consolidation defects: None found.

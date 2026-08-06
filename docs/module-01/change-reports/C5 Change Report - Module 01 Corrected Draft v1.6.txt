@@ -1,0 +1,243 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.6
+Critical Issue C5 Change Report
+
+Status: Draft
+Scope: C5 – Authoritative REST API Contracts, Token Transport and OpenAPI Governance
+
+1. Files
+
+Source preserved without modification:
+Module 01 Corrected Draft v1.5.txt
+
+Corrected copy created:
+Module 01 Corrected Draft v1.6.txt
+
+No controller, DTO source file, OpenAPI implementation file, Prisma artifact or application code was generated.
+No C6 or later correction was applied.
+
+2. C5 Architecture Applied
+
+- 39 Phase 1 REST operations are catalogued with unique contract IDs.
+- Nine endpoint exposure classes are defined.
+- Every operation has exactly one exposure class and operation-specific security, idempotency, version, rate, response, error and audit metadata.
+- Operation-specific request and response DTO catalogues are authoritative and independent of C4 persistence.
+- Web uses in-memory Bearer Access Tokens and a Secure HttpOnly SameSite=Strict Refresh Token cookie with CSRF protection.
+- Flutter uses operating-system-backed secure storage for Refresh Tokens and Bearer Access Tokens.
+- State-aware C2 Session validation remains mandatory.
+- Idempotency-Key and ETag/If-Match contracts are defined.
+- Stable Module 01 errors and named rate-limit classes are defined.
+- The reviewed/versioned OpenAPI contract is authoritative and CI-enforced.
+
+3. Sections Changed
+
+Parts 1–6
+- Added references requiring any API exposure to use the authoritative Part 7 contracts without redefining C1–C4 behavior.
+
+Part 7.1
+- Replaced stateless-authentication ambiguity with request-oriented transport and state-aware C2 authentication.
+- Replaced generic idempotency with the Idempotency-Key contract.
+- Added exposure classes, common headers, complete endpoint catalogue, token transport, optimistic concurrency and rate-limit classes.
+
+Part 7.4
+- Replaced generic DTO standards with operation-specific request/response catalogues.
+- Added ordered validation, response contract, stable error catalogue and security/token handling.
+
+Part 7.5
+- Made OpenAPI authoritative and added CI drift/breaking-change governance.
+- Replaced Module 02-owned route examples with Module 01 resources.
+- Corrected the Module 02 contract terminology and boundaries.
+- Preserved REST synchronous and C4 Outbox integration boundaries.
+
+Part 8
+- Added complete endpoint, schema, transport, security, idempotency, concurrency, compatibility and ownership tests.
+
+Part 9
+- Added gateway exposure and operation-level API observability requirements.
+
+Part 10
+- Added the C5 API implementation gate.
+- Added Proposed ADR-M01-011 and C5 ADR clarification references.
+
+4. ADR Status
+
+- ADR-M01-001, ADR-M01-002, ADR-M01-003 and ADR-M01-005: C5 clarification references added.
+- Proposed ADR-M01-004, Proposed ADR-M01-009 and Proposed ADR-M01-010: C5 boundary references added; all remain Proposed.
+- Proposed ADR-M01-011 – Module 01 REST API Contracts, Token Transport and OpenAPI Governance: added and remains Proposed.
+- No proposed ADR was marked Approved.
+
+5. Complete C5 Verification Checklist
+
+API Ownership
+- Pass – Every approved Phase 1 Module 01 API capability is catalogued or explicitly NOT_EXPOSED.
+- Pass – No Module 02 Role CRUD endpoint exists in Module 01.
+- Pass – No Module 02 Permission CRUD endpoint exists in Module 01.
+- Pass – No Customer profile fields appear in Module 01 DTOs.
+- Pass – No Seller profile fields appear in Module 01 DTOs.
+- Pass – Internal operations use INTERNAL_SERVICE or MODULE_02_AUTHORIZED exposure.
+- Pass – Bootstrap uses BOOTSTRAP_CONTROLLED exposure.
+- Pass – C1 ownership remains unchanged.
+
+Endpoint Catalogue
+- Pass – 39 endpoint rows exist.
+- Pass – Every endpoint has a unique contract identifier.
+- Pass – Every endpoint has an HTTP method and /api/v1 path.
+- Pass – Every endpoint has exactly one valid exposure class.
+- Pass – Authentication/AAL/Session requirements are explicit.
+- Pass – Module 02 dependency is explicit where applicable.
+- Pass – Idempotency requirement is explicit.
+- Pass – Expected version requirement is explicit.
+- Pass – Rate-limit class is explicit.
+- Pass – Success status is explicit.
+- Pass – Stable errors are explicit.
+- Pass – Required audit event is explicit.
+- Pass – Unapproved Role, Permission, profile and secret retrieval operations are NOT_EXPOSED.
+
+DTOs
+- Pass – Every endpoint ID has an operation-specific DTO reference.
+- Pass – Request and response fields are defined.
+- Pass – Required versus conditional fields are stated.
+- Pass – Unknown-field handling is defined for security-sensitive mutations.
+- Pass – Timestamps and version representation are defined.
+- Pass – DTOs remain independent of C4 persistence.
+- Pass – Password hashes, digests and secrets are excluded.
+- Pass – Roles and permissions are excluded from Module 01 Session/JWT DTOs.
+- Pass – Customer and Seller profile fields are excluded.
+
+Token Transport
+- Pass – Web Access Token delivery and in-memory storage are defined.
+- Pass – Web Refresh Token uses a Secure HttpOnly SameSite=Strict cookie.
+- Pass – Cookie name and Path are defined.
+- Pass – CSRF protection is required for cookie-dependent Web operations.
+- Pass – Web localStorage/sessionStorage token storage is prohibited.
+- Pass – Flutter token delivery is defined.
+- Pass – Flutter Refresh Token uses OS-backed secure storage.
+- Pass – Bearer Access Token transport is defined.
+- Pass – Refresh Token is accepted only by the refresh operation.
+- Pass – Tokens are prohibited in URLs, logs, traces, metrics and analytics.
+- Pass – CORS wildcard-with-credentials is prohibited.
+- Pass – Token responses use no-store/no-cache.
+- Pass – Logout cookie clearing and server revocation behavior are defined.
+
+C2 Preservation
+- Pass – Request-oriented transport is distinguished from authentication state.
+- Pass – JWT validation alone remains insufficient.
+- Pass – Protected requests retain authoritative Session-state/Session-Version validation.
+- Pass – Refresh Token rotation remains atomic.
+- Pass – Reuse response remains unchanged.
+- Pass – Logout commits authoritative revocation before success.
+- Pass – Redis remains non-authoritative.
+- Pass – C2 remains unchanged.
+
+Recovery API and C3
+- Pass – Recovery operations use PUBLIC_ENUMERATION_SAFE, RECOVERY_SESSION or MODULE_02_AUTHORIZED as appropriate.
+- Pass – Recovery Sessions remain request- and operation-bound.
+- Pass – Expected Recovery state/version is required for mutations.
+- Pass – Recovery mutations require idempotency.
+- Pass – Recovery Sessions are rejected from ordinary routes.
+- Pass – Recovery does not establish AAL2 automatically.
+- Pass – Fresh authentication remains required.
+- Pass – Module 02 only authorizes Recovery approvers.
+- Pass – Module 02 approval cannot execute Recovery.
+- Pass – Recovery errors are enumeration-safe.
+- Pass – C3 remains unchanged.
+
+HTTP, Errors and Responses
+- Pass – JSON success envelope is defined.
+- Pass – 204 responses contain no body.
+- Pass – Cursor pagination fields are defined.
+- Pass – ETag response version is defined.
+- Pass – Authentication/security mutations are non-cacheable.
+- Pass – Stable error catalogue exists.
+- Pass – 400/401/403/404/409/412/422/428/429/500/503 semantics are defined.
+- Pass – Authentication and authorization failures are distinct.
+- Pass – Enumeration-safe errors are defined.
+- Pass – Stack traces and secrets are prohibited.
+- Pass – Correlation identifier behavior is defined.
+
+Idempotency and Concurrency
+- Pass – Idempotency-Key is the standard header.
+- Pass – Required operations are marked.
+- Pass – Identity/client, operation and version scope is defined.
+- Pass – Request fingerprint behavior is defined.
+- Pass – Identical replay returns the committed result.
+- Pass – Mismatched replay is rejected.
+- Pass – In-progress replay is deterministic.
+- Pass – Retention is centrally configured without inventing duration.
+- Pass – Strong ETag/If-Match concurrency is selected.
+- Pass – Missing precondition returns HTTP 428.
+- Pass – Stale version returns HTTP 412.
+- Pass – Idempotency is evaluated before stale replay conflict.
+- Pass – C4 persistence/idempotency remains unchanged.
+
+Rate Limits and Security
+- Pass – Named rate classes cover registration, login, OTP, MFA, refresh, reset, Session, Recovery and privileged operations.
+- Pass – Thresholds remain centrally approved configuration.
+- Pass – HTTP 429 and safe Retry-After behavior are defined.
+- Pass – HTTPS is mandatory.
+- Pass – CORS is centrally allowlisted.
+- Pass – CSRF is enforced where applicable.
+- Pass – Module 00 security headers are retained.
+- Pass – Request-size enforcement is required.
+- Pass – Internal/bootstrap routes are excluded from the public gateway.
+- Pass – Secret redaction is required.
+
+OpenAPI and Compatibility
+- Pass – OpenAPI is the authoritative transport contract.
+- Pass – Every operation documents ID, security, schemas, statuses, errors and governance metadata.
+- Pass – Implementation annotations cannot redefine the contract silently.
+- Pass – CI validates syntax.
+- Pass – CI detects duplicate operation IDs.
+- Pass – CI detects undocumented routes.
+- Pass – CI detects breaking changes.
+- Pass – CI detects schema/security drift.
+- Pass – Generated-client compilation is required.
+- Pass – Examples cannot contain real secrets or personal data.
+- Pass – API lifecycle and deprecation states are defined.
+- Not Applicable – Exact deprecation support duration remains an unapproved governance value and was not invented.
+
+Testing and Operations
+- Pass – Every endpoint/schema/status/error requires automated coverage.
+- Pass – Undocumented-route rejection is tested.
+- Pass – Web and Flutter transport are tested.
+- Pass – Cookie, CSRF, CORS and cache controls are tested.
+- Pass – C2 Session validation is tested.
+- Pass – C3 Recovery isolation and Module 02 authorization are tested.
+- Pass – Idempotency and concurrency are tested.
+- Pass – Rate classes and enumeration resistance are tested.
+- Pass – Secret leakage and compatibility are tested.
+- Pass – Gateway exposes only catalogued public routes.
+- Pass – Per-operation metrics use stable operationId.
+- Pass – Deprecated-version usage is observable.
+- Pass – Logs/traces redact credentials and tokens.
+- Pass – API anomaly alerts are required.
+
+Governance and Preservation
+- Pass – Proposed ADR-M01-004 remains Proposed.
+- Pass – Proposed ADR-M01-009 remains Proposed.
+- Pass – Proposed ADR-M01-010 remains Proposed.
+- Pass – Proposed ADR-M01-011 remains Proposed.
+- Pass – No proposed ADR is Approved.
+- Pass – C1 module ownership is preserved.
+- Pass – C2 authentication architecture is preserved.
+- Pass – C3 Recovery architecture is preserved.
+- Pass – C4 persistence architecture is preserved.
+- Pass – Document status remains Draft.
+- Pass – Module 01 Corrected Draft v1.5.txt remains unchanged.
+- Pass – No implementation code or OpenAPI implementation artifact was generated.
+- Pass – No C6 or later correction was applied.
+
+6. Narrow C5 Validation
+
+- Pass – Complete 39-operation endpoint catalogue exists.
+- Pass – Every endpoint has exactly one exposure class.
+- Pass – Every endpoint has a matching operation-specific DTO reference.
+- Pass – Web and Flutter token transport is fully defined.
+- Pass – OpenAPI governance is authoritative.
+- Pass – C1–C4 decisions remain unchanged.
+
+7. C5 Result
+
+Remaining C5 defects: None found by complete and narrow validation.
+
+C5 status: Resolved

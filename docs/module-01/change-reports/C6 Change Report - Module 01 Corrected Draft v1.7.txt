@@ -1,0 +1,244 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.7
+Critical Issue C6 Change Report
+
+Status: Draft
+Scope: C6 – Availability, Dependency Failure, Degraded Operation and Disaster Recovery
+
+1. Files
+
+Source preserved without modification: Module 01 Corrected Draft v1.6.txt
+Corrected copy created: Module 01 Corrected Draft v1.7.txt
+No infrastructure, application code, operational resource or live AWS resource was generated.
+No C7 or later correction was applied.
+
+2. C6 Architecture Applied
+
+- Existing 99.9% production minimum preserved.
+- Measurable availability SLI framework added.
+- Criticality tiers and degraded modes added.
+- All 39 C5 operations covered by operation-group degradation rules.
+- PostgreSQL, Redis, Module 02, email/SMS, notification, Secrets Manager and signing-key/KMS failure behavior added.
+- Readiness, dependency health and circuit-breaker requirements added.
+- Provider delivery states and callback idempotency added.
+- RTO/RPO matrix added with explicit TBD ownership.
+- Backup, restoration order, Outbox reconciliation and Redis rebuild added.
+- Numerical latency, RTO, RPO, maintenance and error-budget values were not invented.
+
+3. Sections Changed
+
+Part 1 §39: replaced standalone availability percentage with measurable availability governance.
+Part 3.2: added authentication dependency-failure contract.
+Part 4.5: added verification-provider failure matrix.
+Part 5.5: added Session, revocation and Recovery failure outcomes.
+Part 6: added Module 02 availability boundary.
+Part 7.1: added service tiers, degraded-mode catalogue and dependency readiness/circuit breakers.
+Part 7.4: added resilience errors and retry/commit-state documentation.
+Part 8.4: added resilience, failover and restoration tests.
+Part 9.1: added Phase 1 HA and dependency architecture.
+Part 9.4: added SLI/SLO/error-budget governance.
+Part 9.5 §§21–22: replaced generic DR/continuity text with recovery objectives, restoration order and degraded continuity.
+Part 10.5: added operational-resilience production gate.
+Part 10.6: added Proposed ADR-M01-012 and affected ADR references.
+
+4. ADR Status
+
+- ADR-M01-001, ADR-M01-002 and ADR-M01-003: C6 failure/failover clarifications referenced.
+- Proposed ADR-M01-004, Proposed ADR-M01-009, Proposed ADR-M01-010 and Proposed ADR-M01-011: C6 clarifications referenced; remain Proposed.
+- ADR-M01-005: degraded API outcome clarification referenced.
+- Proposed ADR-M01-012 – Availability, Dependency Failure, Degraded Operation and Disaster Recovery Architecture: added; remains Proposed.
+- No proposed ADR was marked Approved.
+
+5. Complete C6 Verification Checklist
+
+Service Classification
+- Pass – Four service criticality tiers are defined.
+- Pass – Session validation/login/refresh are Tier A.
+- Pass – Security mutations are Tier B.
+- Pass – Registration/enrollment/lifecycle are Tier C.
+- Pass – Asynchronous delivery is Tier D.
+- Pass – Lower availability never weakens security.
+
+Availability SLO
+- Pass – Existing 99.9% minimum is preserved.
+- Pass – Production Module 01 service boundary is defined.
+- Pass – Availability numerator is defined.
+- Pass – Availability denominator is defined.
+- Pass – Eligible success/client outcomes are classified.
+- Pass – Required dependency failures count consistently.
+- Pass – Client-error treatment is defined.
+- Pass – Security fail-closed outcomes cannot conceal availability failures.
+- Not Applicable – Measurement window is explicitly TBD pending approval.
+- Not Applicable – Planned-maintenance treatment is explicitly TBD pending approval.
+- Not Applicable – Tier latency objectives are explicitly TBD pending approval.
+- Not Applicable – Reporting cadence is explicitly TBD pending approval.
+- Not Applicable – Error-budget policy/owner is explicitly TBD pending approval.
+- Pass – Production approval is blocked while mandatory values remain TBD.
+
+Dependency Matrix
+- Pass – PostgreSQL failure behavior is defined.
+- Pass – Redis failure/staleness behavior is defined.
+- Pass – Module 02 failure behavior is defined.
+- Pass – Email and SMS provider behavior is defined.
+- Pass – Notification-provider failure is defined.
+- Pass – Signing-key/KMS failure is defined.
+- Pass – Secrets Manager failure is defined.
+- Pass – Outbox publisher failure is defined.
+- Pass – Observability failure does not become an authentication dependency.
+- Pass – Outcomes use AVAILABLE, AUTHORITATIVE_FALLBACK, QUEUED_SIDE_EFFECT, TEMPORARILY_UNAVAILABLE or FAIL_CLOSED.
+
+PostgreSQL
+- Pass – Protected authentication fails closed without authoritative state.
+- Pass – Stale Redis cannot substitute for authority.
+- Pass – Login/refresh/Recovery cannot report success after uncertain authority.
+- Pass – Uncertain commits use idempotent reconciliation.
+- Pass – Mutations cannot use read-only/lagging replicas.
+- Pass – Revocation-sensitive acceptance cannot use unsafe replica lag.
+- Pass – Session Version remains monotonic.
+- Pass – Refresh Token state remains monotonic.
+- Pass – C2 remains unchanged.
+
+Redis
+- Pass – PostgreSQL authoritative fallback is defined.
+- Pass – Fallback is capacity/safety bounded.
+- Pass – Failed fallback fails closed.
+- Pass – Stale projections are rejected.
+- Pass – Projection version/freshness is required.
+- Pass – Projection rebuild source is PostgreSQL.
+- Pass – Redis recovery cannot resurrect revocation.
+- Pass – Redis is not Outbox or Recovery authority.
+- Pass – Retry/fallback budgets protect PostgreSQL.
+- Pass – C4 remains unchanged.
+
+Module 02 Boundary
+- Pass – Authorization operations require a current decision.
+- Pass – Module 02 outage cannot grant access.
+- Pass – Privileged Recovery requires current approver evidence.
+- Pass – Authentication-only operations may continue where safe.
+- Pass – No Module 01 authorization cache was introduced.
+- Pass – C1 boundary remains unchanged.
+
+Verification and Notification Providers
+- Pass – REQUESTED, ACCEPTED, DELIVERED, FAILED, UNCERTAIN and EXPIRED states are defined.
+- Pass – Provider acceptance is not delivery proof.
+- Pass – Duplicate callbacks are idempotent.
+- Pass – Retry cannot silently extend OTP expiry.
+- Pass – A regenerated OTP requires a new challenge.
+- Pass – Channel fallback requires explicit approval.
+- Pass – Enumeration protection remains.
+- Pass – C3 channel independence remains.
+- Pass – Provider outage is observable and reconcilable.
+- Pass – Notification failure after committed Recovery does not reverse security state.
+
+Outbox and Asynchronous Effects
+- Pass – Domain state and Outbox intent remain atomic.
+- Pass – Publisher outage cannot silently lose events.
+- Pass – At-least-once delivery remains.
+- Pass – Consumers remain idempotent.
+- Pass – Poison-event alert/quarantine/reconciliation remains.
+- Pass – Outbox oldest-unpublished age/backlog are SLIs.
+- Pass – External side effects are not falsely reported complete.
+- Pass – C4 Outbox architecture remains unchanged.
+
+API Degraded Mode
+- Pass – All 39 C5 operations are covered by operation groups.
+- Pass – Each group has a criticality tier.
+- Pass – PostgreSQL degradation outcome is present.
+- Pass – Redis degradation outcome is present.
+- Pass – Module 02 outcome is present where applicable.
+- Pass – Provider/Outbox outcome is present where applicable.
+- Pass – Stable resilience errors are defined.
+- Pass – Retry/commit uncertainty is documented.
+- Pass – Retry-After is restricted to safe usage.
+- Pass – C5 endpoint, DTO, token and OpenAPI decisions remain unchanged.
+
+Dependency Health, Readiness and Circuit Breakers
+- Pass – HEALTHY, DEGRADED, UNAVAILABLE and RECOVERING states are defined.
+- Pass – Liveness and readiness are separated.
+- Pass – Readiness is operation-safety aware.
+- Pass – Circuit breakers cannot cache security success.
+- Pass – Half-open probes cannot perform unsafe mutations.
+- Pass – Retry budgets and connection pools are bounded.
+- Pass – Graceful startup/shutdown and connection draining are required.
+- Not Applicable – Exact thresholds/timings remain TBD pending Operations approval.
+
+SLI and Observability
+- Pass – Availability is measured by C5 operationId/tier.
+- Pass – Latency is measured by operationId/tier.
+- Pass – Session-validation latency is measured.
+- Pass – PostgreSQL latency/saturation/locks/failover are measured.
+- Pass – Redis hit/miss/fallback/stale/rebuild state is measured.
+- Pass – Module 02 latency/availability is measured.
+- Pass – Provider delivery/failure is measured.
+- Pass – Outbox lag/backlog/poison state is measured.
+- Pass – Recovery execution and secure failure are measured.
+- Pass – Readiness/circuit/degraded state is measured.
+- Pass – Telemetry secret/high-cardinality protection is required.
+
+RTO and RPO
+- Pass – Identity/Identifier objectives have explicit owners.
+- Pass – Credential/Password History objectives have explicit owners.
+- Pass – Session/Refresh Token objectives have explicit owners.
+- Pass – MFA/Recovery Code objectives have explicit owners.
+- Pass – Recovery Request/Approval objectives have explicit owners.
+- Pass – Audit objectives have explicit owners.
+- Pass – Outbox objectives have explicit owners.
+- Pass – Configuration/Secrets objectives have explicit owners.
+- Pass – Redis RPO is correctly identified as non-authoritative/rebuildable.
+- Pass – OpenAPI/deployment artifact objectives have owners.
+- Not Applicable – Numerical RTO values remain explicitly TBD pending approval.
+- Not Applicable – Numerical authoritative RPO values remain explicitly TBD pending approval.
+- Pass – Production approval is blocked while mandatory objectives remain TBD.
+
+Backup and Restoration
+- Pass – Every C4 authoritative category is in backup/restore scope.
+- Pass – Backup encryption, access control and integrity are required.
+- Pass – Secrets/signing-key recovery is first-order dependency work.
+- Pass – Dependency-aware restoration order is defined.
+- Pass – Identity/Credential integrity validation is required.
+- Pass – Session/revocation/token integrity validation is required.
+- Pass – MFA/Recovery integrity validation is required.
+- Pass – Audit integrity validation is required.
+- Pass – Outbox reconciliation is required.
+- Pass – Redis rebuild follows PostgreSQL validation.
+- Pass – Authentication remains closed until mandatory checks pass.
+
+Testing
+- Pass – PostgreSQL outage and failover tests are required.
+- Pass – Refresh rotation during failover is tested.
+- Pass – Uncertain commit is tested.
+- Pass – Redis outage/fallback/overload is tested.
+- Pass – Stale Redis and rebuild are tested.
+- Pass – Module 02 outage is tested.
+- Pass – KMS/Secrets Manager outage is tested.
+- Pass – Email/SMS outage and duplicate callback are tested.
+- Pass – Outbox publisher and poison event are tested.
+- Pass – Notification failure is tested.
+- Pass – Readiness/circuit/retry storm behavior is tested.
+- Pass – Backup/restoration and order are tested.
+- Pass – SLI calculation is tested.
+- Pass – Approved SLO/error-budget reporting is testable.
+- Pass – RTO/RPO measurement is required after values are approved.
+
+Governance and Preservation
+- Pass – Proposed ADR-M01-004 remains Proposed.
+- Pass – Proposed ADR-M01-009 remains Proposed.
+- Pass – Proposed ADR-M01-010 remains Proposed.
+- Pass – Proposed ADR-M01-011 remains Proposed.
+- Pass – Proposed ADR-M01-012 remains Proposed.
+- Pass – No proposed ADR is Approved.
+- Pass – C1 ownership is preserved.
+- Pass – C2 authentication/revocation is preserved.
+- Pass – C3 Recovery Assurance is preserved.
+- Pass – C4 persistence/Outbox is preserved.
+- Pass – C5 REST/DTO/token/OpenAPI is preserved.
+- Pass – Document status remains Draft.
+- Pass – Module 01 Corrected Draft v1.6.txt remains unchanged.
+- Pass – No infrastructure/application/operational resource was generated.
+- Pass – No C7 or later correction was applied.
+
+6. C6 Result
+
+Remaining C6 defects: None in the architecture structure. Numerical measurement windows, latency objectives, RTOs, RPOs and error-budget policy remain explicitly pending business/operational approval and block production approval as designed.
+
+C6 status: Resolved

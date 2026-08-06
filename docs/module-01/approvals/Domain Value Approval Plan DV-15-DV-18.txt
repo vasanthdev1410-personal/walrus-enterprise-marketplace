@@ -1,0 +1,282 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 – Identity & Authentication
+Domain Value Approval Plan – DV-15 through DV-18
+
+Status: Proposed – Human Approval Required
+Authoritative source: Module 01 Corrected Draft v1.12.txt
+Scope: Newly discovered Domain Values only
+
+Governance
+
+- This document does not approve any value.
+- No implementation file is modified by this plan.
+- Milestone 2 remains paused until DV-15 through DV-18 are explicitly approved.
+- These values preserve the approved C1–C10 ownership and security boundaries.
+- Recovery evidence is not an Authentication Method and cannot establish AAL1 or AAL2 automatically.
+
+DV-15 – Authentication Method
+
+Name
+
+Authentication Method
+
+Purpose
+
+Defines the canonical methods that Module 01 may record in Session authentication_methods and the authentication-only context. The set describes methods actually completed; it does not contain roles, permissions, profiles or authorization decisions.
+
+Canonical values and definitions
+
+PASSWORD
+- An approved password Credential was successfully verified as the primary authentication factor.
+- The email or mobile identifier used to locate the Identity does not create a different password method.
+
+EMAIL_OTP
+- An approved email OTP challenge was successfully verified for its bound verification or authentication purpose.
+- It proves control of the approved email channel only.
+
+SMS_OTP
+- An approved SMS OTP challenge was successfully verified for its bound verification or authentication purpose.
+- It proves temporary control of the approved mobile channel only.
+
+TOTP_AUTHENTICATOR
+- An approved TOTP authenticator Factor was successfully verified for the current authentication or step-up event.
+- It may contribute to AAL2 only when the approved primary-factor and Session rules are also satisfied.
+
+Explicit exclusions
+
+- RECOVERY_CODE is Recovery evidence, not an Authentication Method.
+- TRUSTED_DEVICE is a device-security state, not an Authentication Method.
+- Module 02 roles and authentication-security classifications are not Authentication Methods.
+- Passkeys, hardware keys, push authentication, biometrics, OAuth and enterprise SSO remain deferred.
+
+Where used
+
+- Session.authentication_methods
+- Authentication Assurance calculation
+- JWT amr claim mapping in a later approved API/authentication phase
+- Authenticated Identity Context in a later approved integration phase
+
+Affected Module 01 Parts
+
+- Part 1 §§13, 15, 23 and 33
+- Part 3 JWT, Session and middleware architecture
+- Part 4 Verification and MFA architecture
+- Part 5 Session creation and validation
+- Part 6 Authenticated Identity Context
+- Part 7.2 Value Objects
+- Part 7.3 Session logical schema
+
+Affected ADRs
+
+- ADR-M01-001 – Hybrid Authentication Architecture
+- ADR-M01-002 – Enterprise Adaptive Verification Architecture
+- ADR-M01-003 – Enterprise Session Management Architecture
+- ADR-M01-004 – Authentication-to-Authorization Boundary
+- Limited ADR-M01-010 – Logical Data Model
+- ADR-M01-011 remains closed for API/JWT implementation
+
+Tests affected
+
+- Authentication Method allowlist
+- Deferred-method rejection
+- Authentication-only Session data
+- AAL1/AAL2 factor-combination rules
+- Recovery Code exclusion from ordinary authentication methods
+- JWT amr mapping tests in a later approved phase
+
+DV-16 – Credential History Event Type
+
+Name
+
+Credential History Event Type
+
+Purpose
+
+Defines why an immutable Credential History Record was created. It preserves Credential lifecycle history without treating mutable Credential state as an event name.
+
+Canonical values and definitions
+
+CREATED
+- A new protected Credential record was created.
+
+VERIFIED
+- The Credential completed its required verification step.
+
+ACTIVATED
+- The Credential became the current ACTIVE Credential of its approved type.
+
+REPLACED
+- A newer Credential superseded the prior current Credential.
+
+MARKED_COMPROMISED
+- The Credential was classified as suspected or confirmed compromised.
+
+REVOKED
+- The Credential was intentionally invalidated and cannot be used for future authentication.
+
+Where used
+
+- CredentialHistoryRecord.event_type
+- Credential lifecycle traceability
+- Credential replacement and compromise persistence tests
+
+Affected Module 01 Parts
+
+- Part 3.1 §5 Credential Architecture
+- Part 3.2 Password and Credential Validation
+- Part 5.5 Recovery completion effects
+- Part 7.2 Identity Aggregate ownership
+- Part 7.3 Credential and Credential History logical schemas
+- Part 7.3 transaction boundaries
+
+Affected ADRs
+
+- ADR-M01-001 – Hybrid Authentication Architecture
+- ADR-M01-009 – Recovery Assurance Architecture
+- Limited ADR-M01-010 – Logical Data Model
+- Limited ADR-M01-013 – Structural protected-value metadata
+
+Tests affected
+
+- Event-type allowlist
+- Append-only Credential History representation
+- Credential state/event consistency
+- Replacement history
+- Compromise and revocation history
+- Prohibition of raw Credential material
+
+DV-17 – Verification Attempt Outcome
+
+Name
+
+Verification Attempt Outcome
+
+Purpose
+
+Defines the safe result recorded for an immutable Verification Attempt. The outcome must support security and reconciliation without storing OTP values or exposing sensitive failure detail.
+
+Canonical values and definitions
+
+SUCCEEDED
+- The submitted evidence was valid for the bound challenge, purpose, destination and permitted time window.
+
+REJECTED
+- Submitted evidence was invalid or did not satisfy the bound challenge. No sensitive rejection detail is implied.
+
+EXPIRED
+- The attempt referenced a challenge or evidence item outside its approved validity window.
+
+RATE_LIMITED
+- The attempt was rejected by an approved abuse or attempt-limit control before successful verification.
+
+FAILED_SECURELY
+- A security or integrity condition prevented verification, and no verified state was established.
+
+TEMPORARILY_UNAVAILABLE
+- A required authoritative dependency was unavailable or uncertain, and verification state did not advance.
+
+Where used
+
+- VerificationAttempt.outcome
+- Verification attempt history
+- Attempt-limit and challenge-state evaluation
+- Later monitoring and error mapping without recording secrets
+
+Affected Module 01 Parts
+
+- Part 2 registration verification
+- Part 4 §§6–15 OTP and Verification lifecycle
+- Part 4 §22 rate limiting
+- Part 4 §§23–26 security and error handling
+- Part 7.2 Verification Challenge Aggregate
+- Part 7.3 Verification Attempt logical schema
+- Part 8 Verification, security and failure tests
+
+Affected ADRs
+
+- ADR-M01-002 – Enterprise Adaptive Verification Architecture
+- Limited ADR-M01-010 – Logical Data Model
+- ADR-M01-012 remains deferred for runtime dependency-failure behavior
+- Limited ADR-M01-013 for protected evidence only
+
+Tests affected
+
+- Outcome allowlist
+- Successful attempt/challenge consistency
+- Expired challenge behavior
+- Rate-limit outcome behavior in a later approved runtime phase
+- Dependency uncertainty does not establish verification
+- No OTP or secret evidence in attempts
+
+DV-18 – OTP Evidence State
+
+Name
+
+OTP Evidence State
+
+Purpose
+
+Defines the lifecycle of a protected OTP Evidence Record. It enforces single use without storing raw OTP values.
+
+Canonical values and definitions
+
+ACTIVE
+- Protected OTP evidence exists, is within its permitted validity window and has not been consumed or invalidated.
+
+CONSUMED
+- The OTP evidence was atomically accepted once and is permanently unusable.
+
+EXPIRED
+- The OTP evidence reached its approved expiry without successful consumption.
+
+INVALIDATED
+- The OTP evidence became unusable because the challenge was cancelled, superseded or invalidated by an approved security action.
+
+Terminal-state rule
+
+CONSUMED, EXPIRED and INVALIDATED never return to ACTIVE.
+
+Where used
+
+- OtpEvidenceRecord.evidence_state
+- OTP single-use constraints
+- Verification Challenge consumption and expiry consistency
+
+Affected Module 01 Parts
+
+- Part 4 §§6–10 OTP Architecture
+- Part 4 §§13–15 Verification lifecycle
+- Part 4 §§22–23 rate limiting and security controls
+- Part 7.2 Verification Challenge Aggregate
+- Part 7.3 OTP Evidence logical schema and transaction boundaries
+- Part 8 Verification and concurrency tests
+
+Affected ADRs
+
+- ADR-M01-002 – Enterprise Adaptive Verification Architecture
+- Limited ADR-M01-010 – Logical Data Model
+- Limited ADR-M01-013 – Protected OTP digest structure
+
+Tests affected
+
+- State allowlist
+- Atomic single-use transition
+- Terminal-state enforcement
+- Expiry behavior
+- Cancellation/invalidation behavior
+- Raw OTP storage prohibition
+- Verification Challenge and OTP Evidence consistency
+
+Approval statement
+
+APPROVE DV-15 THROUGH DV-18
+
+Approval of this statement approves the four canonical sets exactly as written for Limited Phase 1 structural Domain Layer implementation only. It does not authorize repositories, Prisma, migrations, APIs, authentication execution, C8, C9, C10, live cryptography or production deployment.
+
+Current status
+
+DV-15: Proposed
+DV-16: Proposed
+DV-17: Proposed
+DV-18: Proposed
+Milestone 2: Paused

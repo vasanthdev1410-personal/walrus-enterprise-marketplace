@@ -1,0 +1,221 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.4
+Critical Issue C3 Change Report
+
+Status: Draft
+Scope: C3 – Deterministic Identity and Privileged-Account Recovery Assurance Architecture
+
+1. Files
+
+Source preserved without modification:
+Module 01 Corrected Draft v1.3.txt
+
+Corrected copy created:
+Module 01 Corrected Draft v1.4.txt
+
+No application code was created or modified.
+
+No C4 or later correction was applied.
+
+2. Approved C3 Architecture Applied
+
+- Module 01 owns Recovery policy evaluation, Recovery state, evidence and approval validation, execution, credential and factor changes, invalidation, Recovery Assurance and authentication outcomes.
+- Module 02 owns only the authorization of identities permitted to act as Recovery approvers.
+- Recovery is governed by explicit operation classes and one deterministic minimum policy matrix.
+- Recovery Assurance uses request-scoped RA0, RA1 and RA2 and remains separate from AAL0, AAL1 and AAL2.
+- Recovery Sessions use the RECOVERY class, remain purpose-bound and never become ordinary authenticated Sessions automatically.
+- Privileged Recovery applies separation of duties and dual control when the policy matrix requires it.
+- Super Admin Recovery always requires dual control.
+- Recovery completion requires fresh ordinary authentication; AAL2 requires a qualifying MFA authentication event.
+- Security-sensitive Recovery triggers the policy-mandated Session, Session-Version, Refresh Token Family, Trusted Device, Recovery-code and challenge invalidation.
+- Recovery never grants Module 02 roles or permissions and never produces an authorization decision.
+
+3. Sections Changed
+
+Part 1
+- §§8–9: linked privileged-account Recovery requirements to the authoritative Part 5.5 Recovery Assurance policy.
+- §33: added Recovery Assurance ownership, separation from Authentication Assurance, fresh-authentication rules and privileged dual-control requirements.
+
+Part 4
+- Part 4.1: added the ADR-M01-002 C3 Recovery Assurance clarification.
+- Part 4.4 §19: replaced Recovery Code rules with purpose-bound Recovery evidence, atomic consumption, AAL separation, controlled regeneration and privileged-use requirements.
+- Part 4.6 outputs: added Recovery Assurance evidence and Recovery-code-to-AAL boundary artifacts.
+
+Part 5
+- Part 5.1: added the ADR-M01-003 C3 invalidation clarification.
+- Part 5.2: clarified that RECOVERY is a purpose-bound temporary Session class that is never automatically promoted.
+- Part 5.5 §21: replaced the Recovery architecture with authoritative ownership, operation classes, Recovery Assurance and Recovery Session rules.
+- Part 5.5 §22: replaced optional factor selection with the deterministic Recovery policy matrix, channel-independence and approval rules.
+- Part 5.5 §23: replaced the generic workflow with the canonical state machine, concurrency, idempotency, invalidation and secure-failure rules.
+- Part 5.5 §24: added policy, evidence, approval, privileged-Recovery, invalidation and secure-failure audit events.
+- Part 5.5 §25: added privileged notifications, independent-channel delivery and reconciliation requirements.
+- Part 5.6 outputs: added policy, operation, assurance, approval and state-transition artifacts.
+
+Part 6
+- Proposed ADR-M01-004 boundary: added Module 01 Recovery-execution ownership and Module 02 approver-authorization ownership.
+
+Part 7
+- Part 7.1: added versioned Recovery API contract requirements, idempotency, state/version controls and enumeration-safe responses.
+- Part 7.2: added the Recovery Request Aggregate Root, C3 value objects and C3 domain events.
+- Part 7.3: added Recovery evidence, approval, attempt, state-transition and notification relationships and persistence requirements.
+
+Part 8
+- Part 8.3: added deterministic policy, Recovery Session isolation, AAL, dual-control, concurrency, invalidation and fail-closed test requirements.
+
+Part 9
+- Part 9.4: added privileged Recovery monitoring, alerts, reconciliation, incident ownership and evidence-preservation requirements.
+
+Part 10
+- Part 10.5: added the C3 implementation gate.
+- Part 10.6 outputs: added deterministic policy evaluation, purpose-bound Recovery Sessions and privileged dual-control.
+- Part 10.6 ADR references: added Proposed ADR-M01-009 and C3 amendments to ADR-M01-002, ADR-M01-003 and Proposed ADR-M01-004.
+
+4. Replacements and Deletions
+
+Replaced or removed as governing rules:
+- Open-ended “may require” Recovery-factor selection.
+- Unowned “Administrative approval where applicable”.
+- Generic Recovery flow without authoritative states.
+- Recovery-code behavior that did not distinguish Recovery Assurance from Authentication Assurance.
+- Recovery completion without deterministic token, Session, device and challenge invalidation.
+- Any interpretation that permits a Recovery Session to become an ordinary authenticated Session automatically.
+
+5. Additions
+
+Added:
+- Nine Recovery operation classes.
+- RA0, RA1 and RA2 Recovery Assurance levels.
+- Deterministic minimum Recovery policy matrix.
+- Canonical Recovery state machine.
+- Purpose-bound RECOVERY Session semantics.
+- Channel-independence and compromise-boundary rules.
+- Privileged separation of duties and dual control.
+- Request-bound, operation-bound and expiring approval evidence.
+- Atomic/idempotent completion and secure partial-failure behavior.
+- Recovery-triggered Session, token, device, code and challenge invalidation.
+- Fresh-authentication and AAL2 re-establishment requirements.
+- API, DDD, persistence, audit, monitoring and testing contracts.
+
+6. ADR Status
+
+- ADR-M01-002: C3 Recovery Assurance clarification added; existing status preserved.
+- ADR-M01-003: C3 Recovery invalidation clarification added; existing status preserved.
+- Proposed ADR-M01-004: C3 Recovery approval-boundary clarification added and retained as Proposed.
+- Proposed ADR-M01-009 – Identity and Privileged-Account Recovery Assurance Architecture: added and retained as Proposed.
+- No proposed ADR was marked Approved.
+
+7. Complete C3 Validation Checklist
+
+Recovery Policy and Operations
+- Pass – Every approved Recovery operation is represented by an explicit operation class.
+- Pass – Every Recovery Request contains one approved primary operation class.
+- Pass – A deterministic minimum policy matrix exists.
+- Pass – Implementations may strengthen but may not weaken the matrix.
+- Pass – Policy selection is based on authentication-security classification and operation class.
+- Pass – Clients cannot select a weaker policy row.
+
+Recovery Assurance
+- Pass – RA0, RA1 and RA2 are defined.
+- Pass – Recovery Assurance is request-scoped.
+- Pass – Recovery Assurance remains separate from Authentication Assurance.
+- Pass – Recovery evidence does not establish AAL1 or AAL2 automatically.
+- Pass – AAL2 requires fresh qualifying MFA authentication.
+
+Recovery Sessions
+- Pass – RECOVERY is a purpose-bound Session class.
+- Pass – A Recovery Session is bound to one Recovery Request and permitted operation.
+- Pass – Recovery Sessions are short-lived and absolutely expiring.
+- Pass – Recovery Sessions exclude Module 02 roles, permissions and authorization decisions.
+- Pass – Recovery Sessions reject APIs outside the approved Recovery workflow.
+- Pass – Recovery Sessions never become ordinary authenticated Sessions automatically.
+- Pass – Fresh ordinary authentication is required after Recovery completion.
+
+Privileged Recovery
+- Pass – PRIVILEGED_ADMIN_AUTHENTICATION Recovery has an enhanced policy row.
+- Pass – SUPER_ADMIN_AUTHENTICATION Recovery always requires dual control.
+- Pass – Dual control requires two distinct Module 02-authorized approvers.
+- Pass – One approver cannot satisfy both approvals.
+- Pass – The requester cannot self-approve.
+- Pass – Approval evidence is request-bound, Identity-bound, operation-bound and time-bound.
+- Pass – Approval evidence expires and cannot be reused.
+- Pass – Approval does not authenticate the recovered Identity.
+
+Ownership and Boundaries
+- Pass – Module 01 owns Recovery execution and authentication outcomes.
+- Pass – Module 02 owns only approver authorization.
+- Pass – Module 02 cannot reset credentials, reset MFA or create an Authenticated Identity Context.
+- Pass – Recovery cannot grant Module 02 roles or permissions.
+- Pass – Recovery cannot produce an authorization decision.
+- Pass – Direct cross-module database access remains prohibited.
+
+Channel and Evidence Security
+- Pass – A replaced, unavailable or compromised channel cannot solely authorize itself.
+- Pass – Independent evidence must not share the same compromise boundary.
+- Pass – Challenges and evidence are single-use and expiring.
+- Pass – Recovery APIs and failures remain enumeration-safe.
+- Pass – Sensitive Recovery evidence is hashed, encrypted or excluded according to type.
+
+State, Concurrency and Failure
+- Pass – The canonical Recovery states are defined.
+- Pass – Approval-pending behavior is deterministic.
+- Pass – Terminal states are defined.
+- Pass – Authoritative concurrency control is required.
+- Pass – Recovery completion is idempotent.
+- Pass – Concurrent completion cannot execute the operation twice.
+- Pass – Partial failure cannot grant access or report premature success.
+- Pass – Secure failure preserves authentication integrity.
+
+Recovery-Triggered Invalidation
+- Pass – Applicable Sessions are revoked.
+- Pass – Session Version is incremented where required.
+- Pass – Applicable Refresh Token Families are revoked.
+- Pass – Trusted Devices are invalidated where required.
+- Pass – Unused Recovery codes are invalidated where required.
+- Pass – Outstanding Recovery challenges expire.
+- Pass – The Recovery Session terminates.
+- Pass – Mandatory effects are committed before successful completion is reported.
+- Pass – Cross-boundary delivery uses outbox, idempotency and reconciliation requirements.
+
+API, Data, Audit and Operations
+- Pass – Recovery API operations and state/version requirements are defined.
+- Pass – Recovery Request is an Aggregate Root.
+- Pass – Recovery evidence, approvals, attempts and transitions have persistence relationships.
+- Pass – Approval immutability and uniqueness controls are defined.
+- Pass – Material Recovery transitions have audit events.
+- Pass – Privileged Recovery generates immediate monitoring and alerts.
+- Pass – Notification failure does not reverse committed security effects.
+- Pass – Functional, security, concurrency and fail-closed test requirements are defined.
+
+Preservation and Governance
+- Pass – The universal Identity and C1 ownership map remain intact.
+- Pass – Module 03 retains Seller-profile ownership.
+- Pass – Module 06 retains Customer-profile ownership.
+- Pass – Module 02 retains roles, permissions and authorization ownership.
+- Pass – C2 JWT signature-versus-Session-validation semantics remain intact.
+- Pass – C2 Session Version validation remains intact.
+- Pass – C2 Refresh Token rotation and reuse model remains intact.
+- Pass – C2 authoritative revocation model remains intact.
+- Pass – Proposed ADR-M01-004 remains Proposed.
+- Pass – Proposed ADR-M01-009 is Proposed.
+- Pass – The document remains Draft.
+- Pass – Module 01 Corrected Draft v1.3.txt remains preserved.
+- Pass – No C4 or later correction was applied.
+
+8. Narrow C3 Validation
+
+- Pass – Deterministic Recovery policies exist.
+- Pass – Recovery Assurance is defined.
+- Pass – Recovery Sessions remain separate from ordinary authenticated Sessions.
+- Pass – Privileged Recovery requires dual control where applicable.
+- Pass – Recovery does not establish AAL2 automatically.
+- Pass – Recovery invalidates Sessions, Refresh Token Families and Trusted Devices where required.
+- Pass – Module 01 owns Recovery execution.
+- Pass – Module 02 only authorizes Recovery approvers.
+- Pass – Approved C1 boundaries remain unchanged.
+- Pass – Approved C2 JWT, Session, Refresh Token and revocation rules remain unchanged.
+
+9. C3 Result
+
+Remaining C3 defects: None found by the complete and narrow C3 validations.
+
+C3 status: Resolved

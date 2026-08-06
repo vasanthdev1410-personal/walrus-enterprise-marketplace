@@ -1,0 +1,37 @@
+{
+  "name": "walrus-enterprise",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Engineering foundation for the WALRUS Enterprise Marketplace Platform",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.23.2 <23",
+    "pnpm": ">=10.34.5 <11"
+  },
+  "packageManager": "pnpm@10.34.5",
+  "pnpm": {
+    "overrides": {
+      "ajv@>=7.0.0-alpha.0 <8.18.0": "8.18.0",
+      "js-yaml@>=5.0.0 <=5.2.1": "5.2.2",
+      "picomatch": "4.0.4",
+      "postcss@<=8.5.17": "8.5.18",
+      "sharp@<0.35.0": "0.35.0"
+    }
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "typecheck": "turbo run typecheck",
+    "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6",
+    "turbo": "2.10.8",
+    "typescript": "5.9.3"
+  }
+}

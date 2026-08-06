@@ -1,0 +1,275 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 – Identity & Authentication
+Final Consolidated Architecture Review Report
+
+Reviewed document: Module 01 Corrected Draft v1.11.txt
+Reviewed SHA-256: B7859CF2719D6EB2A43310E86349F0BF12B8DAB1105F6FEF07C77C0191BCBE8A
+Review type: Final consolidated architecture, contract, security, privacy, audit and documentation review
+Document modification: None
+
+1. Executive Verdict
+
+The v1.11 draft preserves the substantive C1–C10 architecture and contains a strong enterprise Identity and Authentication foundation. The universal Identity boundary, Module 02 authorization boundary, profile ownership, state-aware authentication, Recovery architecture, persistence authority, API governance, resilience, cryptography, asynchronous delivery, audit integrity and privacy controls remain present.
+
+The document is not yet internally clean enough to be treated as the final approved Module 01 specification. No new Critical security vulnerability was found, but six Major documentation/contract consistency defects remain. These defects would create ambiguous implementation choices if development began directly from v1.11.
+
+Overall score: 84/100
+
+Ready for Module 02: No
+
+Module 02 planning may continue using the approved ownership boundary, but Module 01 should not be declared finally approved or used as an implementation-complete contract until the Major defects below are corrected and revalidated.
+
+2. Review Results by Requested Criterion
+
+1. No contradictions between Parts 1–10: Fail
+The C8 canonical message envelope and the C4 logical Transactional Outbox Record are not aligned. C10 also introduces two overlapping state vocabularies without an explicit mapping.
+
+2. No duplicate sections: Fail
+Several final/governance headings and section numbers are repeated without unique Part/subpart qualification.
+
+3. No conflicting terminology: Fail
+Legacy “Admin Identity” and “Super Admin Identity” wording remains, and Privacy Request state versus Deletion state is ambiguous.
+
+4. Endpoint, DTO, event, command, state machine and ADR consistency: Partial Pass
+The authoritative REST catalogue contains 41 unique endpoint IDs and every endpoint ID appears in the DTO catalogue. C10 coordination contracts are not integrated into the authoritative C8 catalogue, and the privacy/deletion state relationship is incomplete.
+
+5. Cross references valid: Partial Pass
+Most named Part and ADR references resolve, but repeated section numbers make several references non-unique. C10 records and contracts are referenced without full integration into their authoritative catalogues.
+
+6. Numbering, headings and versioning correct: Fail
+The footer still states “Module 01 Corrected Draft v1.1 remains Draft,” while the document is v1.11. Repeated final-section numbering and multiple unindexed embedded Version 1.0 headers remain.
+
+7. C1–C10 corrections preserved: Pass with qualifications
+All ten correction architectures are present. C8 and C10 require catalogue consolidation; this is an integration defect rather than removal of their controls.
+
+8. No placeholder became implementation: Pass
+TBD values remain clearly gated. No source code, physical schema, migration or live infrastructure was embedded in the draft.
+
+9. No missing ownership boundaries: Pass
+Module 01, Module 02, Module 03, Module 06, future privacy orchestration and external consumer boundaries are stated. The privacy-orchestrator owner remains explicitly TBD rather than being invented.
+
+10. No security, privacy or audit regressions: Pass with qualifications
+No C1–C9 security control was weakened. Privacy controls are strong but require persistence and contract-catalogue integration before implementation.
+
+3. Critical Issues
+
+Critical issues found: 0
+
+No defect was found that invalidates the approved universal Identity, authorization boundary, Session/revocation, Recovery, cryptographic or audit-security architecture. The remaining issues are Major specification consistency defects and must still be corrected before implementation approval.
+
+4. Major Issues
+
+M1 – Transactional Outbox logical schema conflicts with the C8 canonical envelope
+
+Affected sections:
+- Part 7.3 – Transactional Outbox Record
+- Part 7.3 §17 – Reliable Asynchronous Message Delivery Architecture
+
+Problem:
+The logical Outbox Record requires outbox_event_id, event_type and event_schema_version. C8 requires message_id, contract_id, contract_name, message_kind, schema_version, producer_context, target_context, classification and payload as the canonical external envelope.
+
+The Outbox prose says the envelope or a reproducible protected reference must be retained, but the authoritative logical-field catalogue does not require the C8 contract fields or a canonical envelope reference.
+
+Impact:
+Two compliant implementations could persist incompatible Outbox records. Commands may be incorrectly represented as Domain Events, retry identity could diverge between outbox_event_id and message_id, and contract/version governance could be lost.
+
+Required correction:
+Replace the old Outbox logical fields with the C8 canonical message fields or explicitly map outbox_event_id to message_id and require a canonical_envelope_reference plus contract, kind, producer/target, classification and schema fields. Rename the purpose from “committed Domain Events” to approved Integration Events and Integration Commands.
+
+M2 – C10 logical records are not integrated into the authoritative C4 persistence catalogues
+
+Affected sections:
+- C10 Privacy Logical Records
+- Part 7.2 aggregate/entity inventory
+- Part 7.3 complete persistence inventory
+- Part 7.3 relationship/constraint catalogue
+- Part 7.3 retention matrix
+- Part 7.3 transaction-boundary catalogue
+- Part 7.3 index/access-pattern catalogue
+
+Problem:
+Terms Acceptance Receipt, Privacy Notice Receipt, Consent Record, Privacy Request, Identifier Tombstone and Privacy Execution Record are described in one consolidated prose block. They are not consistently added to the authoritative inventory, aggregate ownership, relationship, retention, transaction and index catalogues that C4 declares complete.
+
+Impact:
+Implementers cannot determine authoritative aggregate ownership, foreign-key behavior, retention class, transaction scope or required query/index patterns without inventing decisions.
+
+Required correction:
+Add each C10 record to every applicable C4 catalogue, including ownership classification, relationships, constraints, retention, deletion behavior, transaction boundary and approved access patterns.
+
+M3 – C10 asynchronous contracts are outside the authoritative C8 contract catalogue
+
+Affected sections:
+- Part 7.2 §10 – Approved Cross-Module Command Catalogue
+- Part 7.2 §10 – Approved Integration Event Catalogue
+- C10 Privacy Coordination Contracts
+
+Problem:
+M01-CMD-004, PRV-CMD-001 and M01-EVT-003 appear under a later implementation-gate area rather than the authoritative C8 contract catalogue. They lack the same structured producer, authoritative consumer, aggregate, payload, ownership and outcome definitions used by C8.
+
+Impact:
+The document simultaneously states that uncatalogued external messages cannot be published and introduces three privacy messages outside that catalogue.
+
+Required correction:
+Move the three contracts into a clearly labelled “Proposed/Gated C10 Contracts” subsection within Part 7.2 §10. Define their envelope, producer, consumer, payload, completion semantics, privacy classification and gating. Keep them non-implementable until the orchestrator is approved.
+
+M4 – Deletion state and Privacy Request state have no authoritative mapping
+
+Affected sections:
+- Part 1 §38 – Canonical Deletion States
+- Part 6 – Canonical Privacy Request States
+- Part 7.3 – Privacy Request
+- M01-ID-002, M01-ID-003 and M01-ID-005
+
+Problem:
+The document defines one Deletion state machine and a second Privacy Request state machine. The Privacy Request logical record says it uses a canonical state without naming which state set applies. M01-ID-005 returns deletionState, but it is not explicit whether that is the Deletion state, Privacy Request state or a safe projection.
+
+Impact:
+Persistence, API responses, optimistic concurrency and cross-module orchestration may implement different state machines for the same request.
+
+Required correction:
+Define Privacy Request as the orchestration state and Deletion Execution as a DELETION-specific child state, or define one canonical mapping table. State explicitly which value M01-ID-002/003/005 reads and returns, and define the safe external projection.
+
+M5 – Consolidated document numbering and repeated final sections are ambiguous
+
+Affected headings include:
+- “26. Cross-Module Outputs” – repeated four times
+- “28. Final Architecture Review” – repeated four times
+- “29. Architecture Decision References” – repeated four times
+- “29. Final Architecture Review” – repeated twice
+- repeated “1. Objective” and “2. Scope” headings across embedded documents
+
+Problem:
+The merged document retains independently numbered subdocuments without a unique hierarchical identifier in every heading.
+
+Impact:
+References such as “Part 10.5 §29” are not reliably resolvable by heading text alone. Review findings, requirements traceability and future change requests can target the wrong section.
+
+Required correction:
+Assign stable hierarchical identifiers, for example 10.1.26, 10.2.26 and 10.6.29, or prefix every repeated heading with its Part/subpart document identifier. Preserve business terminology while removing numbering ambiguity.
+
+M6 – Final document-control statement is stale and contradicts v1.11
+
+Affected section:
+- Part 10.6 §30 – Module 01 Draft Status
+
+Problem:
+The final statement says “Module 01 Corrected Draft v1.1 remains Draft” and describes only Critical Correction 1. The actual consolidated document is v1.11 and contains C1–C10.
+
+Impact:
+The authoritative version and correction scope are misrepresented in the final document-control section.
+
+Required correction:
+Replace the stale statement with v1.11, list C1–C10 as incorporated corrections, preserve Draft status and state that final approval remains pending.
+
+5. Minor Issues
+
+m1 – Legacy identity-type terminology
+
+“Admin Identity provisioning,” “Super Admin Identity bootstrap” and related headings remain. Their surrounding rules correctly describe one universal Identity subject to authentication-security classification, but the wording conflicts with the C1 terminology standard.
+
+Recommendation:
+Use “Privileged Admin access Identity provisioning” and “Super Admin access bootstrap” without creating new Identity types.
+
+m2 – Encoding corruption
+
+Six mojibake occurrences remain, including Module 02/03/06 ownership separators and Proposed ADR-M01-014/015/016 headings.
+
+Recommendation:
+Normalize the file as UTF-8 and replace corrupted separators with the intended en dash or plain hyphen.
+
+m3 – Embedded version headers are not indexed
+
+The consolidated document contains the overall Version 1.11 plus numerous embedded Version 1.0 headers and one Version 1.1 header. Embedded component versions may be legitimate, but no component-version index explains them.
+
+Recommendation:
+Add a document-control table mapping each Part/subpart to its component version and consolidated version.
+
+m4 – Noncanonical compressed ADR reference
+
+The C10 ADR section says “ADR-M01-001/002/003,” which is not a valid individual ADR identifier format.
+
+Recommendation:
+Write ADR-M01-001, ADR-M01-002 and ADR-M01-003 separately.
+
+m5 – C10 status DTO needs an explicit state projection name
+
+M01-ID-005 returns “deletionState,” but a stable enum/schema name and mapping are not stated.
+
+Recommendation:
+Define a safe DeletionStatus DTO enum after resolving M4.
+
+6. Confirmed Correct Areas
+
+Architecture and ownership
+- One universal Module 01 Identity remains authoritative.
+- Module 02 exclusively owns roles, permissions and authorization decisions.
+- Module 03 owns Seller profiles/onboarding.
+- Module 06 owns Customer profiles.
+- No cross-module foreign keys were introduced.
+
+Authentication and security
+- JWTs and Sessions remain authentication-only.
+- PostgreSQL remains authoritative for Session and revocation state.
+- Redis remains non-authoritative.
+- Refresh Token rotation and reuse response remain deterministic.
+- AAL0/AAL1/AAL2 remain distinct from Recovery Assurance.
+- Recovery Sessions cannot become authenticated Sessions automatically.
+- Privileged Recovery dual control remains present.
+- ES256/KMS signing, key lifecycle and compromise handling remain present.
+
+API contracts
+- 41 unique authoritative endpoint IDs exist.
+- Every authoritative endpoint ID appears in the operation-specific DTO catalogue.
+- M01-ID-005 is present in endpoint, DTO and degraded-mode coverage.
+- Token transport, idempotency, concurrency and stable error governance remain present.
+
+Persistence, events and operations
+- Clean Architecture and bounded-context ownership remain defined.
+- PostgreSQL authority, forward-only migrations and corrective roll-forward remain present.
+- Transactional Outbox and Consumer Inbox concepts remain present.
+- At-least-once delivery and no exactly-once claim remain present.
+- Availability, dependency failure, RTO/RPO ownership and restoration order remain present.
+
+Privacy and audit
+- Terms, notice and consent are separated.
+- Applicable privacy regimes remain explicitly TBD.
+- Legal holds and audit integrity remain protected.
+- KMS-backed audit integrity and immutable archive architecture remain present.
+- Identifier reuse remains prohibited until policy approval.
+- No placeholder was silently converted into deployed infrastructure or code.
+
+ADRs
+- Approved ADR-M01-001 through ADR-M01-003 and ADR-M01-005 through ADR-M01-008 remain referenced as approved.
+- Proposed ADR-M01-004 and ADR-M01-009 through ADR-M01-016 remain Proposed.
+- No Proposed ADR was accidentally marked Approved.
+
+7. C1–C10 Preservation Result
+
+C1 – Pass with minor terminology cleanup required.
+C2 – Pass.
+C3 – Pass.
+C4 – Pass, but the later C10 records require catalogue integration.
+C5 – Pass, including the 41-operation endpoint catalogue.
+C6 – Pass.
+C7 – Pass.
+C8 – Pass at the architectural level; Outbox logical schema and C10 contracts require consolidation.
+C9 – Pass.
+C10 – Pass at the architectural level; persistence, contract and state mapping require consolidation.
+
+8. Final Defect Summary
+
+Critical: 0
+Major: 6
+Minor: 5
+Total remaining defects: 11
+
+9. Final Approval Status
+
+Architecture direction: Approved with required consolidation corrections
+Implementation approval: Not approved
+Final document approval: Not approved
+Ready for Module 02: No
+
+Required next action:
+
+Create one final consolidation correction limited to M1–M6 and m1–m5, then run a narrow structural, contract, terminology and C1–C10 regression validation. No new business architecture should be introduced during that correction.

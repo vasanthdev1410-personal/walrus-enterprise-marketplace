@@ -1,0 +1,23 @@
+name: Docker build
+on:
+  pull_request:
+    paths: ['apps/**', 'packages/**', 'Dockerfile', 'docker-compose.yml', 'pnpm-lock.yaml']
+  push:
+    branches: [main, develop]
+permissions: { contents: read }
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { app: [api, web] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: false
+          tags: walrus-${{ matrix.app }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

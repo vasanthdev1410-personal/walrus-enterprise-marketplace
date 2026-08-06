@@ -1,0 +1,158 @@
+WALRUS Enterprise Marketplace Platform
+Module 01 Corrected Draft v1.12
+Final Consolidation Regression Review
+
+Status: Draft
+Review scope: M1–M6, m1–m5 and complete C1–C10 regression
+Module 01 modification during validation: None after v1.12 creation
+Reviewed SHA-256: D86B3B5478190DF0AEEB2AE3B53F36AC7B1117C20A7D9D1F79487C2FC5117BB2
+
+1. Executive Result
+
+All eleven approved consolidation findings were corrected. The corrected document is internally aligned across the authoritative API, DTO, persistence, event/command, state-machine, ADR, ownership, security, privacy, audit, resilience and document-control sections.
+
+Overall score: 98/100
+
+The two unawarded points reflect intentionally pending business, Legal, Security, Operations, AWS and privacy-orchestrator decisions. These remain explicit approval gates and are not document defects.
+
+2. Remaining Defects
+
+Remaining Critical defects: 0
+Remaining Major defects: 0
+Remaining Minor defects: 0
+
+3. Complete Regression Validation
+
+Document and Scope
+- Pass – source v1.11 remains preserved.
+- Pass – v1.12 exists separately.
+- Pass – consolidated version is 1.12.
+- Pass – final document control states v1.12.
+- Pass – document remains Draft.
+- Pass – no C11 content was introduced.
+- Pass – no application or infrastructure artifact was generated.
+
+M1 Outbox
+- Pass – legacy Domain Event-only purpose is removed.
+- Pass – message_id is authoritative.
+- Pass – contract ID/name, kind and schema version are required.
+- Pass – producer and conditional target contexts are required.
+- Pass – classification and protected payload/reference are required.
+- Pass – retries retain message_id.
+- Pass – Outbox lifecycle and indexes align with C8.
+
+M2 C10 Persistence
+- Pass – Privacy Request is an Aggregate Root.
+- Pass – Terms Acceptance Receipt is integrated.
+- Pass – Privacy Notice Receipt is integrated.
+- Pass – Consent Record is integrated.
+- Pass – Identifier Tombstone is integrated.
+- Pass – Privacy Execution Record is integrated.
+- Pass – aggregate ownership is explicit.
+- Pass – relationships and constraints are explicit.
+- Pass – retention/deletion behavior is explicit.
+- Pass – transaction boundaries are explicit.
+- Pass – access patterns and indexes are explicit.
+- Pass – no cross-module foreign key was introduced.
+
+M3 C10 Contracts
+- Pass – loose C10 contract block is removed.
+- Pass – Proposed/Gated C10 contracts are inside the C8 catalogue.
+- Pass – M01-CMD-004 occurs once as a catalogued contract.
+- Pass – PRV-CMD-001 occurs once as a catalogued contract.
+- Pass – M01-EVT-003 occurs once as a catalogued contract.
+- Pass – producer/consumer ownership is explicit.
+- Pass – payload and completion semantics are explicit.
+- Pass – privacy and authentication-secret exclusions are explicit.
+- Pass – orchestrator and subscriber approvals remain gated.
+
+M4 State Mapping
+- Pass – orchestration and child deletion states are distinct.
+- Pass – authoritative mapping exists.
+- Pass – PARTIALLY_COMPLETED cannot imply enterprise completion.
+- Pass – FAILED_SECURELY preserves the last committed child state.
+- Pass – Privacy Request fields use explicit state names.
+- Pass – M01-ID-002 semantics are explicit.
+- Pass – M01-ID-003 semantics are explicit.
+- Pass – M01-ID-005 projection semantics are explicit.
+
+M5 Numbering
+- Pass – 337 numbered headings have hierarchical identifiers.
+- Pass – all 337 hierarchical identifiers are unique.
+- Pass – no numbered heading remains without a hierarchical identifier.
+- Pass – embedded duplicate local numbers are occurrence-qualified.
+- Pass – original local numbering remains visible for traceability.
+
+M6 Document Control
+- Pass – stale v1.1 footer is removed.
+- Pass – v1.12 and C1–C10 incorporation are stated.
+- Pass – consolidation scope is stated.
+- Pass – Draft and approval gates remain stated.
+
+Minor Findings
+- Pass – legacy Admin Identity type-like wording is removed.
+- Pass – detected mojibake code points are removed.
+- Pass – one Component-Version Index exists.
+- Pass – all 49 component documents are indexed.
+- Pass – compressed ADR reference is expanded.
+- Pass – Module01DeletionStatus schema exists.
+- Pass – Module01DeletionStatus allowed values are explicit.
+
+API and DTO Regression
+- Pass – authoritative endpoint catalogue has 41 entries.
+- Pass – all 41 endpoint IDs are unique.
+- Pass – every endpoint appears in the DTO catalogue.
+- Pass – M01-ID-005 remains catalogued.
+- Pass – M01-ID-005 remains covered by degraded-mode behavior.
+- Pass – token transport remains unchanged.
+- Pass – idempotency and concurrency remain unchanged.
+
+C1–C10 Preservation
+- Pass – C1 universal Identity remains authoritative.
+- Pass – C1 Module 02/03/06 ownership remains intact.
+- Pass – C2 JWT/Session/Refresh Token/revocation remains intact.
+- Pass – C3 Recovery Assurance and dual control remain intact.
+- Pass – C4 PostgreSQL authority and forward-only migration remain intact.
+- Pass – C5 REST, DTO and OpenAPI governance remain intact.
+- Pass – C6 resilience, degraded mode and restoration remain intact.
+- Pass – C7 ES256, KMS, key lifecycle and secret protection remain intact.
+- Pass – C8 message envelope, Outbox/Inbox and at-least-once delivery remain intact.
+- Pass – C9 audit integrity, legal hold and immutable archive remain intact.
+- Pass – C10 purpose, consent, privacy and deletion controls remain intact.
+
+Security, Privacy and Audit Regression
+- Pass – JWTs/Sessions remain authentication-only.
+- Pass – PostgreSQL remains authoritative.
+- Pass – Redis remains non-authoritative.
+- Pass – no role, permission or profile ownership moved to Module 01.
+- Pass – no Recovery Session becomes an authenticated Session.
+- Pass – privacy completion cannot imply authorization.
+- Pass – C9 evidence remains protected during anonymization.
+- Pass – no Proposed ADR is marked Approved.
+
+TBD and Implementation Controls
+- Pass – placeholders remain explicit approval gates.
+- Pass – no TBD became an implementation value.
+- Pass – no physical schema or migration was added.
+- Pass – no live AWS or transport resource was added.
+- Not Applicable – business/Legal/Privacy TBD approvals remain external decisions.
+- Not Applicable – AWS, transport and operational numerical values remain external decisions.
+- Not Applicable – Proposed ADR approval remains a governance action.
+
+4. Validation Summary
+
+Pass: 89
+Fail: 0
+Not Applicable: 3
+
+5. Final Status
+
+Final consolidation status: Resolved
+Architecture consistency: Pass
+Contract consistency: Pass
+Security regression: Pass
+Privacy regression: Pass
+Audit regression: Pass
+C1–C10 preservation: Pass
+
+Module 01 remains Draft until its explicitly identified approval authorities approve the Proposed ADRs and remaining gated decisions.

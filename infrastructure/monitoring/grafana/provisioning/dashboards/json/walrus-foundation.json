@@ -1,0 +1,23 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "API process CPU",
+      "targets": [{ "expr": "rate(walrus_api_process_cpu_seconds_total[5m])", "refId": "A" }],
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "API process memory",
+      "targets": [{ "expr": "walrus_api_process_resident_memory_bytes", "refId": "A" }],
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 }
+    }
+  ],
+  "schemaVersion": 41,
+  "tags": ["walrus", "foundation"],
+  "title": "WALRUS Engineering Foundation",
+  "uid": "walrus-foundation",
+  "version": 1
+}

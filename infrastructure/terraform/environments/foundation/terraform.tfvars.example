@@ -1,0 +1,3 @@
+environment_name = "REPLACE_AFTER_APPROVAL"
+vpc_cidr          = "REPLACE_AFTER_APPROVAL"
+api_desired_count = 0

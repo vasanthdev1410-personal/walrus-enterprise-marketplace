@@ -1,0 +1,35 @@
+{
+  "name": "@walrus/web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --port 3000",
+    "lint": "eslint . --max-warnings=0",
+    "start": "next start --port 3000",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@walrus/types": "workspace:*",
+    "@walrus/ui": "workspace:*",
+    "next": "15.5.22",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "15.5.22",
+    "@playwright/test": "^1.62.1",
+    "@types/node": "22.19.15",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitest/coverage-v8": "4.1.10",
+    "@walrus/eslint-config": "workspace:*",
+    "@walrus/tsconfig": "workspace:*",
+    "eslint": "10.8.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

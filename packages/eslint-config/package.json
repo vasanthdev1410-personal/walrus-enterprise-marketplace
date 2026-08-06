@@ -1,0 +1,14 @@
+{
+  "name": "@walrus/eslint-config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./base.js"
+  },
+  "dependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.0",
+    "typescript-eslint": "8.65.0"
+  }
+}

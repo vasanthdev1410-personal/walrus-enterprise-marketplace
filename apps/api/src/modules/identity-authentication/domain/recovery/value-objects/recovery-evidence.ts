@@ -1,0 +1,29 @@
+export const RECOVERY_EVIDENCE_TYPES = [
+  'VERIFIED_EMAIL_CHANNEL',
+  'VERIFIED_MOBILE_CHANNEL',
+  'RECOVERY_CODE',
+  'AUTHENTICATED_SESSION',
+  'MFA_FACTOR',
+  'CONTROLLED_BOOTSTRAP_EVIDENCE',
+] as const;
+export type RecoveryEvidenceType = (typeof RECOVERY_EVIDENCE_TYPES)[number];
+
+export const RECOVERY_EVIDENCE_STATES = [
+  'PENDING',
+  'VERIFIED',
+  'REJECTED',
+  'CONSUMED',
+  'EXPIRED',
+  'INVALIDATED',
+] as const;
+export type RecoveryEvidenceState = (typeof RECOVERY_EVIDENCE_STATES)[number];
+
+export const RECOVERY_EVIDENCE_BOUNDARIES = [
+  'EMAIL_CHANNEL',
+  'MOBILE_CHANNEL',
+  'RECOVERY_CODE_SET',
+  'AUTHENTICATED_SESSION',
+  'MFA_FACTOR',
+  'CONTROLLED_BOOTSTRAP',
+] as const;
+export type RecoveryEvidenceBoundary = (typeof RECOVERY_EVIDENCE_BOUNDARIES)[number];
