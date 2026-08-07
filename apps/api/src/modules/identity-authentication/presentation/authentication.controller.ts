@@ -21,8 +21,15 @@ import type {
   IssuedAuthenticationSession,
 } from '../application/services/authentication-application.service';
 import { UuidV7 } from '../domain/shared/value-objects/uuid-v7';
-import { currentRequestContext } from '../../../platform/request-context/request-context';
 import { AUTHENTICATION_APPLICATION_SERVICE, CSRF_PROTECTION } from './authentication.tokens';
+import {
+  anonymousScope,
+  assertIdempotencyKey,
+  assertStrongEtag,
+  currentCorrelationId,
+  noStore,
+  success,
+} from './http-contract';
 import {
   LoginRequestDto,
   MfaVerificationRequestDto,
@@ -35,11 +42,9 @@ import { AuthoritativeSessionGuard } from './guards/authoritative-session.guard'
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from './interceptors/basic-audit.interceptor';
 import type { AuthenticatedRequest } from './authentication-context';
-import { createHash } from 'node:crypto';
 
 const REFRESH_COOKIE = '__Secure-walrus_rt';
 const CSRF_COOKIE = '__Host-walrus_csrf';
-const IDEMPOTENCY_PATTERN = /^[A-Za-z0-9._:-]{16,128}$/;
 
 @ApiTags('Module 01 Authentication')
 @Controller('auth')
@@ -244,7 +249,7 @@ export class AuthenticationController {
       idempotencyKey,
       request: { identityId: claims.subject, sessionVersion: claims.sessionVersion },
       execute: async () => ({
-        operationId: currentRequestContext()?.correlationId ?? idempotencyKey,
+        operationId: currentCorrelationId() ?? idempotencyKey,
         accepted: (await this.authentication.logoutAll(
           new UuidV7(claims.subject),
           new UuidV7(claims.sessionId),
@@ -291,34 +296,6 @@ export class AuthenticationController {
   }
 }
 
-function success(data: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
-  return {
-    data,
-    meta: { apiVersion: 'v1' },
-    correlationId: currentRequestContext()?.correlationId ?? 'unavailable',
-  };
-}
-
-function noStore(response: Response): void {
-  response.setHeader('Cache-Control', 'no-store');
-  response.setHeader('Pragma', 'no-cache');
-}
-
-function assertIdempotencyKey(value: string | undefined): asserts value is string {
-  if (value === undefined || !IDEMPOTENCY_PATTERN.test(value)) {
-    throw new BadRequestException('IDEMPOTENCY_KEY_REQUIRED');
-  }
-}
-
-function assertStrongEtag(value: string | undefined, resource: string): void {
-  if (value === undefined) throw new BadRequestException('PRECONDITION_REQUIRED');
-  if (
-    !new RegExp(`^"${resource.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:v[1-9]\\d*"$`).test(value)
-  ) {
-    throw new BadRequestException('RESOURCE_STATE_CONFLICT');
-  }
-}
-
 function translateAuthenticationError(error: unknown): never {
   if (error instanceof AuthenticationError) throw new UnauthorizedException(error.code);
   throw error;
@@ -345,9 +322,4 @@ function csrfCookieOptions(): CookieOptions {
 function clearAuthenticationCookies(response: Response): void {
   response.clearCookie(REFRESH_COOKIE, refreshCookieOptions());
   response.clearCookie(CSRF_COOKIE, csrfCookieOptions());
-}
-
-function anonymousScope(request: Request): string {
-  const material = `${request.ip ?? 'unknown'}|${request.headers['user-agent'] ?? 'unknown'}`;
-  return `anonymous-client:${createHash('sha256').update(material).digest('base64url')}`;
 }

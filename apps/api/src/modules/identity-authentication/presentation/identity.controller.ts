@@ -19,8 +19,8 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
-import { currentRequestContext } from '../../../platform/request-context/request-context';
 import { IdentityError } from '../application/errors/identity.error';
+import { noStore, success } from './http-contract';
 import type {
   IdentityManagementApplicationService,
   IdentityProfileResult,
@@ -64,7 +64,7 @@ export class IdentityController {
           : { classification: body.classification }),
       });
       noStore(response);
-      return this.success(this.toResponseProfile(result));
+      return success(this.toResponseProfile(result));
     } catch (error) {
       this.handleError(error);
     }
@@ -80,7 +80,7 @@ export class IdentityController {
     try {
       const identityId = new UuidV7(request.authentication.subject);
       noStore(response);
-      return this.success(this.toResponseProfile(await this.identityService.getProfile(identityId)));
+      return success(this.toResponseProfile(await this.identityService.getProfile(identityId)));
     } catch (error) {
       this.handleError(error);
     }
@@ -101,7 +101,7 @@ export class IdentityController {
     }
     try {
       noStore(response);
-      return this.success(
+      return success(
         this.toResponseProfile(await this.identityService.getProfile(identityId)),
       );
     } catch (error) {
@@ -123,7 +123,7 @@ export class IdentityController {
     try {
       const identityId = new UuidV7(request.authentication.subject);
       noStore(response);
-      return this.success(
+      return success(
         this.toResponseProfile(await this.identityService.updateProfile(identityId)),
       );
     } catch (error) {
@@ -143,7 +143,7 @@ export class IdentityController {
     try {
       const identityId = new UuidV7(request.authentication.subject);
       noStore(response);
-      return this.success(
+      return success(
         this.toResponseProfile(
           await this.identityService.deactivate(identityId, {
             reasonCode: body.reasonCode,
@@ -167,7 +167,7 @@ export class IdentityController {
     try {
       const identityId = new UuidV7(request.authentication.subject);
       noStore(response);
-      return this.success(
+      return success(
         this.toResponseProfile(
           await this.identityService.softDelete(identityId, {
             authorizingSessionId: new UuidV7(request.authentication.sessionId),
@@ -202,14 +202,6 @@ export class IdentityController {
     };
   }
 
-  private success(data: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
-    return {
-      data,
-      meta: { apiVersion: 'v1' },
-      correlationId: currentRequestContext()?.correlationId ?? 'unavailable',
-    };
-  }
-
   private handleError(error: unknown): never {
     if (error instanceof IdentityError) {
       switch (error.code) {
@@ -229,7 +221,4 @@ export class IdentityController {
   }
 }
 
-function noStore(response: Response): void {
-  response.setHeader('Cache-Control', 'no-store');
-  response.setHeader('Pragma', 'no-cache');
-}
+

@@ -109,10 +109,14 @@ function createFixture(challenge: VerificationChallenge | null = null): Fixture 
   > = jest.fn();
   const challenges = {
     findById: jest.fn().mockResolvedValue(challenge),
+    findAggregateById: jest.fn(),
+    findActiveByBinding: jest.fn(),
     insert: insertChallenge,
     save: jest.fn(),
     completeTotpChallenge: completeChallenge,
     rejectTotpChallenge: rejectChallenge,
+    confirmOtpChallenge: jest.fn(),
+    rejectOtpChallenge: jest.fn(),
   } as jest.Mocked<VerificationChallengeRepository>;
   const verifyTotp: jest.MockedFunction<TotpCryptographicPort['verify']> = jest.fn();
   const totp: jest.Mocked<TotpCryptographicPort> = {
