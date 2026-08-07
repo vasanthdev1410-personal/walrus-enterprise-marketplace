@@ -1,9 +1,13 @@
 import type { IdentityRepository, IdentityAuthenticationSnapshot } from '../../domain/identity/repositories/identity-repository';
 import type { SessionRepository } from '../../domain/session/repositories/session-repository';
 import type { IdentityState } from '../../domain/identity/value-objects/identity-state';
+import { OptimisticConcurrencyError } from '../../domain/shared/errors/optimistic-concurrency.error';
 import { AggregateVersion } from '../../domain/shared/value-objects/aggregate-version';
+import { ProtectedValue } from '../../domain/shared/value-objects/protected-value';
 import { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
+import { Credential } from '../../domain/identity/entities/credential';
 import { Identity } from '../../domain/identity/entities/identity';
+import { PasswordHistoryRecord } from '../../domain/identity/entities/password-history-record';
 import type { PasswordHashingPort } from '../ports/password-hashing.port';
 import type { IdentifierLookupCryptographicPort } from '../ports/identifier-lookup-cryptographic.port';
 import { IdentityError } from '../errors/identity.error';
@@ -36,6 +40,7 @@ describe('IdentityManagementApplicationService', () => {
     findById: jest.fn(),
     findAuthenticationById: jest.fn(),
     findByIdentifierLookups: jest.fn(),
+    findPasswordHistory: jest.fn(),
     insert: jest.fn(),
     save: jest.fn(),
     advanceTotpReplayState: jest.fn(),
@@ -87,7 +92,12 @@ describe('IdentityManagementApplicationService', () => {
       mockIdentifierLookup,
       mockClock,
       mockIdentifiers,
-      'test',
+      {
+        environment: 'test',
+        minimumPasswordLength: 8,
+        maximumPasswordLength: 1024,
+        passwordHistoryDepth: 5,
+      },
     );
   });
 
@@ -273,6 +283,175 @@ describe('IdentityManagementApplicationService', () => {
       mockIdentityRepo.findAuthenticationById.mockResolvedValue(buildSnapshot('DELETED'));
 
       await expect(service.softDelete(new UuidV7(IDENTITY_ID))).rejects.toThrow(IdentityError);
+    });
+  });
+
+  describe('M01-CRED-001 Password Change', () => {
+    const CREDENTIAL_ID = '0191310f-789a-7123-8123-000000000010';
+    const command = {
+      currentPassword: 'CurrentPass1!',
+      newPassword: 'NewPass123!',
+      expectedIdentityVersion: 2,
+      authorizingSessionId: new UuidV7(SESSION_ID),
+      expectedAuthorizingSessionVersion: 1,
+    };
+
+    function buildCredentialSnapshot(
+      passwordHash = 'current-hash',
+      identityState: IdentityState = 'ACTIVE',
+    ): IdentityAuthenticationSnapshot {
+      return {
+        ...buildSnapshot(identityState),
+        credentials: [
+          new Credential({
+            credentialId: new UuidV7(CREDENTIAL_ID),
+            identityId: new UuidV7(IDENTITY_ID),
+            credentialType: 'PASSWORD',
+            credentialVersion: 1,
+            credentialState: 'ACTIVE',
+            protectedSecret: new ProtectedValue(passwordHash),
+            protectionKeyVersion: 'v1',
+            createdAt: FIXED_NOW,
+            updatedAt: FIXED_NOW,
+          }),
+        ],
+      };
+    }
+
+    beforeEach(() => {
+      mockIdentityRepo.findAuthenticationById.mockResolvedValue(buildCredentialSnapshot());
+      mockIdentityRepo.findPasswordHistory.mockResolvedValue([]);
+      mockPasswordHashing.verifyForAuthentication.mockResolvedValue(true);
+      mockPasswordHashing.verify.mockResolvedValue(false);
+      mockPasswordHashing.hash.mockResolvedValue('new-hash');
+      mockSessionRepo.revokeAllSessions.mockResolvedValue(1);
+    });
+
+    it('replaces the active credential, appends history and revokes every session', async () => {
+      await service.changePassword(new UuidV7(IDENTITY_ID), command);
+
+      const changeSet = mockIdentityRepo.save.mock.calls[0]?.[0];
+      expect(mockIdentityRepo.save.mock.calls).toHaveLength(1);
+      expect(mockIdentityRepo.save.mock.calls[0]?.[1].value).toBe(2);
+      expect(changeSet?.identity.properties.aggregateVersion.value).toBe(3);
+      expect(changeSet?.credentials).toHaveLength(2);
+      const replaced = changeSet?.credentials.find(
+        (credential) => credential.properties.credentialState === 'REPLACED',
+      );
+      expect(replaced?.properties.replacedAt).toEqual(FIXED_NOW);
+      const issued = changeSet?.credentials.find(
+        (credential) => credential.properties.credentialState === 'ACTIVE',
+      );
+      expect(issued?.properties.credentialVersion).toBe(2);
+      expect(issued?.properties.protectedSecret.value).toBe('new-hash');
+      expect(changeSet?.credentialHistoryToAppend[0]?.properties.eventType).toBe('REPLACED');
+      expect(changeSet?.credentialHistoryToAppend[0]?.properties.sourceCredentialId?.value).toBe(
+        CREDENTIAL_ID,
+      );
+      expect(changeSet?.passwordHistoryToAppend[0]?.properties.passwordHash.value).toBe(
+        'current-hash',
+      );
+      const revocation = mockSessionRepo.revokeAllSessions.mock.calls[0]?.[0];
+      expect(revocation).toMatchObject({
+        identityId: { value: IDENTITY_ID },
+        authorizingSessionId: { value: SESSION_ID },
+        expectedAuthorizingSessionVersion: 1,
+        revocationReason: 'PASSWORD_CHANGED',
+      });
+    });
+
+    it('rejects an incorrect current password without persisting anything', async () => {
+      mockPasswordHashing.verifyForAuthentication.mockResolvedValue(false);
+
+      await expect(
+        service.changePassword(new UuidV7(IDENTITY_ID), command),
+      ).rejects.toMatchObject({ code: 'CURRENT_CREDENTIAL_INVALID' });
+      expect(mockIdentityRepo.save.mock.calls).toHaveLength(0);
+      expect(mockSessionRepo.revokeAllSessions.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects a new password identical to the current password', async () => {
+      await expect(
+        service.changePassword(new UuidV7(IDENTITY_ID), {
+          ...command,
+          newPassword: 'CurrentPass1!',
+        }),
+      ).rejects.toMatchObject({ code: 'PASSWORD_POLICY_FAILED' });
+      expect(mockPasswordHashing.hash.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects a new password outside the policy length bounds', async () => {
+      await expect(
+        service.changePassword(new UuidV7(IDENTITY_ID), {
+          ...command,
+          newPassword: 'short',
+        }),
+      ).rejects.toMatchObject({ code: 'PASSWORD_POLICY_FAILED' });
+      expect(mockPasswordHashing.hash.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects reuse of the current password hash', async () => {
+      mockPasswordHashing.verify.mockResolvedValue(true);
+
+      await expect(
+        service.changePassword(new UuidV7(IDENTITY_ID), command),
+      ).rejects.toMatchObject({ code: 'PASSWORD_POLICY_FAILED' });
+      expect(mockIdentityRepo.save.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects reuse of a historical password hash', async () => {
+      mockPasswordHashing.verify.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      mockIdentityRepo.findPasswordHistory.mockResolvedValue([
+        new PasswordHistoryRecord({
+          passwordHistoryId: new UuidV7('0191310f-789a-7123-8123-000000000020'),
+          identityId: new UuidV7(IDENTITY_ID),
+          passwordHash: new ProtectedValue('old-hash'),
+          hashAlgorithmReference: 'argon2id-v19',
+          createdAt: FIXED_NOW,
+        }),
+      ]);
+
+      await expect(
+        service.changePassword(new UuidV7(IDENTITY_ID), command),
+      ).rejects.toMatchObject({ code: 'PASSWORD_POLICY_FAILED' });
+      expect(mockIdentityRepo.save.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects a stale identity version with a state conflict', async () => {
+      await expect(
+        service.changePassword(new UuidV7(IDENTITY_ID), {
+          ...command,
+          expectedIdentityVersion: 1,
+        }),
+      ).rejects.toMatchObject({ code: 'RESOURCE_STATE_CONFLICT' });
+      expect(mockIdentityRepo.save.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects a change for a non-active identity', async () => {
+      mockIdentityRepo.findAuthenticationById.mockResolvedValue(
+        buildCredentialSnapshot('current-hash', 'DISABLED'),
+      );
+
+      await expect(
+        service.changePassword(new UuidV7(IDENTITY_ID), command),
+      ).rejects.toMatchObject({ code: 'CURRENT_CREDENTIAL_INVALID' });
+    });
+
+    it('rejects when no active password credential exists', async () => {
+      mockIdentityRepo.findAuthenticationById.mockResolvedValue(buildSnapshot());
+
+      await expect(
+        service.changePassword(new UuidV7(IDENTITY_ID), command),
+      ).rejects.toMatchObject({ code: 'CURRENT_CREDENTIAL_INVALID' });
+    });
+
+    it('maps a concurrent identity update to a state conflict', async () => {
+      mockIdentityRepo.save.mockRejectedValue(new OptimisticConcurrencyError('Identity'));
+
+      await expect(
+        service.changePassword(new UuidV7(IDENTITY_ID), command),
+      ).rejects.toMatchObject({ code: 'RESOURCE_STATE_CONFLICT' });
+      expect(mockSessionRepo.revokeAllSessions.mock.calls).toHaveLength(0);
     });
   });
 });

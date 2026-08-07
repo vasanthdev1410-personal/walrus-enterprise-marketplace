@@ -107,6 +107,7 @@ function buildChallengeAggregate(
 describe('VerificationApplicationService', () => {
   const identityRepository: jest.Mocked<IdentityRepository> = {
     findById: jest.fn(),
+    findPasswordHistory: jest.fn(),
     findAuthenticationById: jest.fn(),
     findByIdentifierLookups: jest.fn(),
     insert: jest.fn(),

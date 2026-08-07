@@ -22,6 +22,12 @@ export interface IdentityRepository {
     identifierType: IdentifierType,
     lookupDigests: readonly ProtectedValue[],
   ): Promise<IdentityAuthenticationSnapshot | null>;
+  /**
+   * Returns the most recent password hashes for an identity (newest first),
+   * capped at the configured history depth. Used to enforce the approved
+   * password-reuse policy (M01-CRED-001).
+   */
+  findPasswordHistory(identityId: UuidV7, limit: number): Promise<readonly PasswordHistoryRecord[]>;
   insert(changeSet: IdentityAggregateChangeSet): Promise<void>;
   save(changeSet: IdentityAggregateChangeSet, expectedVersion: AggregateVersion): Promise<void>;
   advanceTotpReplayState(

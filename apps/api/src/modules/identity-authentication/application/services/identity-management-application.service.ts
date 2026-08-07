@@ -1,8 +1,10 @@
 import { AuthenticationSecurityClassificationAssignment } from '../../domain/identity/entities/authentication-security-classification-assignment';
 import { Credential } from '../../domain/identity/entities/credential';
+import { CredentialHistoryRecord } from '../../domain/identity/entities/credential-history-record';
 import { Identity } from '../../domain/identity/entities/identity';
 import { IdentityIdentifier } from '../../domain/identity/entities/identity-identifier';
 import { IdentityStateTransition } from '../../domain/identity/entities/identity-state-transition';
+import { PasswordHistoryRecord } from '../../domain/identity/entities/password-history-record';
 import type {
   IdentityAuthenticationSnapshot,
   IdentityRepository,
@@ -11,9 +13,11 @@ import type { AuthenticationSecurityClassification } from '../../domain/identity
 import { canonicalizeIdentifier } from '../../domain/identity/value-objects/canonicalize-identifier';
 import type { IdentifierType } from '../../domain/identity/value-objects/identifier-type';
 import type { SessionRepository } from '../../domain/session/repositories/session-repository';
+import { OptimisticConcurrencyError } from '../../domain/shared/errors/optimistic-concurrency.error';
 import { AggregateVersion } from '../../domain/shared/value-objects/aggregate-version';
 import { ProtectedValue } from '../../domain/shared/value-objects/protected-value';
 import type { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
+import { CredentialError } from '../errors/credential.error';
 import { IdentityError } from '../errors/identity.error';
 import type { ClockPort, UuidV7GenerationPort } from '../ports/application-runtime.port';
 import type { IdentifierLookupCryptographicPort } from '../ports/identifier-lookup-cryptographic.port';
@@ -24,6 +28,13 @@ export interface RegisterIdentityCommand {
   readonly identifier: string;
   readonly password: string;
   readonly classification?: AuthenticationSecurityClassification;
+}
+
+export interface IdentityManagementApplicationOptions {
+  readonly environment: string;
+  readonly minimumPasswordLength: number;
+  readonly maximumPasswordLength: number;
+  readonly passwordHistoryDepth: number;
 }
 
 export interface IdentityProfileResult {
@@ -58,6 +69,20 @@ export interface IdentityLifecycleCommand {
   readonly expectedAuthorizingSessionVersion?: number | undefined;
 }
 
+/**
+ * M01-CRED-001. Authenticated password change command. The caller must prove
+ * knowledge of the current password (re-authentication), the identity version
+ * must match the If-Match precondition, and the authorizing Session is revoked
+ * alongside every other active Session once the change commits.
+ */
+export interface ChangePasswordCommand {
+  readonly currentPassword: string;
+  readonly newPassword: string;
+  readonly expectedIdentityVersion: number;
+  readonly authorizingSessionId: UuidV7;
+  readonly expectedAuthorizingSessionVersion: number;
+}
+
 export class IdentityManagementApplicationService {
   public constructor(
     private readonly identityRepository: IdentityRepository,
@@ -66,7 +91,7 @@ export class IdentityManagementApplicationService {
     private readonly identifierLookup: IdentifierLookupCryptographicPort,
     private readonly clock: ClockPort,
     private readonly identifiers: UuidV7GenerationPort,
-    private readonly environment: string,
+    private readonly options: IdentityManagementApplicationOptions,
   ) {}
 
   public async register(command: RegisterIdentityCommand): Promise<IdentityProfileResult> {
@@ -86,7 +111,7 @@ export class IdentityManagementApplicationService {
       throw new IdentityError('IDENTIFIER_INVALID');
     }
     const lookups = this.identifierLookup.createLookupsForResolution({
-      environment: this.environment,
+      environment: this.options.environment,
       identifierType: command.identifierType,
       canonicalValue,
     });
@@ -389,6 +414,179 @@ export class IdentityManagementApplicationService {
     return this.mapToProfileResult({ ...snapshot, identity: updatedIdentity });
   }
 
+  /**
+   * M01-CRED-001. Changes the active PASSWORD credential after re-authenticating
+   * the caller against the current credential hash.
+   *
+   * Enforces the approved password policy (length bounds and reuse history):
+   * the new password must differ from the current password and from the most
+   * recent configured number of historical password hashes. The change commits
+   * atomically (version-guarded): the current credential transitions to
+   * REPLACED, a new ACTIVE credential is issued, an immutable Credential History
+   * REPLACED event is appended and the previous hash is appended to the
+   * Password History for future reuse checks. Every active Session of the
+   * Identity is then revoked (Password Change is an approved revocation
+   * trigger), so the caller must authenticate again with the new password.
+   *
+   * The revocation runs in a second transaction after the change commits. If it
+   * fails, the change is already durable and the caller must re-authenticate
+   * with the new password (the current credential is REPLACED); the endpoint
+   * surfaces the revocation failure rather than reporting success.
+   */
+  public async changePassword(identityId: UuidV7, command: ChangePasswordCommand): Promise<void> {
+    const snapshot = await this.identityRepository.findAuthenticationById(identityId);
+    if (snapshot === null) throw new CredentialError('CURRENT_CREDENTIAL_INVALID');
+    if (
+      snapshot.identity.properties.identityState !== 'ACTIVE' ||
+      snapshot.identity.properties.verificationState !== 'VERIFIED'
+    ) {
+      throw new CredentialError('CURRENT_CREDENTIAL_INVALID');
+    }
+    if (snapshot.identity.properties.aggregateVersion.value !== command.expectedIdentityVersion) {
+      throw new CredentialError('RESOURCE_STATE_CONFLICT');
+    }
+    const current = snapshot.credentials.find(
+      (candidate) =>
+        candidate.properties.credentialType === 'PASSWORD' &&
+        candidate.properties.credentialState === 'ACTIVE',
+    );
+    if (current === undefined) throw new CredentialError('CURRENT_CREDENTIAL_INVALID');
+    const reauthenticated = await this.passwordHashing.verifyForAuthentication(
+      command.currentPassword,
+      current.properties.protectedSecret.value,
+    );
+    if (!reauthenticated) throw new CredentialError('CURRENT_CREDENTIAL_INVALID');
+
+    if (
+      command.currentPassword === command.newPassword ||
+      !this.isWithinPasswordPolicy(command.newPassword)
+    ) {
+      throw new CredentialError('PASSWORD_POLICY_FAILED');
+    }
+    const history = await this.identityRepository.findPasswordHistory(
+      identityId,
+      this.options.passwordHistoryDepth,
+    );
+    if (await this.isPasswordReused(command.newPassword, current, history)) {
+      throw new CredentialError('PASSWORD_POLICY_FAILED');
+    }
+
+    const now = this.clock.now();
+    const newHash = await this.passwordHashing.hash(command.newPassword);
+    const nextVersion = new AggregateVersion(
+      snapshot.identity.properties.aggregateVersion.value + 1,
+    );
+    const updatedIdentity = new Identity({
+      ...snapshot.identity.properties,
+      aggregateVersion: nextVersion,
+      updatedAt: now,
+    });
+    const replaced = new Credential({
+      ...current.properties,
+      credentialState: 'REPLACED',
+      replacedAt: now,
+      updatedAt: now,
+    });
+    const issued = new Credential({
+      credentialId: this.identifiers.next(),
+      identityId,
+      credentialType: 'PASSWORD',
+      credentialVersion: current.properties.credentialVersion + 1,
+      credentialState: 'ACTIVE',
+      protectedSecret: new ProtectedValue(newHash),
+      protectionKeyVersion: 'v1',
+      createdAt: now,
+      updatedAt: now,
+    });
+    const credentials = [
+      ...snapshot.credentials.map((credential) =>
+        credential.properties.credentialId.value === current.properties.credentialId.value
+          ? replaced
+          : credential,
+      ),
+      issued,
+    ];
+
+    const credentialHistory = new CredentialHistoryRecord({
+      credentialHistoryId: this.identifiers.next(),
+      identityId,
+      credentialType: 'PASSWORD',
+      credentialVersion: current.properties.credentialVersion + 1,
+      protectedHistoricalValue: current.properties.protectedSecret,
+      eventType: 'REPLACED',
+      createdAt: now,
+      sourceCredentialId: current.properties.credentialId,
+    });
+    const passwordHistory = new PasswordHistoryRecord({
+      passwordHistoryId: this.identifiers.next(),
+      identityId,
+      passwordHash: current.properties.protectedSecret,
+      hashAlgorithmReference: PASSWORD_HASH_ALGORITHM_REFERENCE,
+      createdAt: now,
+    });
+
+    try {
+      await this.identityRepository.save(
+        {
+          identity: updatedIdentity,
+          identifiers: snapshot.identifiers,
+          credentials,
+          classificationAssignments: snapshot.classificationAssignments,
+          mfaEnrollments: snapshot.mfaEnrollments,
+          mfaFactors: snapshot.mfaFactors,
+          recoveryCodeSets: [],
+          recoveryCodes: [],
+          trustedDevices: [],
+          credentialHistoryToAppend: [credentialHistory],
+          passwordHistoryToAppend: [passwordHistory],
+          stateTransitionsToAppend: [],
+        },
+        snapshot.identity.properties.aggregateVersion,
+      );
+    } catch (error) {
+      if (error instanceof OptimisticConcurrencyError) {
+        throw new CredentialError('RESOURCE_STATE_CONFLICT');
+      }
+      throw error;
+    }
+
+    await this.sessionRepository.revokeAllSessions({
+      identityId,
+      authorizingSessionId: command.authorizingSessionId,
+      expectedAuthorizingSessionVersion: command.expectedAuthorizingSessionVersion,
+      revokedAt: now,
+      revocationReason: 'PASSWORD_CHANGED',
+    });
+  }
+
+  private isWithinPasswordPolicy(password: string): boolean {
+    return (
+      password.length >= this.options.minimumPasswordLength &&
+      password.length <= this.options.maximumPasswordLength
+    );
+  }
+
+  private async isPasswordReused(
+    candidatePassword: string,
+    current: Credential,
+    history: readonly PasswordHistoryRecord[],
+  ): Promise<boolean> {
+    if (await this.passwordHashing.verify(candidatePassword, current.properties.protectedSecret.value)) {
+      return true;
+    }
+    for (const record of history) {
+      if (
+        await this.passwordHashing.verify(
+          candidatePassword,
+          record.properties.passwordHash.value,
+        )
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private async revokeAllSessions(
     identityId: UuidV7,
     command: IdentityLifecycleCommand,
@@ -445,3 +643,6 @@ function isUniqueConstraintViolation(error: unknown): boolean {
     (error as { readonly code?: unknown }).code === 'P2002'
   );
 }
+
+/** Argon2id v1.3 encodes as $argon2id$v=19$ in the standard encoded hash. */
+const PASSWORD_HASH_ALGORITHM_REFERENCE = 'argon2id-v19';

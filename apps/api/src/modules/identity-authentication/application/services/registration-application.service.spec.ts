@@ -126,6 +126,7 @@ describe('RegistrationApplicationService', () => {
   } as unknown as jest.Mocked<IdentityManagementApplicationService>;
 
   const identityRepository: jest.Mocked<IdentityRepository> = {
+    findPasswordHistory: jest.fn(),
     findById: jest.fn(),
     findAuthenticationById: jest.fn(),
     findByIdentifierLookups: jest.fn(),

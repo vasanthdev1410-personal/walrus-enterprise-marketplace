@@ -27,6 +27,7 @@ import {
 } from './infrastructure/persistence/prisma/prisma.module';
 import { SystemClockAdapter, SystemUuidV7Generator } from './infrastructure/runtime/system-runtime.adapter';
 import { AuthenticationController } from './presentation/authentication.controller';
+import { CredentialsController } from './presentation/credentials.controller';
 import { IdentityController } from './presentation/identity.controller';
 import { RegistrationController } from './presentation/registration.controller';
 import { VerificationController } from './presentation/verification.controller';
@@ -63,6 +64,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
   imports: [PrismaModule],
   controllers: [
     AuthenticationController,
+    CredentialsController,
     IdentityController,
     RegistrationController,
     VerificationController,
@@ -148,7 +150,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     { provide: BASIC_AUDIT_LOGGER, useExisting: BASIC_AUDIT_REPOSITORY },
     {
       provide: IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
-      inject: [IDENTITY_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHING, IDENTIFIER_LOOKUP, CLOCK, UUID_V7_GENERATOR, ConfigurationService],
+      inject: [IDENTITY_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHING, IDENTIFIER_LOOKUP, CLOCK, UUID_V7_GENERATOR, MODULE_CONFIGURATION, ConfigurationService],
       useFactory: (
         identities: never,
         sessions: never,
@@ -156,6 +158,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
         lookups: NonProductionIdentifierLookupAdapter,
         clock: SystemClockAdapter,
         identifiers: SystemUuidV7Generator,
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
         application: ConfigurationService,
       ) =>
         new IdentityManagementApplicationService(
@@ -165,7 +168,12 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
           lookups,
           clock,
           identifiers,
-          application.values.APP_ENV,
+          {
+            environment: application.values.APP_ENV,
+            minimumPasswordLength: configuration.credentialPolicy.minimumPasswordLength,
+            maximumPasswordLength: configuration.credentialPolicy.maximumPasswordLength,
+            passwordHistoryDepth: configuration.credentialPolicy.passwordHistoryDepth,
+          },
         ),
     },
     {
