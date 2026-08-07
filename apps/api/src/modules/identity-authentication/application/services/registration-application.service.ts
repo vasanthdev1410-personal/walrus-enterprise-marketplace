@@ -130,6 +130,16 @@ export class RegistrationApplicationService {
           version: 1,
         };
       }
+      if (error instanceof IdentityError && error.code === 'IDENTIFIER_INVALID') {
+        // A malformed identifier must surface as a clean rejection, never as an
+        // unhandled 500 that could distinguish identifier formats.
+        throw new RegistrationError('VERIFICATION_NOT_PERMITTED');
+      }
+      if (error instanceof IdentityError && error.code === 'CLASSIFICATION_NOT_PERMITTED') {
+        // Self-service registration may never assert an elevated classification;
+        // map the service-level guard to the same clean rejection used above.
+        throw new RegistrationError('VERIFICATION_NOT_PERMITTED');
+      }
       throw error;
     }
   }

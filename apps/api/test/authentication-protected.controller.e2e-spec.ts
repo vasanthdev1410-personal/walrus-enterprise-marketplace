@@ -5,6 +5,7 @@ import request from 'supertest';
 import type { AuthenticationApplicationService } from '../src/modules/identity-authentication/application/services/authentication-application.service';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
 import type { JwtCryptographicPort } from '../src/modules/identity-authentication/application/ports/jwt-cryptographic.port';
+import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
 import { AuthenticationController } from '../src/modules/identity-authentication/presentation/authentication.controller';
 import {
   AUTHENTICATION_APPLICATION_SERVICE,
@@ -16,7 +17,10 @@ import { AuthoritativeSessionGuard } from '../src/modules/identity-authenticatio
 import { NonProductionRateLimiterGuard } from '../src/modules/identity-authentication/presentation/guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from '../src/modules/identity-authentication/presentation/interceptors/basic-audit.interceptor';
 import { API_IDEMPOTENCY, JWT_CRYPTOGRAPHY } from '../src/modules/identity-authentication/identity-authentication.tokens';
-import { SESSION_REPOSITORY } from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
+import {
+  IDENTITY_REPOSITORY,
+  SESSION_REPOSITORY,
+} from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
 import type { SessionRepository } from '../src/modules/identity-authentication/domain/session/repositories/session-repository';
 
 const identityId = '01890f3e-7b5a-7cc0-8c9d-1234567890ab';
@@ -28,6 +32,7 @@ describe('Module 01 protected authentication API (integration)', () => {
   const authentication = { logout: jest.fn(), logoutAll: jest.fn() } as unknown as jest.Mocked<AuthenticationApplicationService>;
   const jwt = { verifyAccessToken: jest.fn() } as unknown as jest.Mocked<JwtCryptographicPort>;
   const sessions = { findById: jest.fn() } as unknown as jest.Mocked<SessionRepository>;
+  const identities = { findById: jest.fn() } as unknown as jest.Mocked<IdentityRepository>;
   const idempotency = { execute: jest.fn(async (input: { execute: () => Promise<unknown> }) => input.execute()) } as unknown as jest.Mocked<ApiIdempotencyService>;
   const rateLimiter = {
     consume: jest.fn().mockResolvedValue({
@@ -55,6 +60,7 @@ describe('Module 01 protected authentication API (integration)', () => {
         { provide: BASIC_AUDIT_LOGGER, useValue: auditLogger },
         { provide: JWT_CRYPTOGRAPHY, useValue: jwt },
         { provide: SESSION_REPOSITORY, useValue: sessions },
+        { provide: IDENTITY_REPOSITORY, useValue: identities },
       ],
     }).compile();
     application = module.createNestApplication();
@@ -75,6 +81,14 @@ describe('Module 01 protected authentication API (integration)', () => {
         identityId: { value: identityId }, sessionState: 'ACTIVE', sessionClass: 'INTERACTIVE_WEB',
         sessionVersion: { value: 1 }, idleExpiresAt: new Date(Date.now() + 60_000),
         absoluteExpiresAt: new Date(Date.now() + 120_000),
+      },
+    } as never);
+    identities.findById.mockResolvedValue({
+      properties: {
+        identityId: { value: identityId },
+        identityState: 'ACTIVE',
+        verificationState: 'VERIFIED',
+        lockedUntil: undefined,
       },
     } as never);
   });

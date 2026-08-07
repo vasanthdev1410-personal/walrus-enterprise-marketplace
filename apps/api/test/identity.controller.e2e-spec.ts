@@ -4,6 +4,7 @@ import type { Server } from 'node:http';
 import request from 'supertest';
 import type { IdentityManagementApplicationService } from '../src/modules/identity-authentication/application/services/identity-management-application.service';
 import type { JwtCryptographicPort } from '../src/modules/identity-authentication/application/ports/jwt-cryptographic.port';
+import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
 import type { SessionRepository } from '../src/modules/identity-authentication/domain/session/repositories/session-repository';
 import { UuidV7 } from '../src/modules/identity-authentication/domain/shared/value-objects/uuid-v7';
 import { IdentityController } from '../src/modules/identity-authentication/presentation/identity.controller';
@@ -16,7 +17,10 @@ import { AuthoritativeSessionGuard } from '../src/modules/identity-authenticatio
 import { NonProductionRateLimiterGuard } from '../src/modules/identity-authentication/presentation/guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from '../src/modules/identity-authentication/presentation/interceptors/basic-audit.interceptor';
 import { JWT_CRYPTOGRAPHY } from '../src/modules/identity-authentication/identity-authentication.tokens';
-import { SESSION_REPOSITORY } from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
+import {
+  IDENTITY_REPOSITORY,
+  SESSION_REPOSITORY,
+} from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
 import { IdentityError } from '../src/modules/identity-authentication/application/errors/identity.error';
 
 const identityId = '0191310f-789a-7123-8123-000000000001';
@@ -42,6 +46,7 @@ describe('Module 01 identity management API (integration)', () => {
 
   const jwt = { verifyAccessToken: jest.fn() } as unknown as jest.Mocked<JwtCryptographicPort>;
   const sessions = { findById: jest.fn() } as unknown as jest.Mocked<SessionRepository>;
+  const identities = { findById: jest.fn() } as unknown as jest.Mocked<IdentityRepository>;
 
   const rateLimiter = {
     consume: jest.fn().mockResolvedValue({
@@ -65,6 +70,7 @@ describe('Module 01 identity management API (integration)', () => {
         { provide: BASIC_AUDIT_LOGGER, useValue: auditLogger },
         { provide: JWT_CRYPTOGRAPHY, useValue: jwt },
         { provide: SESSION_REPOSITORY, useValue: sessions },
+        { provide: IDENTITY_REPOSITORY, useValue: identities },
         AuthoritativeSessionGuard,
         NonProductionRateLimiterGuard,
         BasicAuditInterceptor,
@@ -109,6 +115,14 @@ describe('Module 01 identity management API (integration)', () => {
         sessionVersion: { value: 1 },
         idleExpiresAt: new Date(Date.now() + 60_000),
         absoluteExpiresAt: new Date(Date.now() + 120_000),
+      },
+    } as never);
+    identities.findById.mockResolvedValue({
+      properties: {
+        identityId: { value: identityId },
+        identityState: 'ACTIVE',
+        verificationState: 'VERIFIED',
+        lockedUntil: undefined,
       },
     } as never);
   });
@@ -158,6 +172,32 @@ describe('Module 01 identity management API (integration)', () => {
         .expect(409);
     });
 
+    it('rejects a self-asserted privileged classification (400 at validation)', async () => {
+      await request(server)
+        .post('/identities')
+        .send({
+          identifierType: 'EMAIL',
+          identifier: 'attacker@example.com',
+          password: 'SecurePassword123!',
+          classification: 'SUPER_ADMIN_AUTHENTICATION',
+        })
+        .expect(400);
+      expect(register).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 for a malformed identifier instead of a 500', async () => {
+      register.mockRejectedValueOnce(new IdentityError('IDENTIFIER_INVALID'));
+
+      await request(server)
+        .post('/identities')
+        .send({
+          identifierType: 'EMAIL',
+          identifier: 'not-an-email',
+          password: 'SecurePassword123!',
+        })
+        .expect(400);
+    });
+
     it('rejects malformed registration payloads (400)', async () => {
       await request(server)
         .post('/identities')
@@ -194,7 +234,7 @@ describe('Module 01 identity management API (integration)', () => {
   });
 
   describe('M01-ID-002 GET /api/v1/identities/:id', () => {
-    it('returns profile for a valid identity id (200 OK)', async () => {
+    it('returns profile for the caller\'s own valid identity id (200 OK)', async () => {
       getProfile.mockResolvedValueOnce({
         identityId,
         identityState: 'ACTIVE',
@@ -211,6 +251,15 @@ describe('Module 01 identity management API (integration)', () => {
         .expect(200);
 
       expect(readProfile(response.body).identityId).toBe(identityId);
+    });
+
+    it('conceals another identity\'s profile as 404 (no cross-user read)', async () => {
+      const otherIdentityId = '0191310f-789a-7123-8123-0000000000aa';
+      await request(server)
+        .get(`/identities/${otherIdentityId}`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .expect(404);
+      expect(getProfile).not.toHaveBeenCalled();
     });
 
     it('returns 404 for a malformed identity id', async () => {

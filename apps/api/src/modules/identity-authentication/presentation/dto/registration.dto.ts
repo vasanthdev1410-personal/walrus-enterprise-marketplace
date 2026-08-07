@@ -21,23 +21,13 @@ export class RegisterRegistrationRequestDto {
   @MaxLength(1024)
   public readonly password!: string;
 
-  @ApiPropertyOptional({
-    enum: [
-      'STANDARD_AUTHENTICATION',
-      'PRIVILEGED_ADMIN_AUTHENTICATION',
-      'SUPER_ADMIN_AUTHENTICATION',
-    ],
-  })
+  // Privileged authentication classifications are assigned only by the internal
+  // M01-CLS-001 operation; self-service registration may only request (or
+  // default to) the standard classification.
+  @ApiPropertyOptional({ enum: ['STANDARD_AUTHENTICATION'] })
   @IsOptional()
-  @IsEnum([
-    'STANDARD_AUTHENTICATION',
-    'PRIVILEGED_ADMIN_AUTHENTICATION',
-    'SUPER_ADMIN_AUTHENTICATION',
-  ])
-  public readonly classification?:
-    | 'STANDARD_AUTHENTICATION'
-    | 'PRIVILEGED_ADMIN_AUTHENTICATION'
-    | 'SUPER_ADMIN_AUTHENTICATION';
+  @IsEnum(['STANDARD_AUTHENTICATION'])
+  public readonly classification?: 'STANDARD_AUTHENTICATION';
 }
 
 export class VerificationChallengeRequestDto {

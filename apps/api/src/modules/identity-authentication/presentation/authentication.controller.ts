@@ -41,6 +41,7 @@ import type { ApiIdempotencyService } from '../application/services/api-idempote
 import { AuthoritativeSessionGuard } from './guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from './interceptors/basic-audit.interceptor';
+import { RateLimit } from './decorators/rate-limit.decorator';
 import type { AuthenticatedRequest } from './authentication-context';
 
 const REFRESH_COOKIE = '__Secure-walrus_rt';
@@ -59,6 +60,7 @@ export class AuthenticationController {
   ) {}
 
   @Post('login')
+  @RateLimit({ limit: 10, windowSeconds: 60 })
   @ApiOperation({ operationId: 'M01-AUTH-001', summary: 'Authenticate with a password' })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   public async login(
@@ -73,7 +75,16 @@ export class AuthenticationController {
         scope: anonymousScope(request),
         operationType: 'M01-AUTH-001',
         idempotencyKey,
-        request: body,
+        // The password is intentionally excluded from the idempotency record so
+        // the stored fingerprint never embeds recoverable credential material.
+        request: {
+          identifierType: body.identifierType,
+          identifier: body.identifier,
+          clientType: body.clientType,
+          ...(body.deviceSessionId === undefined
+            ? {}
+            : { deviceSessionId: body.deviceSessionId }),
+        },
         execute: () => this.authentication.login({
           identifierType: body.identifierType,
           identifier: body.identifier,
@@ -101,6 +112,7 @@ export class AuthenticationController {
   }
 
   @Post('mfa-challenges/:challengeId/verification')
+  @RateLimit({ limit: 10, windowSeconds: 60 })
   @ApiOperation({ operationId: 'M01-AUTH-002', summary: 'Complete an MFA login challenge' })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   @ApiHeader({ name: 'If-Match', required: true })
@@ -120,12 +132,15 @@ export class AuthenticationController {
         scope: anonymousScope(request),
         operationType: 'M01-AUTH-002',
         idempotencyKey,
+        // The MFA evidence is intentionally excluded from the idempotency record
+        // so the one-time code is never persisted in any form.
         request: {
           challengeId,
           ifMatch,
-          verificationEvidence: body.verificationEvidence,
           clientType: body.clientType,
-          deviceSessionId: body.deviceSessionId,
+          ...(body.deviceSessionId === undefined
+            ? {}
+            : { deviceSessionId: body.deviceSessionId }),
         },
         execute: () => this.authentication.completeMfaLogin({
           challengeId: parsedId,
@@ -144,6 +159,7 @@ export class AuthenticationController {
   }
 
   @Post('token/refresh')
+  @RateLimit({ limit: 30, windowSeconds: 60 })
   @ApiOperation({ operationId: 'M01-AUTH-003', summary: 'Rotate a Refresh Token' })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   public async refresh(
@@ -178,7 +194,9 @@ export class AuthenticationController {
         scope: anonymousScope(request),
         operationType: 'M01-AUTH-003',
         idempotencyKey,
-        request: { refreshToken, transport: isWeb ? 'WEB_COOKIE' : 'MOBILE_BODY' },
+        // The Refresh Token value is intentionally excluded from the idempotency
+        // record so the stored fingerprint never embeds a credential.
+        request: { transport: isWeb ? 'WEB_COOKIE' : 'MOBILE_BODY' },
         execute: () => this.authentication.refresh(refreshToken),
       });
       noStore(response);
@@ -189,6 +207,7 @@ export class AuthenticationController {
   }
 
   @Post('logout')
+  @RateLimit({ limit: 30, windowSeconds: 60 })
   @UseGuards(AuthoritativeSessionGuard)
   @ApiOperation({ operationId: 'M01-AUTH-004', summary: 'Revoke the current Session' })
   @ApiHeader({ name: 'Authorization', required: true })
@@ -226,6 +245,7 @@ export class AuthenticationController {
   }
 
   @Post('logout-all')
+  @RateLimit({ limit: 10, windowSeconds: 60 })
   @UseGuards(AuthoritativeSessionGuard)
   @ApiOperation({ operationId: 'M01-AUTH-005', summary: 'Revoke every active Session' })
   @ApiHeader({ name: 'Authorization', required: true })

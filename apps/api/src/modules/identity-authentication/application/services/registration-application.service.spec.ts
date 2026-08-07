@@ -227,6 +227,33 @@ describe('RegistrationApplicationService', () => {
       expect(result.status).toBe('PENDING_VERIFICATION');
       expect(result.registrationId).toBe(CONCEALED_ID);
     });
+
+    it('maps a malformed identifier to a clean rejection instead of a 500', async () => {
+      identityManagement.register.mockRejectedValue(new IdentityError('IDENTIFIER_INVALID'));
+
+      await expect(
+        service.register({
+          identifierType: 'EMAIL',
+          identifier: 'not-an-email',
+          password: 'SecurePassword123!',
+        }),
+      ).rejects.toThrow(new RegistrationError('VERIFICATION_NOT_PERMITTED'));
+    });
+
+    it('rejects a self-asserted privileged classification with a clean rejection', async () => {
+      identityManagement.register.mockRejectedValue(
+        new IdentityError('CLASSIFICATION_NOT_PERMITTED'),
+      );
+
+      await expect(
+        service.register({
+          identifierType: 'EMAIL',
+          identifier: 'user@example.com',
+          password: 'SecurePassword123!',
+          classification: 'SUPER_ADMIN_AUTHENTICATION',
+        }),
+      ).rejects.toThrow(new RegistrationError('VERIFICATION_NOT_PERMITTED'));
+    });
   });
 
   describe('M01-REG-002 requestVerificationChallenge', () => {

@@ -17,7 +17,11 @@ import { AuthoritativeSessionGuard } from '../src/modules/identity-authenticatio
 import { NonProductionRateLimiterGuard } from '../src/modules/identity-authentication/presentation/guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from '../src/modules/identity-authentication/presentation/interceptors/basic-audit.interceptor';
 import { JWT_CRYPTOGRAPHY } from '../src/modules/identity-authentication/identity-authentication.tokens';
-import { SESSION_REPOSITORY } from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
+import {
+  IDENTITY_REPOSITORY,
+  SESSION_REPOSITORY,
+} from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
+import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
 
 const completedSession = {
   authenticationOutcome: 'COMPLETED' as const,
@@ -58,6 +62,7 @@ describe('Module 01 public authentication API (integration)', () => {
   const auditLogger = {
     logEvent: jest.fn().mockResolvedValue(undefined),
   };
+  const identities = { findById: jest.fn() } as unknown as jest.Mocked<IdentityRepository>;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -73,6 +78,7 @@ describe('Module 01 public authentication API (integration)', () => {
         BasicAuditInterceptor,
         { provide: JWT_CRYPTOGRAPHY, useValue: {} },
         { provide: SESSION_REPOSITORY, useValue: {} },
+        { provide: IDENTITY_REPOSITORY, useValue: identities },
       ],
     }).compile();
     application = module.createNestApplication();

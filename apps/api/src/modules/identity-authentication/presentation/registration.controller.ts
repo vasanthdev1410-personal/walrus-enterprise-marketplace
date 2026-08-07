@@ -70,7 +70,15 @@ export class RegistrationController {
         scope: anonymousScope(request),
         operationType: 'M01-REG-001',
         idempotencyKey,
-        request: body,
+        // The password is intentionally excluded from the idempotency record so
+        // the stored fingerprint never embeds recoverable credential material.
+        request: {
+          identifierType: body.identifierType,
+          identifier: body.identifier,
+          ...(body.classification === undefined
+            ? {}
+            : { classification: body.classification }),
+        },
         execute: () =>
           this.registrations.register({
             identifierType: body.identifierType,
@@ -167,12 +175,9 @@ export class RegistrationController {
         scope: `registration:${registrationIdValue.value}`,
         operationType: 'M01-REG-003',
         idempotencyKey,
-        request: {
-          registrationId,
-          challengeId: body.challengeId,
-          ifMatch,
-          verificationEvidence: body.verificationEvidence,
-        },
+        // The OTP evidence is intentionally excluded from the idempotency record
+        // so the one-time code is never persisted in any form.
+        request: { registrationId, challengeId: body.challengeId, ifMatch },
         execute: () =>
           this.registrations.confirmVerification({
             registrationId: registrationIdValue,

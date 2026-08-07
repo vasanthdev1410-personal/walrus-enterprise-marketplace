@@ -121,6 +121,44 @@ describe('IdentityManagementApplicationService', () => {
         }),
       ).rejects.toThrow(IdentityError);
     });
+
+    it('rejects a self-asserted privileged classification', async () => {
+      await expect(
+        service.register({
+          identifierType: 'EMAIL',
+          identifier: 'user@example.com',
+          password: 'Password123!',
+          classification: 'SUPER_ADMIN_AUTHENTICATION',
+        }),
+      ).rejects.toMatchObject({ code: 'CLASSIFICATION_NOT_PERMITTED' });
+      expect(mockIdentityRepo.insert.mock.calls).toHaveLength(0);
+    });
+
+    it('maps a malformed identifier to IDENTIFIER_INVALID instead of a raw 500', async () => {
+      await expect(
+        service.register({
+          identifierType: 'EMAIL',
+          identifier: 'not-an-email',
+          password: 'Password123!',
+        }),
+      ).rejects.toMatchObject({ code: 'IDENTIFIER_INVALID' });
+    });
+
+    it('maps a concurrent duplicate insert (unique constraint) to IDENTIFIER_ALREADY_REGISTERED', async () => {
+      mockIdentityRepo.findByIdentifierLookups.mockResolvedValue(null);
+      mockIdentityRepo.insert.mockRejectedValue({
+        code: 'P2002',
+        meta: { target: ['identifierType', 'lookupDigest'] },
+      });
+
+      await expect(
+        service.register({
+          identifierType: 'EMAIL',
+          identifier: 'user@example.com',
+          password: 'Password123!',
+        }),
+      ).rejects.toMatchObject({ code: 'IDENTIFIER_ALREADY_REGISTERED' });
+    });
   });
 
   describe('M01-ID-002 Profile Retrieval', () => {

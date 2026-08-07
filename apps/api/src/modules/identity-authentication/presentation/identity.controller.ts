@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -36,6 +37,7 @@ import {
 import { AuthoritativeSessionGuard } from './guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from './interceptors/basic-audit.interceptor';
+import { RateLimit } from './decorators/rate-limit.decorator';
 
 @ApiTags('Module 01 Identity Management')
 @Controller('identities')
@@ -49,6 +51,7 @@ export class IdentityController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @RateLimit({ limit: 10, windowSeconds: 900 })
   @ApiOperation({ operationId: 'M01-ID-001', summary: 'Register a new identity' })
   public async register(
     @Body() body: RegisterIdentityRequestDto,
@@ -88,15 +91,21 @@ export class IdentityController {
 
   @Get(':id')
   @UseGuards(AuthoritativeSessionGuard)
-  @ApiOperation({ operationId: 'M01-ID-002', summary: 'Retrieve identity profile by ID' })
+  @ApiOperation({ operationId: 'M01-ID-002', summary: 'Retrieve current identity profile by ID (self-service only)' })
   public async getProfileById(
     @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
   ): Promise<Readonly<Record<string, unknown>>> {
     let identityId: UuidV7;
     try {
       identityId = new UuidV7(id);
     } catch {
+      throw new NotFoundException('IDENTITY_NOT_FOUND');
+    }
+    // Self-service identity management: a caller may only retrieve their own
+    // profile. Any other identity id is concealed with 404 (no existence leak).
+    if (identityId.value !== request.authentication.subject) {
       throw new NotFoundException('IDENTITY_NOT_FOUND');
     }
     try {
@@ -209,6 +218,10 @@ export class IdentityController {
           throw new NotFoundException('IDENTITY_NOT_FOUND');
         case 'IDENTIFIER_ALREADY_REGISTERED':
           throw new ConflictException('IDENTIFIER_ALREADY_REGISTERED');
+        case 'IDENTIFIER_INVALID':
+          throw new BadRequestException('IDENTIFIER_INVALID');
+        case 'CLASSIFICATION_NOT_PERMITTED':
+          throw new ForbiddenException('CLASSIFICATION_NOT_PERMITTED');
         case 'IDENTITY_ALREADY_DEACTIVATED':
           throw new ConflictException('IDENTITY_ALREADY_DEACTIVATED');
         case 'IDENTITY_ALREADY_PENDING_DELETION':

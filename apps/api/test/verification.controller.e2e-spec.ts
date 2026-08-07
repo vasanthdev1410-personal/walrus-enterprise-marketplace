@@ -12,6 +12,7 @@ import type {
   VerificationConfirmationResult,
 } from '../src/modules/identity-authentication/application/services/verification-application.service';
 import type { JwtCryptographicPort } from '../src/modules/identity-authentication/application/ports/jwt-cryptographic.port';
+import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
 import type { SessionRepository } from '../src/modules/identity-authentication/domain/session/repositories/session-repository';
 import { API_IDEMPOTENCY } from '../src/modules/identity-authentication/identity-authentication.tokens';
 import { VerificationController } from '../src/modules/identity-authentication/presentation/verification.controller';
@@ -24,7 +25,10 @@ import { AuthoritativeSessionGuard } from '../src/modules/identity-authenticatio
 import { NonProductionRateLimiterGuard } from '../src/modules/identity-authentication/presentation/guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from '../src/modules/identity-authentication/presentation/interceptors/basic-audit.interceptor';
 import { JWT_CRYPTOGRAPHY } from '../src/modules/identity-authentication/identity-authentication.tokens';
-import { SESSION_REPOSITORY } from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
+import {
+  IDENTITY_REPOSITORY,
+  SESSION_REPOSITORY,
+} from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
 
 const identityId = '0191310f-789a-7123-8123-000000000001';
 const sessionId = '0191310f-789a-7123-8123-000000000002';
@@ -57,6 +61,7 @@ describe('Module 01 authenticated verification API (integration)', () => {
 
   const jwt = { verifyAccessToken: jest.fn() } as unknown as jest.Mocked<JwtCryptographicPort>;
   const sessions = { findById: jest.fn() } as unknown as jest.Mocked<SessionRepository>;
+  const identities = { findById: jest.fn() } as unknown as jest.Mocked<IdentityRepository>;
 
   const rateLimiter = {
     consume: jest.fn().mockResolvedValue({
@@ -81,6 +86,7 @@ describe('Module 01 authenticated verification API (integration)', () => {
         { provide: BASIC_AUDIT_LOGGER, useValue: auditLogger },
         { provide: JWT_CRYPTOGRAPHY, useValue: jwt },
         { provide: SESSION_REPOSITORY, useValue: sessions },
+        { provide: IDENTITY_REPOSITORY, useValue: identities },
         AuthoritativeSessionGuard,
         NonProductionRateLimiterGuard,
         BasicAuditInterceptor,
@@ -125,6 +131,14 @@ describe('Module 01 authenticated verification API (integration)', () => {
         sessionVersion: { value: 1 },
         idleExpiresAt: new Date(Date.now() + 60_000),
         absoluteExpiresAt: new Date(Date.now() + 120_000),
+      },
+    } as never);
+    identities.findById.mockResolvedValue({
+      properties: {
+        identityId: { value: identityId },
+        identityState: 'ACTIVE',
+        verificationState: 'VERIFIED',
+        lockedUntil: undefined,
       },
     } as never);
   });

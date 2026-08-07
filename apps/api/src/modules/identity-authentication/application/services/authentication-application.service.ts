@@ -97,7 +97,14 @@ export class AuthenticationApplicationService {
   ) {}
 
   public async login(command: PasswordLoginCommand): Promise<PasswordLoginResult> {
-    const canonicalValue = canonicalizeIdentifier(command.identifierType, command.identifier);
+    let canonicalValue: string;
+    try {
+      canonicalValue = canonicalizeIdentifier(command.identifierType, command.identifier);
+    } catch {
+      // Malformed identifiers must never produce a distinguishable error; a
+      // uniform authentication failure keeps the endpoint enumeration-safe.
+      throw new AuthenticationError('AUTHENTICATION_FAILED');
+    }
     const lookupDigests = this.identifierLookup.createLookupsForResolution({
       environment: this.policy.environment,
       identifierType: command.identifierType,

@@ -70,7 +70,21 @@ export class IdentityManagementApplicationService {
   ) {}
 
   public async register(command: RegisterIdentityCommand): Promise<IdentityProfileResult> {
-    const canonicalValue = canonicalizeIdentifier(command.identifierType, command.identifier);
+    if (
+      command.classification !== undefined &&
+      command.classification !== 'STANDARD_AUTHENTICATION'
+    ) {
+      // Privileged authentication classifications are assigned exclusively by the
+      // approved internal M01-CLS-001 operation; self-service registration must
+      // never allow a caller to self-assert an elevated classification.
+      throw new IdentityError('CLASSIFICATION_NOT_PERMITTED');
+    }
+    let canonicalValue: string;
+    try {
+      canonicalValue = canonicalizeIdentifier(command.identifierType, command.identifier);
+    } catch {
+      throw new IdentityError('IDENTIFIER_INVALID');
+    }
     const lookups = this.identifierLookup.createLookupsForResolution({
       environment: this.environment,
       identifierType: command.identifierType,
@@ -150,20 +164,31 @@ export class IdentityManagementApplicationService {
       createdAt: now,
     });
 
-    await this.identityRepository.insert({
-      identity,
-      identifiers: [identifierEntity],
-      credentials: [credential],
-      classificationAssignments: [classificationAssignment],
-      mfaEnrollments: [],
-      mfaFactors: [],
-      recoveryCodeSets: [],
-      recoveryCodes: [],
-      trustedDevices: [],
-      credentialHistoryToAppend: [],
-      passwordHistoryToAppend: [],
-      stateTransitionsToAppend: [stateTransition],
-    });
+    try {
+      await this.identityRepository.insert({
+        identity,
+        identifiers: [identifierEntity],
+        credentials: [credential],
+        classificationAssignments: [classificationAssignment],
+        mfaEnrollments: [],
+        mfaFactors: [],
+        recoveryCodeSets: [],
+        recoveryCodes: [],
+        trustedDevices: [],
+        credentialHistoryToAppend: [],
+        passwordHistoryToAppend: [],
+        stateTransitionsToAppend: [stateTransition],
+      });
+    } catch (error) {
+      // Two concurrent registrations may both pass the ownership check; the
+      // unique [identifierType, lookupDigest] constraint is authoritative.
+      // Surface the race as the same already-registered outcome instead of an
+      // opaque 500 so the registration contract stays enumeration-safe.
+      if (isUniqueConstraintViolation(error)) {
+        throw new IdentityError('IDENTIFIER_ALREADY_REGISTERED');
+      }
+      throw error;
+    }
 
     return {
       identityId: identityId.value,
@@ -410,4 +435,13 @@ export class IdentityManagementApplicationService {
       deletionRequestedAt: properties.deletionRequestedAt,
     };
   }
+}
+
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { readonly code?: unknown }).code === 'P2002'
+  );
 }
