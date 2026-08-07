@@ -5,6 +5,7 @@ import { AuthenticationApplicationService } from './application/services/authent
 import { IdentityManagementApplicationService } from './application/services/identity-management-application.service';
 import { RegistrationApplicationService } from './application/services/registration-application.service';
 import { TotpMfaAuthenticationAdapter } from './application/services/totp-mfa-authentication.adapter';
+import { VerificationApplicationService } from './application/services/verification-application.service';
 import { Argon2idPasswordHashingAdapter } from './infrastructure/cryptography/argon2id-password-hashing.adapter';
 import { NonProductionCsrfAdapter } from './infrastructure/cryptography/non-production-csrf.adapter';
 import { NonProductionEnvelopeEncryptionAdapter } from './infrastructure/cryptography/non-production-envelope-encryption.adapter';
@@ -28,6 +29,7 @@ import { SystemClockAdapter, SystemUuidV7Generator } from './infrastructure/runt
 import { AuthenticationController } from './presentation/authentication.controller';
 import { IdentityController } from './presentation/identity.controller';
 import { RegistrationController } from './presentation/registration.controller';
+import { VerificationController } from './presentation/verification.controller';
 import {
   AUTHENTICATION_APPLICATION_SERVICE,
   BASIC_AUDIT_LOGGER,
@@ -35,6 +37,7 @@ import {
   IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
   RATE_LIMITER,
   REGISTRATION_APPLICATION_SERVICE,
+  VERIFICATION_APPLICATION_SERVICE,
 } from './presentation/authentication.tokens';
 import { AuthoritativeSessionGuard } from './presentation/guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from './presentation/guards/non-production-rate-limiter.guard';
@@ -58,7 +61,12 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
 
 @Module({
   imports: [PrismaModule],
-  controllers: [AuthenticationController, IdentityController, RegistrationController],
+  controllers: [
+    AuthenticationController,
+    IdentityController,
+    RegistrationController,
+    VerificationController,
+  ],
   providers: [
     { provide: CLOCK, useClass: SystemClockAdapter },
     { provide: UUID_V7_GENERATOR, useClass: SystemUuidV7Generator },
@@ -180,6 +188,35 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
           challenges,
           otpCrypto,
           otpDelivery,
+          clock,
+          identifiers,
+          {
+            environment: application.values.APP_ENV,
+            otpLifetimeSeconds: configuration.otp.lifetimeSeconds,
+            maximumVerificationAttempts: configuration.otp.maximumVerificationAttempts,
+          },
+        ),
+    },
+    {
+      provide: VERIFICATION_APPLICATION_SERVICE,
+      inject: [IDENTITY_REPOSITORY, VERIFICATION_CHALLENGE_REPOSITORY, OTP_CRYPTOGRAPHY, OTP_DELIVERY, IDENTIFIER_LOOKUP, CLOCK, UUID_V7_GENERATOR, MODULE_CONFIGURATION, ConfigurationService],
+      useFactory: (
+        identities: never,
+        challenges: never,
+        otpCrypto: NonProductionOtpRecoveryCodeAdapter,
+        otpDelivery: NonProductionOtpDeliveryAdapter,
+        lookups: NonProductionIdentifierLookupAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) =>
+        new VerificationApplicationService(
+          identities,
+          challenges,
+          otpCrypto,
+          otpDelivery,
+          lookups,
           clock,
           identifiers,
           {

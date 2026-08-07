@@ -8,8 +8,7 @@ import type {
   IdentityRepository,
 } from '../../domain/identity/repositories/identity-repository';
 import type { AuthenticationSecurityClassification } from '../../domain/identity/value-objects/authentication-security-classification';
-import { CanonicalEmailAddress } from '../../domain/identity/value-objects/canonical-email-address';
-import { CanonicalMobileNumber } from '../../domain/identity/value-objects/canonical-mobile-number';
+import { canonicalizeIdentifier } from '../../domain/identity/value-objects/canonicalize-identifier';
 import type { IdentifierType } from '../../domain/identity/value-objects/identifier-type';
 import type { SessionRepository } from '../../domain/session/repositories/session-repository';
 import { AggregateVersion } from '../../domain/shared/value-objects/aggregate-version';
@@ -57,12 +56,6 @@ export interface IdentityLifecycleCommand {
   readonly reasonCode?: string | undefined;
   readonly authorizingSessionId?: UuidV7 | undefined;
   readonly expectedAuthorizingSessionVersion?: number | undefined;
-}
-
-function canonicalizeIdentifier(type: IdentifierType, value: string): string {
-  return type === 'EMAIL'
-    ? new CanonicalEmailAddress(value).value
-    : new CanonicalMobileNumber(value).value;
 }
 
 export class IdentityManagementApplicationService {
