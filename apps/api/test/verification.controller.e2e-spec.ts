@@ -5,7 +5,9 @@ import request from 'supertest';
 import { VerificationError } from '../src/modules/identity-authentication/application/errors/verification.error';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
 import type {
+  CommitContactChangeCommand,
   ConfirmVerificationChallengeCommand,
+  ContactChangeCommitResult,
   RequestVerificationChallengeCommand,
   VerificationApplicationService,
   VerificationChallengeRequestResult,
@@ -47,10 +49,15 @@ describe('Module 01 authenticated verification API (integration)', () => {
     Promise<VerificationConfirmationResult>,
     [ConfirmVerificationChallengeCommand]
   >();
+  const commitContactChange = jest.fn<
+    Promise<ContactChangeCommitResult>,
+    [CommitContactChangeCommand]
+  >();
 
   const verification = {
     requestChallenge,
     confirmChallenge,
+    commitContactChange,
   } as unknown as jest.Mocked<VerificationApplicationService>;
 
   const idempotency = {
@@ -348,6 +355,122 @@ describe('Module 01 authenticated verification API (integration)', () => {
         .set('If-Match', `"challenge:${challengeId}:v2"`)
         .send({ verificationEvidence: '123456' })
         .expect(409);
+    });
+  });
+
+  describe('M01-VER-003 POST /api/v1/verification-challenges/:challengeId/commits', () => {
+    it('commits the verified contact change (200 OK)', async () => {
+      commitContactChange.mockResolvedValueOnce({
+        challengeId,
+        contactChange: 'COMMITTED',
+        committedAt: new Date('2026-08-07T12:00:45.000Z'),
+        version: 3,
+        primaryIdentifier: { identifierType: 'EMAIL', verificationState: 'VERIFIED' },
+      });
+
+      const response = await request(server)
+        .post(`/verification-challenges/${challengeId}/commits`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"challenge:${challengeId}:v2"`)
+        .send({})
+        .expect(200);
+
+      const data = readData(response.body);
+      expect(data.challengeId).toBe(challengeId);
+      expect(data.contactChange).toBe('COMMITTED');
+      expect(data.committedAt).toBe('2026-08-07T12:00:45.000Z');
+      expect(data.version).toBe(3);
+      expect(data.primaryIdentifier).toEqual({
+        identifierType: 'EMAIL',
+        verificationState: 'VERIFIED',
+      });
+      expect(commitContactChange).toHaveBeenCalledWith(
+        expect.objectContaining({ expectedChallengeVersion: 2 }),
+      );
+      const committed = firstCallArg(commitContactChange.mock.calls);
+      expect(committed?.identityId.value).toBe(identityId);
+      expect(committed?.challengeId.value).toBe(challengeId);
+    });
+
+    it('returns 401 for an invalid or expired challenge', async () => {
+      commitContactChange.mockRejectedValueOnce(
+        new VerificationError('CHALLENGE_INVALID_OR_EXPIRED'),
+      );
+
+      await request(server)
+        .post(`/verification-challenges/${challengeId}/commits`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"challenge:${challengeId}:v2"`)
+        .send({})
+        .expect(401);
+    });
+
+    it('returns 400 when If-Match is missing', async () => {
+      await request(server)
+        .post(`/verification-challenges/${challengeId}/commits`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .send({})
+        .expect(400);
+    });
+
+    it('returns 400 for an unknown body field', async () => {
+      await request(server)
+        .post(`/verification-challenges/${challengeId}/commits`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"challenge:${challengeId}:v2"`)
+        .send({ destination: 'tampered@example.com' })
+        .expect(400);
+    });
+
+    it('returns 404 for a malformed challenge id', async () => {
+      await request(server)
+        .post('/verification-challenges/not-a-uuid/commits')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', '"challenge:not-a-uuid:v2"')
+        .send({})
+        .expect(404);
+    });
+
+    it('returns 409 for a stale version', async () => {
+      commitContactChange.mockRejectedValueOnce(
+        new VerificationError('RESOURCE_STATE_CONFLICT'),
+      );
+
+      await request(server)
+        .post(`/verification-challenges/${challengeId}/commits`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"challenge:${challengeId}:v1"`)
+        .send({})
+        .expect(409);
+    });
+
+    it('returns 400 for a not-permitted commit', async () => {
+      commitContactChange.mockRejectedValueOnce(
+        new VerificationError('VERIFICATION_NOT_PERMITTED'),
+      );
+
+      await request(server)
+        .post(`/verification-challenges/${challengeId}/commits`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"challenge:${challengeId}:v2"`)
+        .send({})
+        .expect(400);
+    });
+
+    it('returns 401 Unauthorized when missing the access token', async () => {
+      await request(server)
+        .post(`/verification-challenges/${challengeId}/commits`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"challenge:${challengeId}:v2"`)
+        .send({})
+        .expect(401);
     });
   });
 });

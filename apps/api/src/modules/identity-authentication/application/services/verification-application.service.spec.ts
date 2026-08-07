@@ -15,6 +15,7 @@ import type {
   VerificationChallengeAggregate,
   VerificationChallengeRepository,
 } from '../../domain/verification/repositories/verification-challenge-repository';
+import { OptimisticConcurrencyError } from '../../domain/shared/errors/optimistic-concurrency.error';
 import { VerificationError } from '../errors/verification.error';
 import type { IdentifierLookupCryptographicPort } from '../ports/identifier-lookup-cryptographic.port';
 import type { OtpDeliveryPort } from '../ports/otp-delivery.port';
@@ -507,6 +508,276 @@ describe('VerificationApplicationService', () => {
           verificationEvidence: '123456',
         }),
       ).rejects.toThrow(new VerificationError('CHALLENGE_INVALID_OR_EXPIRED'));
+    });
+  });
+
+  describe('M01-VER-003 commitContactChange', () => {
+    const CONSUMED_AT = new Date(FIXED_NOW.getTime() - 60_000);
+
+    function buildVerifiedChallengeAggregate(): VerificationChallengeAggregate {
+      return buildChallengeAggregate({
+        challengeState: 'VERIFIED',
+        consumedAt: CONSUMED_AT,
+        attemptCount: 1,
+        aggregateVersion: new AggregateVersion(2),
+      });
+    }
+
+    beforeEach(() => {
+      identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    });
+
+    it('attaches the verified identifier as primary and retires the previous primary', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(buildVerifiedChallengeAggregate());
+      identityRepository.findByIdentifierLookups.mockResolvedValue(null);
+      identityRepository.save.mockResolvedValue(undefined);
+
+      const result = await service.commitContactChange({
+        identityId: new UuidV7(IDENTITY_ID),
+        challengeId: new UuidV7(CHALLENGE_ID),
+        expectedChallengeVersion: 2,
+      });
+
+      expect(result).toEqual({
+        challengeId: CHALLENGE_ID,
+        contactChange: 'COMMITTED',
+        committedAt: FIXED_NOW,
+        version: 3,
+        primaryIdentifier: { identifierType: 'EMAIL', verificationState: 'VERIFIED' },
+      });
+
+      // The VERIFIED challenge is consumed: version advanced and a SUCCEEDED
+      // commit attempt appended before the identifier change committed.
+      const consumed = verificationChallenges.save.mock.calls[0]?.[0];
+      expect(consumed?.challenge.properties.aggregateVersion.value).toBe(3);
+      expect(consumed?.attemptsToAppend[0]?.properties.outcome).toBe('SUCCEEDED');
+      expect(consumed?.attemptsToAppend[0]?.properties.failureReason).toBe(
+        'CONTACT_CHANGE_COMMITTED',
+      );
+
+      // The identifier change committed atomically in one version-guarded save.
+      const changeSet = identityRepository.save.mock.calls[0]?.[0];
+      expect(changeSet?.identity.properties.aggregateVersion.value).toBe(3);
+      expect(changeSet?.identifiers).toHaveLength(2);
+      const attached = changeSet?.identifiers.find((identifier) => identifier.properties.isPrimary);
+      expect(attached?.properties.verificationState).toBe('VERIFIED');
+      expect(attached?.properties.protectedNormalizedValue.value).toBe(DESTINATION);
+      expect(attached?.properties.verifiedAt).toEqual(CONSUMED_AT);
+      const retired = changeSet?.identifiers.find(
+        (identifier) => !identifier.properties.isPrimary,
+      );
+      expect(retired?.properties.verificationState).toBe('RETIRED');
+      expect(retired?.properties.retiredAt).toEqual(FIXED_NOW);
+      expect(identityRepository.save.mock.calls[0]?.[1]?.value).toBe(2);
+    });
+
+    it('rejects a commit for a non-active identity', async () => {
+      identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot('DISABLED'));
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('VERIFICATION_NOT_PERMITTED'));
+      expect(verificationChallenges.findAggregateById.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects an unknown challenge', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(null);
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('CHALLENGE_INVALID_OR_EXPIRED'));
+    });
+
+    it('rejects a challenge that was never verified', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(buildChallengeAggregate());
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('CHALLENGE_INVALID_OR_EXPIRED'));
+    });
+
+    it('rejects an expired verified challenge', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(
+        buildChallengeAggregate({
+          challengeState: 'VERIFIED',
+          consumedAt: CONSUMED_AT,
+          attemptCount: 1,
+          aggregateVersion: new AggregateVersion(2),
+          expiresAt: new Date(FIXED_NOW.getTime() - 1),
+          createdAt: new Date(FIXED_NOW.getTime() - 300_000),
+        }),
+      );
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('CHALLENGE_INVALID_OR_EXPIRED'));
+      expect(verificationChallenges.save.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects a challenge bound to another identity', async () => {
+      const aggregate = buildVerifiedChallengeAggregate();
+      const unrelated = new VerificationChallenge({
+        ...aggregate.challenge.properties,
+        identityId: new UuidV7(OTHER_IDENTITY_ID),
+      });
+      verificationChallenges.findAggregateById.mockResolvedValue({
+        challenge: unrelated,
+        otpEvidence: aggregate.otpEvidence,
+      });
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('CHALLENGE_INVALID_OR_EXPIRED'));
+    });
+
+    it('rejects a challenge for an unapproved purpose', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(
+        buildChallengeAggregate({
+          purpose: 'PASSWORD_RECOVERY',
+          challengeState: 'VERIFIED',
+          consumedAt: CONSUMED_AT,
+          attemptCount: 1,
+          aggregateVersion: new AggregateVersion(2),
+        }),
+      );
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('CHALLENGE_INVALID_OR_EXPIRED'));
+    });
+
+    it('rejects a stale If-Match version with a state conflict', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(
+        buildVerifiedChallengeAggregate(),
+      );
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 1,
+        }),
+      ).rejects.toThrow(new VerificationError('RESOURCE_STATE_CONFLICT'));
+      expect(verificationChallenges.save.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects when the destination now belongs to another identity', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(buildVerifiedChallengeAggregate());
+      identityRepository.findByIdentifierLookups.mockResolvedValue(
+        buildSnapshot('ACTIVE', OTHER_IDENTITY_ID),
+      );
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('VERIFICATION_NOT_PERMITTED'));
+      expect(verificationChallenges.save.mock.calls).toHaveLength(0);
+      expect(identityRepository.save.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects a replay when the destination is already owned by the caller', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(buildVerifiedChallengeAggregate());
+      identityRepository.findByIdentifierLookups.mockResolvedValue(buildSnapshot('ACTIVE', IDENTITY_ID));
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('VERIFICATION_NOT_PERMITTED'));
+      expect(verificationChallenges.save.mock.calls).toHaveLength(0);
+      expect(identityRepository.save.mock.calls).toHaveLength(0);
+    });
+
+    it('rejects when the identity has no primary identifier to retire', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(buildVerifiedChallengeAggregate());
+      identityRepository.findByIdentifierLookups.mockResolvedValue(null);
+      identityRepository.findAuthenticationById.mockResolvedValue({
+        ...buildSnapshot(),
+        identifiers: [],
+      });
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('VERIFICATION_NOT_PERMITTED'));
+      expect(identityRepository.save.mock.calls).toHaveLength(0);
+    });
+
+    it('maps a concurrent destination claim to a state conflict', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(buildVerifiedChallengeAggregate());
+      identityRepository.findByIdentifierLookups.mockResolvedValue(null);
+      identityRepository.save.mockRejectedValue({ code: 'P2002' });
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('RESOURCE_STATE_CONFLICT'));
+    });
+
+    it('maps a concurrent challenge consumption to a state conflict', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(buildVerifiedChallengeAggregate());
+      identityRepository.findByIdentifierLookups.mockResolvedValue(null);
+      verificationChallenges.save.mockRejectedValue(
+        new OptimisticConcurrencyError('VerificationChallenge'),
+      );
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('RESOURCE_STATE_CONFLICT'));
+      expect(identityRepository.save.mock.calls).toHaveLength(0);
+    });
+
+    it('maps a concurrent identity update to a state conflict', async () => {
+      verificationChallenges.findAggregateById.mockResolvedValue(buildVerifiedChallengeAggregate());
+      identityRepository.findByIdentifierLookups.mockResolvedValue(null);
+      identityRepository.save.mockRejectedValue(new OptimisticConcurrencyError('Identity'));
+
+      await expect(
+        service.commitContactChange({
+          identityId: new UuidV7(IDENTITY_ID),
+          challengeId: new UuidV7(CHALLENGE_ID),
+          expectedChallengeVersion: 2,
+        }),
+      ).rejects.toThrow(new VerificationError('RESOURCE_STATE_CONFLICT'));
     });
   });
 });

@@ -1,6 +1,9 @@
+import { Identity } from '../../domain/identity/entities/identity';
+import { IdentityIdentifier } from '../../domain/identity/entities/identity-identifier';
 import type { IdentityRepository } from '../../domain/identity/repositories/identity-repository';
 import { canonicalizeIdentifier } from '../../domain/identity/value-objects/canonicalize-identifier';
 import type { IdentifierType } from '../../domain/identity/value-objects/identifier-type';
+import { OptimisticConcurrencyError } from '../../domain/shared/errors/optimistic-concurrency.error';
 import { AggregateVersion } from '../../domain/shared/value-objects/aggregate-version';
 import { ProtectedValue } from '../../domain/shared/value-objects/protected-value';
 import type { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
@@ -63,6 +66,30 @@ export interface VerificationConfirmationResult {
   readonly verificationState: 'VERIFIED';
   readonly verifiedAt: Date;
   readonly version: number;
+}
+
+/**
+ * M01-VER-003. Commits a verified contact change. The VERIFIED challenge is
+ * identified by the path and the expected challenge version travels in
+ * If-Match; the destination is taken from the challenge itself, never from the
+ * client, so a committed challenge can only ever attach the identifier that was
+ * actually verified.
+ */
+export interface CommitContactChangeCommand {
+  readonly identityId: UuidV7;
+  readonly challengeId: UuidV7;
+  readonly expectedChallengeVersion: number;
+}
+
+export interface ContactChangeCommitResult {
+  readonly challengeId: string;
+  readonly contactChange: 'COMMITTED';
+  readonly committedAt: Date;
+  readonly version: number;
+  readonly primaryIdentifier: {
+    readonly identifierType: string;
+    readonly verificationState: string;
+  };
 }
 
 /**
@@ -335,6 +362,185 @@ export class VerificationApplicationService {
   }
 
   /**
+   * M01-VER-003. Consumes a VERIFIED CONTACT_CHANGE_VERIFICATION challenge and
+   * commits the verified contact change.
+   *
+   * The destination is taken from the challenge (never from the client) and its
+   * ownership is re-checked immediately before the commit, because the
+   * M01-VER-001 check is not atomic with issuance (TOCTOU). The identifier
+   * change commits atomically in one version-guarded transaction: the verified
+   * identifier is attached as the new primary and the previous primary is
+   * retired (history preserved), while the Identity aggregate version advances.
+   * The unique [identifierType, lookupDigest] constraint is the authoritative
+   * guard against a destination claimed between the re-check and the commit.
+   *
+   * The challenge is consumed (a SUCCEEDED attempt is appended and its version
+   * advances) before the identifier change commits, so a VERIFIED challenge can
+   * never be committed twice; if the commit then fails, the challenge is spent
+   * and the caller must verify a fresh challenge, matching the approved
+   * M01-REG-003 two-phase semantics.
+   */
+  public async commitContactChange(
+    command: CommitContactChangeCommand,
+  ): Promise<ContactChangeCommitResult> {
+    const snapshot = await this.identityRepository.findAuthenticationById(command.identityId);
+    if (snapshot?.identity.properties.identityState !== 'ACTIVE') {
+      throw new VerificationError('VERIFICATION_NOT_PERMITTED');
+    }
+
+    const aggregate = await this.verificationChallenges.findAggregateById(command.challengeId);
+    if (aggregate === null) throw new VerificationError('CHALLENGE_INVALID_OR_EXPIRED');
+    const challenge = aggregate.challenge.properties;
+    if (
+      challenge.identityId?.value !== command.identityId.value ||
+      challenge.purpose !== 'CONTACT_CHANGE_VERIFICATION'
+    ) {
+      throw new VerificationError('CHALLENGE_INVALID_OR_EXPIRED');
+    }
+    if (challenge.challengeState !== 'VERIFIED' || challenge.expiresAt <= this.clock.now()) {
+      throw new VerificationError('CHALLENGE_INVALID_OR_EXPIRED');
+    }
+    if (challenge.aggregateVersion.value !== command.expectedChallengeVersion) {
+      throw new VerificationError('RESOURCE_STATE_CONFLICT');
+    }
+
+    const identifierType: IdentifierType =
+      challenge.channelType === 'EMAIL' ? 'EMAIL' : 'MOBILE';
+    const canonicalDestination = challenge.protectedDestinationReference.value;
+    const lookups = this.identifierLookup.createLookupsForResolution({
+      environment: this.options.environment,
+      identifierType,
+      canonicalValue: canonicalDestination,
+    });
+    const destinationOwner = await this.identityRepository.findByIdentifierLookups(
+      identifierType,
+      lookups.map((value) => new ProtectedValue(value)),
+    );
+    if (destinationOwner !== null) {
+      // The destination is no longer unowned: it was claimed by another identity
+      // since verification, or the change is already committed. Either way the
+      // commit must never attach an identifier the caller does not own.
+      throw new VerificationError('VERIFICATION_NOT_PERMITTED');
+    }
+
+    const primary = snapshot.identifiers.find((candidate) => candidate.properties.isPrimary);
+    if (primary === undefined) throw new VerificationError('VERIFICATION_NOT_PERMITTED');
+
+
+    const now = this.clock.now();
+    const verifiedAt = challenge.consumedAt ?? now;
+    const consumedChallenge = new VerificationChallenge({
+      ...challenge,
+      aggregateVersion: new AggregateVersion(challenge.aggregateVersion.value + 1),
+      updatedAt: now,
+    });
+    const commitAttempt = new VerificationAttempt({
+      verificationAttemptId: this.identifiers.next(),
+      challengeId: command.challengeId,
+      outcome: 'SUCCEEDED',
+      attemptedAt: now,
+      createdAt: now,
+      failureReason: 'CONTACT_CHANGE_COMMITTED',
+    });
+    try {
+      await this.verificationChallenges.save(
+        {
+          challenge: consumedChallenge,
+          otpEvidence: aggregate.otpEvidence,
+          attemptsToAppend: [commitAttempt],
+        },
+        challenge.aggregateVersion,
+      );
+    } catch (error) {
+      if (error instanceof OptimisticConcurrencyError) {
+        // A concurrent commit already consumed this VERIFIED challenge;
+        // surface the race as a conflict instead of an opaque 500.
+        throw new VerificationError('RESOURCE_STATE_CONFLICT');
+      }
+      throw error;
+    }
+
+    const retired = new IdentityIdentifier({
+      ...primary.properties,
+      isPrimary: false,
+      verificationState: 'RETIRED',
+      retiredAt: now,
+      updatedAt: now,
+    });
+    const attached = new IdentityIdentifier({
+      identifierId: this.identifiers.next(),
+      identityId: command.identityId,
+      identifierType,
+      protectedNormalizedValue: new ProtectedValue(canonicalDestination),
+      lookupDigest: new ProtectedValue(lookups[0] ?? canonicalDestination),
+      lookupKeyVersion: 'v1',
+      verificationState: 'VERIFIED',
+      isPrimary: true,
+      createdAt: now,
+      updatedAt: now,
+      verifiedAt,
+    });
+    const updatedIdentity = new Identity({
+      ...snapshot.identity.properties,
+      aggregateVersion: new AggregateVersion(
+        snapshot.identity.properties.aggregateVersion.value + 1,
+      ),
+      updatedAt: now,
+    });
+    const identifiers = snapshot.identifiers.map((identifier) =>
+      identifier.properties.identifierId.value === primary.properties.identifierId.value
+        ? retired
+        : identifier,
+    );
+
+    try {
+      await this.identityRepository.save(
+        {
+          identity: updatedIdentity,
+          identifiers: [...identifiers, attached],
+          credentials: snapshot.credentials,
+          classificationAssignments: snapshot.classificationAssignments,
+          mfaEnrollments: snapshot.mfaEnrollments,
+          mfaFactors: snapshot.mfaFactors,
+          recoveryCodeSets: [],
+          recoveryCodes: [],
+          trustedDevices: [],
+          credentialHistoryToAppend: [],
+          passwordHistoryToAppend: [],
+          stateTransitionsToAppend: [],
+        },
+        snapshot.identity.properties.aggregateVersion,
+      );
+    } catch (error) {
+      if (error instanceof OptimisticConcurrencyError) {
+        // Another write advanced the Identity between the snapshot read and this
+        // commit (e.g. a concurrent commit of a different verified challenge);
+        // surface the race as a conflict instead of an opaque 500.
+        throw new VerificationError('RESOURCE_STATE_CONFLICT');
+      }
+      if (isUniqueConstraintViolation(error)) {
+        // A destination claimed between the ownership re-check and this commit
+        // violates the unique [identifierType, lookupDigest] constraint; surface
+        // it as a conflict so the caller re-verifies rather than receiving an
+        // opaque 500.
+        throw new VerificationError('RESOURCE_STATE_CONFLICT');
+      }
+      throw error;
+    }
+
+    return {
+      challengeId: command.challengeId.value,
+      contactChange: 'COMMITTED',
+      committedAt: now,
+      version: challenge.aggregateVersion.value + 1,
+      primaryIdentifier: {
+        identifierType,
+        verificationState: 'VERIFIED',
+      },
+    };
+  }
+
+  /**
    * Returns a valid-shaped, unconfirmable challenge used to conceal that a
    * requested destination belongs to another identity. No OTP is issued or
    * delivered and nothing is persisted; confirming the returned challenge id
@@ -360,4 +566,13 @@ export class VerificationApplicationService {
       return null;
     }
   }
+}
+
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { readonly code?: unknown }).code === 'P2002'
+  );
 }

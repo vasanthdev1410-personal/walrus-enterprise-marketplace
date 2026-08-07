@@ -31,3 +31,14 @@ export class VerificationConfirmationRequestDto {
   @Matches(OTP_PATTERN)
   public readonly verificationEvidence!: string;
 }
+
+/**
+ * M01-VER-003 request. The verified challenge is identified by the path and the
+ * expected version travels in If-Match; the destination is taken from the
+ * challenge server-side so no body fields are approved. The empty DTO
+ * intentionally rejects or strips any unknown request field through whitelist
+ * validation.
+ */
+// The DTO is intentionally empty: no request fields are approved for the commit.
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+export class CommitContactChangeRequestDto {}

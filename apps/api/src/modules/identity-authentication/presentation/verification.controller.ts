@@ -26,6 +26,7 @@ import { API_IDEMPOTENCY } from '../identity-authentication.tokens';
 import type { AuthenticatedRequest } from './authentication-context';
 import { VERIFICATION_APPLICATION_SERVICE } from './authentication.tokens';
 import {
+  CommitContactChangeRequestDto,
   VerificationChallengeRequestDto,
   VerificationConfirmationRequestDto,
 } from './dto/verification.dto';
@@ -140,6 +141,59 @@ export class VerificationController {
           verificationState: result.verificationState,
           verifiedAt: result.verifiedAt.toISOString(),
           version: result.version,
+        }),
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  @Post(':challengeId/commits')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 5, windowSeconds: 300 })
+  @UseGuards(AuthoritativeSessionGuard)
+  @ApiOperation({
+    operationId: 'M01-VER-003',
+    summary: 'Commit a verified contact change',
+  })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiHeader({ name: 'If-Match', required: true })
+  public async commitContactChange(
+    @Param('challengeId') challengeId: string,
+    @Body() body: CommitContactChangeRequestDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Req() request: AuthenticatedRequest,
+    @Res() response: Response,
+  ): Promise<void> {
+    // The commit takes its destination from the verified challenge server-side;
+    // the DTO rejects unknown fields through whitelist validation.
+    void body;
+    assertIdempotencyKey(idempotencyKey);
+    const challengeIdValue = parseChallengeId(challengeId);
+    const expectedChallengeVersion = etagVersion(ifMatch, `challenge:${challengeIdValue.value}`);
+    const claims = request.authentication;
+    try {
+      const result = await this.idempotency.execute({
+        scope: `identity:${claims.subject}`,
+        operationType: 'M01-VER-003',
+        idempotencyKey,
+        request: { challengeId, ifMatch },
+        execute: () =>
+          this.verification.commitContactChange({
+            identityId: new UuidV7(claims.subject),
+            challengeId: challengeIdValue,
+            expectedChallengeVersion,
+          }),
+      });
+      noStore(response);
+      response.status(HttpStatus.OK).json(
+        success({
+          challengeId: result.challengeId,
+          contactChange: result.contactChange,
+          committedAt: result.committedAt.toISOString(),
+          version: result.version,
+          primaryIdentifier: result.primaryIdentifier,
         }),
       );
     } catch (error) {
