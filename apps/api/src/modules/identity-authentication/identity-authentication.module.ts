@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigurationService } from '../../platform/configuration/configuration.service';
 import { ApiIdempotencyService } from './application/services/api-idempotency.service';
 import { AuthenticationApplicationService } from './application/services/authentication-application.service';
+import { IdentityManagementApplicationService } from './application/services/identity-management-application.service';
 import { TotpMfaAuthenticationAdapter } from './application/services/totp-mfa-authentication.adapter';
 import { Argon2idPasswordHashingAdapter } from './infrastructure/cryptography/argon2id-password-hashing.adapter';
 import { NonProductionCsrfAdapter } from './infrastructure/cryptography/non-production-csrf.adapter';
@@ -13,15 +14,26 @@ import { NonProductionTotpAdapter } from './infrastructure/cryptography/non-prod
 import { createIdentityAuthenticationConfiguration } from './infrastructure/configuration/identity-authentication.configuration';
 import {
   API_IDEMPOTENCY_REPOSITORY,
+  BASIC_AUDIT_REPOSITORY,
   IDENTITY_REPOSITORY,
+  NON_PRODUCTION_RATE_LIMIT_REPOSITORY,
   PrismaModule,
   SESSION_REPOSITORY,
   VERIFICATION_CHALLENGE_REPOSITORY,
 } from './infrastructure/persistence/prisma/prisma.module';
 import { SystemClockAdapter, SystemUuidV7Generator } from './infrastructure/runtime/system-runtime.adapter';
 import { AuthenticationController } from './presentation/authentication.controller';
-import { AUTHENTICATION_APPLICATION_SERVICE, CSRF_PROTECTION } from './presentation/authentication.tokens';
+import { IdentityController } from './presentation/identity.controller';
+import {
+  AUTHENTICATION_APPLICATION_SERVICE,
+  BASIC_AUDIT_LOGGER,
+  CSRF_PROTECTION,
+  IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
+  RATE_LIMITER,
+} from './presentation/authentication.tokens';
 import { AuthoritativeSessionGuard } from './presentation/guards/authoritative-session.guard';
+import { NonProductionRateLimiterGuard } from './presentation/guards/non-production-rate-limiter.guard';
+import { BasicAuditInterceptor } from './presentation/interceptors/basic-audit.interceptor';
 import {
   API_IDEMPOTENCY,
   CLOCK,
@@ -39,7 +51,7 @@ const MFA = Symbol('MFA');
 
 @Module({
   imports: [PrismaModule],
-  controllers: [AuthenticationController],
+  controllers: [AuthenticationController, IdentityController],
   providers: [
     { provide: CLOCK, useClass: SystemClockAdapter },
     { provide: UUID_V7_GENERATOR, useClass: SystemUuidV7Generator },
@@ -105,6 +117,30 @@ const MFA = Symbol('MFA');
       useFactory: (repository: never, encryption: NonProductionEnvelopeEncryptionAdapter, clock: SystemClockAdapter, identifiers: SystemUuidV7Generator) =>
         new ApiIdempotencyService(repository, encryption, clock, identifiers),
     },
+    { provide: RATE_LIMITER, useExisting: NON_PRODUCTION_RATE_LIMIT_REPOSITORY },
+    { provide: BASIC_AUDIT_LOGGER, useExisting: BASIC_AUDIT_REPOSITORY },
+    {
+      provide: IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
+      inject: [IDENTITY_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHING, IDENTIFIER_LOOKUP, CLOCK, UUID_V7_GENERATOR, ConfigurationService],
+      useFactory: (
+        identities: never,
+        sessions: never,
+        passwords: Argon2idPasswordHashingAdapter,
+        lookups: NonProductionIdentifierLookupAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+        application: ConfigurationService,
+      ) =>
+        new IdentityManagementApplicationService(
+          identities,
+          sessions,
+          passwords,
+          lookups,
+          clock,
+          identifiers,
+          application.values.APP_ENV,
+        ),
+    },
     {
       provide: AUTHENTICATION_APPLICATION_SERVICE,
       inject: [IDENTITY_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHING, IDENTIFIER_LOOKUP, REFRESH_TOKENS, JWT_CRYPTOGRAPHY, MFA, CLOCK, UUID_V7_GENERATOR, MODULE_CONFIGURATION, ConfigurationService],
@@ -122,6 +158,8 @@ const MFA = Symbol('MFA');
         }),
     },
     AuthoritativeSessionGuard,
+    NonProductionRateLimiterGuard,
+    BasicAuditInterceptor,
   ],
 })
 // NestJS modules are declarative metadata containers and intentionally have no members.

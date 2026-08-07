@@ -11,6 +11,7 @@ import {
   Res,
   UnauthorizedException,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { CookieOptions, Request, Response } from 'express';
@@ -31,6 +32,8 @@ import type { CsrfProtectionPort } from './ports/csrf-protection.port';
 import { API_IDEMPOTENCY } from '../identity-authentication.tokens';
 import type { ApiIdempotencyService } from '../application/services/api-idempotency.service';
 import { AuthoritativeSessionGuard } from './guards/authoritative-session.guard';
+import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
+import { BasicAuditInterceptor } from './interceptors/basic-audit.interceptor';
 import type { AuthenticatedRequest } from './authentication-context';
 import { createHash } from 'node:crypto';
 
@@ -40,6 +43,8 @@ const IDEMPOTENCY_PATTERN = /^[A-Za-z0-9._:-]{16,128}$/;
 
 @ApiTags('Module 01 Authentication')
 @Controller('auth')
+@UseGuards(NonProductionRateLimiterGuard)
+@UseInterceptors(BasicAuditInterceptor)
 export class AuthenticationController {
   public constructor(
     @Inject(AUTHENTICATION_APPLICATION_SERVICE)
