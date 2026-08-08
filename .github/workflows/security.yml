@@ -22,10 +22,11 @@ jobs:
       - run: pnpm audit --audit-level high
       - uses: gitleaks/gitleaks-action@v2
         env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
-      - uses: aquasecurity/trivy-action@v0.33.1
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
+          version: v0.70.0
           severity: HIGH,CRITICAL
           exit-code: '1'
           ignore-unfixed: true
