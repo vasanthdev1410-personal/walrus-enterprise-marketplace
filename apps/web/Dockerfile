@@ -1,7 +1,7 @@
 FROM node:26.5.1-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
+RUN npm install -g corepack@0.35.0 && corepack enable && corepack prepare pnpm@10.34.5 --activate
 WORKDIR /workspace
 
 FROM base AS dependencies
