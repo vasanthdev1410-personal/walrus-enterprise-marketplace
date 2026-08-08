@@ -2,6 +2,8 @@
   "extends": "@walrus/tsconfig/nestjs.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "types": ["node", "jest", "express", "pg", "supertest"],
     "outDir": "dist",
     "rootDir": "."
   },
