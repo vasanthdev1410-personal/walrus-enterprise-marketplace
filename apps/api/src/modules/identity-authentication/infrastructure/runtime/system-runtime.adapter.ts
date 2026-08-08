@@ -1,9 +1,14 @@
 import { randomBytes } from 'node:crypto';
-import type { ClockPort, UuidV7GenerationPort } from '../../application/ports/application-runtime.port';
+import type {
+  ClockPort,
+  UuidV7GenerationPort,
+} from '../../application/ports/application-runtime.port';
 import { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
 
 export class SystemClockAdapter implements ClockPort {
-  public now(): Date { return new Date(); }
+  public now(): Date {
+    return new Date();
+  }
 }
 
 export class SystemUuidV7Generator implements UuidV7GenerationPort {

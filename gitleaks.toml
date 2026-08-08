@@ -1,0 +1,22 @@
+# Gitleaks configuration for WALRUS Enterprise Marketplace.
+#
+# Extends the default rule set (nothing is disabled) and allowlists a small set
+# of verified false positives:
+#   - synthetic identifiers used as test fixtures (e.g. 01890f3e-...-123456789001,
+#     reg-key-1234567890abcdef) in API test specs, and
+#   - the recurring phrase "Verification/MFA" inside Module 01 design drafts.
+title = "WALRUS Enterprise Marketplace gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Verified false positives: synthetic test fixtures and design-draft prose"
+paths = [
+  "apps/api/src/modules/identity-authentication/infrastructure/persistence/prisma/repositories/prisma-identity.repository.spec.ts",
+  "apps/api/test/authentication.controller.e2e-spec.ts",
+  "apps/api/test/authentication-protected.controller.e2e-spec.ts",
+  "apps/api/test/registration.controller.e2e-spec.ts",
+  "apps/api/test/verification.controller.e2e-spec.ts",
+]
+regexes = ["Verification/MFA"]

@@ -21,6 +21,9 @@ jobs:
           REDIS_PASSWORD: local-password
       - run: pnpm exec playwright install --with-deps chromium
         working-directory: apps/web
+      - run: pnpm --filter @walrus/web build
+        env:
+          NEXT_STANDALONE: 'true'
       - run: pnpm --filter @walrus/web test:e2e
       - uses: actions/upload-artifact@v4
         if: always()

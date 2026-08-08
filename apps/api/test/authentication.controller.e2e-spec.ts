@@ -6,14 +6,22 @@ import type { AuthenticationApplicationService } from '../src/modules/identity-a
 import { AuthenticationController } from '../src/modules/identity-authentication/presentation/authentication.controller';
 import {
   AUTHENTICATION_APPLICATION_SERVICE,
+  BASIC_AUDIT_LOGGER,
   CSRF_PROTECTION,
+  RATE_LIMITER,
 } from '../src/modules/identity-authentication/presentation/authentication.tokens';
 import type { CsrfProtectionPort } from '../src/modules/identity-authentication/presentation/ports/csrf-protection.port';
 import { API_IDEMPOTENCY } from '../src/modules/identity-authentication/identity-authentication.tokens';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
 import { AuthoritativeSessionGuard } from '../src/modules/identity-authentication/presentation/guards/authoritative-session.guard';
+import { NonProductionRateLimiterGuard } from '../src/modules/identity-authentication/presentation/guards/non-production-rate-limiter.guard';
+import { BasicAuditInterceptor } from '../src/modules/identity-authentication/presentation/interceptors/basic-audit.interceptor';
 import { JWT_CRYPTOGRAPHY } from '../src/modules/identity-authentication/identity-authentication.tokens';
-import { SESSION_REPOSITORY } from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
+import {
+  IDENTITY_REPOSITORY,
+  SESSION_REPOSITORY,
+} from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
+import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
 
 const completedSession = {
   authenticationOutcome: 'COMPLETED' as const,
@@ -43,6 +51,18 @@ describe('Module 01 public authentication API (integration)', () => {
   const idempotency = {
     execute: jest.fn(async (input: { execute: () => Promise<unknown> }) => input.execute()),
   } as unknown as jest.Mocked<ApiIdempotencyService>;
+  const rateLimiter = {
+    consume: jest.fn().mockResolvedValue({
+      allowed: true,
+      limit: 100,
+      remaining: 99,
+      resetAt: new Date(Date.now() + 60_000),
+    }),
+  };
+  const auditLogger = {
+    logEvent: jest.fn().mockResolvedValue(undefined),
+  };
+  const identities = { findById: jest.fn() } as unknown as jest.Mocked<IdentityRepository>;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -51,9 +71,14 @@ describe('Module 01 public authentication API (integration)', () => {
         { provide: AUTHENTICATION_APPLICATION_SERVICE, useValue: authentication },
         { provide: CSRF_PROTECTION, useValue: csrf },
         { provide: API_IDEMPOTENCY, useValue: idempotency },
+        { provide: RATE_LIMITER, useValue: rateLimiter },
+        { provide: BASIC_AUDIT_LOGGER, useValue: auditLogger },
         { provide: AuthoritativeSessionGuard, useValue: { canActivate: () => true } },
+        NonProductionRateLimiterGuard,
+        BasicAuditInterceptor,
         { provide: JWT_CRYPTOGRAPHY, useValue: {} },
         { provide: SESSION_REPOSITORY, useValue: {} },
+        { provide: IDENTITY_REPOSITORY, useValue: identities },
       ],
     }).compile();
     application = module.createNestApplication();
