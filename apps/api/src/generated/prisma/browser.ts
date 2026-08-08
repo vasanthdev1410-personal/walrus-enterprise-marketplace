@@ -142,3 +142,13 @@ export type RecoveryStateTransition = Prisma.RecoveryStateTransitionModel
  * 
  */
 export type RecoveryNotificationRecord = Prisma.RecoveryNotificationRecordModel
+/**
+ * Model NonProductionRateLimitRecord
+ * 
+ */
+export type NonProductionRateLimitRecord = Prisma.NonProductionRateLimitRecordModel
+/**
+ * Model BasicAuditEventRecord
+ * 
+ */
+export type BasicAuditEventRecord = Prisma.BasicAuditEventRecordModel

@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
 import { ConflictException } from '@nestjs/common';
-import type { EnvelopeEncryptionContext, EnvelopeEncryptionPort, ProtectedEnvelope } from '../ports/envelope-encryption.port';
+import type {
+  EnvelopeEncryptionContext,
+  EnvelopeEncryptionPort,
+  ProtectedEnvelope,
+} from '../ports/envelope-encryption.port';
 import type { ApiIdempotencyPort } from '../ports/api-idempotency.port';
 import type { ClockPort, UuidV7GenerationPort } from '../ports/application-runtime.port';
 
@@ -42,7 +46,10 @@ export class ApiIdempotencyService {
     if (acquisition.outcome === 'COMPLETED') {
       return JSON.parse(
         Buffer.from(
-          this.encryption.decrypt(parseProtectedEnvelope(acquisition.protectedResultReference), context(execution)),
+          this.encryption.decrypt(
+            parseProtectedEnvelope(acquisition.protectedResultReference),
+            context(execution),
+          ),
         ).toString('utf8'),
       ) as T;
     }
@@ -70,15 +77,21 @@ function context(
   return {
     environment: process.env.APP_ENV ?? 'local',
     recordType: 'API_IDEMPOTENCY_RESULT',
-    recordId: createHash('sha256').update(`${execution.scope}|${execution.operationType}`).digest('hex'),
+    recordId: createHash('sha256')
+      .update(`${execution.scope}|${execution.operationType}`)
+      .digest('hex'),
     fieldName: 'response_reference',
   } as const;
 }
 
 function parseProtectedEnvelope(value: string): ProtectedEnvelope {
   const parsed: unknown = JSON.parse(value);
-  if (typeof parsed !== 'object' || parsed === null ||
-    !('envelopeVersion' in parsed) || parsed.envelopeVersion !== 'walrus-envelope-v1') {
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    !('envelopeVersion' in parsed) ||
+    parsed.envelopeVersion !== 'walrus-envelope-v1'
+  ) {
     throw new Error('Invalid protected idempotency result');
   }
   return parsed as ProtectedEnvelope;

@@ -81,6 +81,21 @@ describe('AuthenticationApplicationService', () => {
     expect(fixture.sessionRepository.insert).not.toHaveBeenCalled();
   });
 
+  it('returns a uniform authentication failure for a malformed identifier (no 500)', async () => {
+    const fixture = createFixture(snapshot('STANDARD_AUTHENTICATION'));
+
+    await expect(
+      fixture.service.login({
+        identifierType: 'EMAIL',
+        identifier: 'not-an-email',
+        password: 'whatever',
+        clientType: 'WEB',
+      }),
+    ).rejects.toMatchObject({ code: 'AUTHENTICATION_FAILED' });
+    expect(fixture.identifierLookup.createLookupsForResolution).not.toHaveBeenCalled();
+    expect(fixture.sessionRepository.insert).not.toHaveBeenCalled();
+  });
+
   it('requires MFA before creating a privileged Session', async () => {
     const fixture = createFixture(snapshot('PRIVILEGED_ADMIN_AUTHENTICATION', true));
 
@@ -177,6 +192,7 @@ function createFixture(
 ): AuthenticationFixture {
   let nextIdentifier = 200;
   const identityRepository: jest.Mocked<IdentityRepository> = {
+    findPasswordHistory: jest.fn(),
     findById: jest.fn(),
     findAuthenticationById: jest.fn(),
     findByIdentifierLookups: jest.fn().mockResolvedValue(authenticationSnapshot),

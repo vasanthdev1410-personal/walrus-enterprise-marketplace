@@ -40,7 +40,8 @@ export class PrismaApiIdempotencyRepository implements ApiIdempotencyPort {
       return { outcome: 'FINGERPRINT_MISMATCH' };
     }
     if (existing.processingState === 'PROCESSING') return { outcome: 'IN_PROGRESS' };
-    if (existing.responseReference === null) throw new Error('Completed idempotency result missing');
+    if (existing.responseReference === null)
+      throw new Error('Completed idempotency result missing');
     return { outcome: 'COMPLETED', protectedResultReference: existing.responseReference };
   }
 

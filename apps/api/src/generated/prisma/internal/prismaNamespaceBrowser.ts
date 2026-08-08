@@ -75,7 +75,9 @@ export const ModelName = {
   RecoveryApprovalRecord: 'RecoveryApprovalRecord',
   RecoveryAttempt: 'RecoveryAttempt',
   RecoveryStateTransition: 'RecoveryStateTransition',
-  RecoveryNotificationRecord: 'RecoveryNotificationRecord'
+  RecoveryNotificationRecord: 'RecoveryNotificationRecord',
+  NonProductionRateLimitRecord: 'NonProductionRateLimitRecord',
+  BasicAuditEventRecord: 'BasicAuditEventRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -506,6 +508,36 @@ export const RecoveryNotificationRecordScalarFieldEnum = {
 } as const
 
 export type RecoveryNotificationRecordScalarFieldEnum = (typeof RecoveryNotificationRecordScalarFieldEnum)[keyof typeof RecoveryNotificationRecordScalarFieldEnum]
+
+
+export const NonProductionRateLimitRecordScalarFieldEnum = {
+  rateLimitId: 'rateLimitId',
+  rateLimitKey: 'rateLimitKey',
+  requestCount: 'requestCount',
+  windowStartAt: 'windowStartAt',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type NonProductionRateLimitRecordScalarFieldEnum = (typeof NonProductionRateLimitRecordScalarFieldEnum)[keyof typeof NonProductionRateLimitRecordScalarFieldEnum]
+
+
+export const BasicAuditEventRecordScalarFieldEnum = {
+  auditEventId: 'auditEventId',
+  operationType: 'operationType',
+  subjectIdentityId: 'subjectIdentityId',
+  actorIdentityId: 'actorIdentityId',
+  actionOutcome: 'actionOutcome',
+  sourceIpReference: 'sourceIpReference',
+  userAgentReference: 'userAgentReference',
+  correlationId: 'correlationId',
+  metadataJson: 'metadataJson',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type BasicAuditEventRecordScalarFieldEnum = (typeof BasicAuditEventRecordScalarFieldEnum)[keyof typeof BasicAuditEventRecordScalarFieldEnum]
 
 
 export const SortOrder = {

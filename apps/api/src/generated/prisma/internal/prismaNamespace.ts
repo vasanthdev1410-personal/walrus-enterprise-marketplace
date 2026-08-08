@@ -421,7 +421,9 @@ export const ModelName = {
   RecoveryApprovalRecord: 'RecoveryApprovalRecord',
   RecoveryAttempt: 'RecoveryAttempt',
   RecoveryStateTransition: 'RecoveryStateTransition',
-  RecoveryNotificationRecord: 'RecoveryNotificationRecord'
+  RecoveryNotificationRecord: 'RecoveryNotificationRecord',
+  NonProductionRateLimitRecord: 'NonProductionRateLimitRecord',
+  BasicAuditEventRecord: 'BasicAuditEventRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -437,7 +439,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "apiIdempotencyRecord" | "identity" | "identityIdentifier" | "credential" | "credentialHistoryRecord" | "passwordHistoryRecord" | "authenticationSecurityClassificationAssignment" | "mfaEnrollment" | "mfaFactor" | "recoveryCodeSet" | "recoveryCodeRecord" | "trustedDevice" | "identityStateTransition" | "session" | "refreshTokenFamily" | "refreshTokenRecord" | "verificationChallenge" | "verificationAttempt" | "otpEvidenceRecord" | "recoveryRequest" | "recoveryEvidenceRecord" | "recoveryApprovalRecord" | "recoveryAttempt" | "recoveryStateTransition" | "recoveryNotificationRecord"
+    modelProps: "apiIdempotencyRecord" | "identity" | "identityIdentifier" | "credential" | "credentialHistoryRecord" | "passwordHistoryRecord" | "authenticationSecurityClassificationAssignment" | "mfaEnrollment" | "mfaFactor" | "recoveryCodeSet" | "recoveryCodeRecord" | "trustedDevice" | "identityStateTransition" | "session" | "refreshTokenFamily" | "refreshTokenRecord" | "verificationChallenge" | "verificationAttempt" | "otpEvidenceRecord" | "recoveryRequest" | "recoveryEvidenceRecord" | "recoveryApprovalRecord" | "recoveryAttempt" | "recoveryStateTransition" | "recoveryNotificationRecord" | "nonProductionRateLimitRecord" | "basicAuditEventRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2291,6 +2293,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    NonProductionRateLimitRecord: {
+      payload: Prisma.$NonProductionRateLimitRecordPayload<ExtArgs>
+      fields: Prisma.NonProductionRateLimitRecordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.NonProductionRateLimitRecordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.NonProductionRateLimitRecordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload>
+        }
+        findFirst: {
+          args: Prisma.NonProductionRateLimitRecordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.NonProductionRateLimitRecordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload>
+        }
+        findMany: {
+          args: Prisma.NonProductionRateLimitRecordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload>[]
+        }
+        create: {
+          args: Prisma.NonProductionRateLimitRecordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload>
+        }
+        createMany: {
+          args: Prisma.NonProductionRateLimitRecordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.NonProductionRateLimitRecordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload>[]
+        }
+        delete: {
+          args: Prisma.NonProductionRateLimitRecordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload>
+        }
+        update: {
+          args: Prisma.NonProductionRateLimitRecordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload>
+        }
+        deleteMany: {
+          args: Prisma.NonProductionRateLimitRecordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.NonProductionRateLimitRecordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.NonProductionRateLimitRecordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload>[]
+        }
+        upsert: {
+          args: Prisma.NonProductionRateLimitRecordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NonProductionRateLimitRecordPayload>
+        }
+        aggregate: {
+          args: Prisma.NonProductionRateLimitRecordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateNonProductionRateLimitRecord>
+        }
+        groupBy: {
+          args: Prisma.NonProductionRateLimitRecordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NonProductionRateLimitRecordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.NonProductionRateLimitRecordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NonProductionRateLimitRecordCountAggregateOutputType> | number
+        }
+      }
+    }
+    BasicAuditEventRecord: {
+      payload: Prisma.$BasicAuditEventRecordPayload<ExtArgs>
+      fields: Prisma.BasicAuditEventRecordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BasicAuditEventRecordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BasicAuditEventRecordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload>
+        }
+        findFirst: {
+          args: Prisma.BasicAuditEventRecordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BasicAuditEventRecordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload>
+        }
+        findMany: {
+          args: Prisma.BasicAuditEventRecordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload>[]
+        }
+        create: {
+          args: Prisma.BasicAuditEventRecordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload>
+        }
+        createMany: {
+          args: Prisma.BasicAuditEventRecordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BasicAuditEventRecordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload>[]
+        }
+        delete: {
+          args: Prisma.BasicAuditEventRecordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload>
+        }
+        update: {
+          args: Prisma.BasicAuditEventRecordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload>
+        }
+        deleteMany: {
+          args: Prisma.BasicAuditEventRecordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BasicAuditEventRecordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BasicAuditEventRecordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload>[]
+        }
+        upsert: {
+          args: Prisma.BasicAuditEventRecordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BasicAuditEventRecordPayload>
+        }
+        aggregate: {
+          args: Prisma.BasicAuditEventRecordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBasicAuditEventRecord>
+        }
+        groupBy: {
+          args: Prisma.BasicAuditEventRecordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BasicAuditEventRecordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BasicAuditEventRecordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BasicAuditEventRecordCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2742,6 +2892,36 @@ export const RecoveryNotificationRecordScalarFieldEnum = {
 } as const
 
 export type RecoveryNotificationRecordScalarFieldEnum = (typeof RecoveryNotificationRecordScalarFieldEnum)[keyof typeof RecoveryNotificationRecordScalarFieldEnum]
+
+
+export const NonProductionRateLimitRecordScalarFieldEnum = {
+  rateLimitId: 'rateLimitId',
+  rateLimitKey: 'rateLimitKey',
+  requestCount: 'requestCount',
+  windowStartAt: 'windowStartAt',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type NonProductionRateLimitRecordScalarFieldEnum = (typeof NonProductionRateLimitRecordScalarFieldEnum)[keyof typeof NonProductionRateLimitRecordScalarFieldEnum]
+
+
+export const BasicAuditEventRecordScalarFieldEnum = {
+  auditEventId: 'auditEventId',
+  operationType: 'operationType',
+  subjectIdentityId: 'subjectIdentityId',
+  actorIdentityId: 'actorIdentityId',
+  actionOutcome: 'actionOutcome',
+  sourceIpReference: 'sourceIpReference',
+  userAgentReference: 'userAgentReference',
+  correlationId: 'correlationId',
+  metadataJson: 'metadataJson',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type BasicAuditEventRecordScalarFieldEnum = (typeof BasicAuditEventRecordScalarFieldEnum)[keyof typeof BasicAuditEventRecordScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -3558,6 +3738,8 @@ export type GlobalOmitConfig = {
   recoveryAttempt?: Prisma.RecoveryAttemptOmit
   recoveryStateTransition?: Prisma.RecoveryStateTransitionOmit
   recoveryNotificationRecord?: Prisma.RecoveryNotificationRecordOmit
+  nonProductionRateLimitRecord?: Prisma.NonProductionRateLimitRecordOmit
+  basicAuditEventRecord?: Prisma.BasicAuditEventRecordOmit
 }
 
 /* Types for Logging */

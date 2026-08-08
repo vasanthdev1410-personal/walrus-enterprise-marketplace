@@ -785,3 +785,36 @@ model RecoveryNotificationRecord {
   @@index([recoveryRequestId, deliveryState])
   @@map("recovery_notification_records")
 }
+
+model NonProductionRateLimitRecord {
+  rateLimitId   String   @id @map("rate_limit_id") @db.Uuid
+  rateLimitKey  String   @unique @map("rate_limit_key") @db.Text
+  requestCount  Int      @map("request_count")
+  windowStartAt DateTime @map("window_start_at") @db.Timestamptz(6)
+  expiresAt     DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt     DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @map("updated_at") @db.Timestamptz(6)
+
+  @@index([expiresAt])
+  @@map("non_production_rate_limit_records")
+}
+
+model BasicAuditEventRecord {
+  auditEventId       String   @id @map("audit_event_id") @db.Uuid
+  operationType      String   @map("operation_type") @db.Text
+  subjectIdentityId  String?  @map("subject_identity_id") @db.Uuid
+  actorIdentityId    String?  @map("actor_identity_id") @db.Uuid
+  actionOutcome      String   @map("action_outcome") @db.Text
+  sourceIpReference  String?  @map("source_ip_reference") @db.Text
+  userAgentReference String?  @map("user_agent_reference") @db.Text
+  correlationId      String?  @map("correlation_id") @db.Uuid
+  metadataJson       String?  @map("metadata_json") @db.Text
+  occurredAt         DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt          DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([subjectIdentityId, occurredAt(sort: Desc)])
+  @@index([operationType, occurredAt(sort: Desc)])
+  @@index([occurredAt(sort: Desc)])
+  @@map("basic_audit_event_records")
+}
+

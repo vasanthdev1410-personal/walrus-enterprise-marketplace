@@ -2,10 +2,15 @@ import { Injectable } from '@nestjs/common';
 import type { VerificationChallenge } from '../../../../domain/verification/entities/verification-challenge';
 import type {
   CompleteTotpChallengePersistenceCommand,
+  ConfirmOtpChallengePersistenceCommand,
+  RejectOtpChallengePersistenceCommand,
   RejectTotpChallengePersistenceCommand,
   VerificationAggregateChangeSet,
+  VerificationChallengeAggregate,
   VerificationChallengeRepository,
 } from '../../../../domain/verification/repositories/verification-challenge-repository';
+import type { VerificationChannel } from '../../../../domain/verification/value-objects/verification-channel';
+import type { VerificationPurpose } from '../../../../domain/verification/value-objects/verification-purpose';
 import type { AggregateVersion } from '../../../../domain/shared/value-objects/aggregate-version';
 import type { UuidV7 } from '../../../../domain/shared/value-objects/uuid-v7';
 import {
@@ -25,6 +30,85 @@ export class PrismaVerificationChallengeRepository implements VerificationChalle
       where: { challengeId: challengeId.value },
     });
     return record === null ? null : verificationChallengeMapper.toDomain(record);
+  }
+
+  public async findAggregateById(
+    challengeId: UuidV7,
+  ): Promise<VerificationChallengeAggregate | null> {
+    const record = await this.prisma.verificationChallenge.findUnique({
+      where: { challengeId: challengeId.value },
+      include: { otpEvidence: true },
+    });
+    if (record === null) return null;
+    return Object.freeze({
+      challenge: verificationChallengeMapper.toDomain(record),
+      otpEvidence: Object.freeze(
+        record.otpEvidence.map((evidence) => otpEvidenceMapper.toDomain(evidence)),
+      ),
+    });
+  }
+
+  public async findActiveByBinding(
+    identityId: UuidV7,
+    purpose: VerificationPurpose,
+    channelType: VerificationChannel,
+  ): Promise<VerificationChallenge | null> {
+    const record = await this.prisma.verificationChallenge.findFirst({
+      where: {
+        identityId: identityId.value,
+        purpose,
+        channelType,
+        challengeState: 'CHALLENGE_ISSUED',
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return record === null ? null : verificationChallengeMapper.toDomain(record);
+  }
+
+  public async confirmOtpChallenge(
+    command: ConfirmOtpChallengePersistenceCommand,
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (transaction) => {
+      const challenge = await transaction.verificationChallenge.updateMany({
+        where: {
+          challengeId: command.challengeId.value,
+          challengeState: 'CHALLENGE_ISSUED',
+          aggregateVersion: command.expectedVersion.value,
+          expiresAt: { gt: command.completedAt },
+        },
+        data: verificationChallengeMapper.toPersistence(command.updatedChallenge),
+      });
+      if (challenge.count !== 1) return false;
+      if (command.consumedEvidence !== null) {
+        await transaction.otpEvidenceRecord.update({
+          where: { otpEvidenceId: command.consumedEvidence.properties.otpEvidenceId.value },
+          data: otpEvidenceMapper.toPersistence(command.consumedEvidence),
+        });
+      }
+      await transaction.verificationAttempt.create({
+        data: verificationAttemptMapper.toPersistence(command.attempt),
+      });
+      return true;
+    });
+  }
+
+  public async rejectOtpChallenge(command: RejectOtpChallengePersistenceCommand): Promise<boolean> {
+    return this.prisma.$transaction(async (transaction) => {
+      const challenge = await transaction.verificationChallenge.updateMany({
+        where: {
+          challengeId: command.challengeId.value,
+          challengeState: 'CHALLENGE_ISSUED',
+          aggregateVersion: command.expectedVersion.value,
+        },
+        data: verificationChallengeMapper.toPersistence(command.updatedChallenge),
+      });
+      if (challenge.count !== 1) return false;
+      await transaction.verificationAttempt.create({
+        data: verificationAttemptMapper.toPersistence(command.attempt),
+      });
+      return true;
+    });
   }
 
   public async completeTotpChallenge(

@@ -81,6 +81,12 @@ export interface IdentityAuthenticationConfiguration {
     readonly saltBytes: 16;
     readonly outputBytes: 32;
   };
+  /** Password policy (M01-CRED-001): length bounds and reuse-history depth. */
+  readonly credentialPolicy: {
+    readonly minimumPasswordLength: 8;
+    readonly maximumPasswordLength: 1024;
+    readonly passwordHistoryDepth: 5;
+  };
   readonly refreshToken: {
     readonly standardLifetimeSeconds: 2_592_000;
     readonly privilegedLifetimeSeconds: 28_800;
@@ -183,6 +189,11 @@ export function createIdentityAuthenticationConfiguration(
       parallelism: 4,
       saltBytes: 16,
       outputBytes: 32,
+    }),
+    credentialPolicy: Object.freeze({
+      minimumPasswordLength: 8,
+      maximumPasswordLength: 1024,
+      passwordHistoryDepth: 5,
     }),
     refreshToken: Object.freeze({
       standardLifetimeSeconds: 2_592_000,

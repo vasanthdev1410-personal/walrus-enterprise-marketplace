@@ -27,8 +27,13 @@ export class IdentityStateTransition {
       throw new Error('Identity state version must be positive');
     }
     const isInitial = properties.stateVersion === 1;
-    if (isInitial && (properties.fromState !== undefined || properties.toState !== 'PENDING_VERIFICATION')) {
-      throw new Error('Initial Identity transition must establish PENDING_VERIFICATION without fromState');
+    if (
+      isInitial &&
+      (properties.fromState !== undefined || properties.toState !== 'PENDING_VERIFICATION')
+    ) {
+      throw new Error(
+        'Initial Identity transition must establish PENDING_VERIFICATION without fromState',
+      );
     }
     if (!isInitial && properties.fromState === undefined) {
       throw new Error('Non-initial Identity transition requires fromState');
