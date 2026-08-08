@@ -27,7 +27,7 @@
     "@walrus/types": "workspace:*",
     "argon2": "^0.45.1",
     "class-transformer": "0.5.1",
-    "class-validator": "0.14.3",
+    "class-validator": "0.15.1",
     "express": "5.1.0",
     "ioredis": "6.0.0",
     "jose": "^6.2.8",
