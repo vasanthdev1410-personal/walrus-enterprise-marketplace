@@ -35,7 +35,10 @@ export const BASIC_AUDIT_REPOSITORY = Symbol('BASIC_AUDIT_REPOSITORY');
     },
     { provide: RECOVERY_REQUEST_REPOSITORY, useExisting: PrismaRecoveryRequestRepository },
     { provide: API_IDEMPOTENCY_REPOSITORY, useExisting: PrismaApiIdempotencyRepository },
-    { provide: NON_PRODUCTION_RATE_LIMIT_REPOSITORY, useExisting: PrismaNonProductionRateLimitRepository },
+    {
+      provide: NON_PRODUCTION_RATE_LIMIT_REPOSITORY,
+      useExisting: PrismaNonProductionRateLimitRepository,
+    },
     { provide: BASIC_AUDIT_REPOSITORY, useExisting: PrismaBasicAuditRepository },
   ],
   exports: [

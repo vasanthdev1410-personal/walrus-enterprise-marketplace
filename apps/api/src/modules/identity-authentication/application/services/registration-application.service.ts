@@ -162,7 +162,8 @@ export class RegistrationApplicationService {
     if (properties.aggregateVersion.value !== command.expectedVersion) {
       throw new RegistrationError('REGISTRATION_STATE_CONFLICT');
     }
-    const primary = snapshot.identifiers.find((candidate) => candidate.properties.isPrimary) ??
+    const primary =
+      snapshot.identifiers.find((candidate) => candidate.properties.isPrimary) ??
       snapshot.identifiers[0];
     if (primary === undefined) throw new RegistrationError('REGISTRATION_STATE_CONFLICT');
     if (primary.properties.verificationState === 'VERIFIED') {
@@ -389,7 +390,8 @@ export class RegistrationApplicationService {
     if (properties.aggregateVersion.value !== command.expectedVersion) {
       throw new RegistrationError('REGISTRATION_STATE_CONFLICT');
     }
-    const primary = snapshot.identifiers.find((candidate) => candidate.properties.isPrimary) ??
+    const primary =
+      snapshot.identifiers.find((candidate) => candidate.properties.isPrimary) ??
       snapshot.identifiers[0];
     if (primary?.properties.verificationState !== 'VERIFIED') {
       throw new RegistrationError('REGISTRATION_NOT_READY');
@@ -436,7 +438,8 @@ export class RegistrationApplicationService {
     const snapshot = await this.identityRepository.findAuthenticationById(registrationId);
     if (snapshot === null) throw new RegistrationError('REGISTRATION_NOT_FOUND');
     const properties = snapshot.identity.properties;
-    const primary = snapshot.identifiers.find((candidate) => candidate.properties.isPrimary) ??
+    const primary =
+      snapshot.identifiers.find((candidate) => candidate.properties.isPrimary) ??
       snapshot.identifiers[0];
     const status: RegistrationStatus =
       properties.identityState === 'ACTIVE'
@@ -454,7 +457,8 @@ export class RegistrationApplicationService {
   private async markPrimaryIdentifierVerified(identityId: UuidV7): Promise<void> {
     const snapshot = await this.identityRepository.findAuthenticationById(identityId);
     if (snapshot === null) throw new RegistrationError('REGISTRATION_NOT_FOUND');
-    const primary = snapshot.identifiers.find((candidate) => candidate.properties.isPrimary) ??
+    const primary =
+      snapshot.identifiers.find((candidate) => candidate.properties.isPrimary) ??
       snapshot.identifiers[0];
     if (primary === undefined || primary.properties.verificationState === 'VERIFIED') return;
     const now = this.clock.now();

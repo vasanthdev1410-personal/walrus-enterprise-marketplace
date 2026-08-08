@@ -18,17 +18,19 @@ function createContext(token: string | undefined): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-function createGuard(overrides: {
-  identityState?: string;
-  verificationState?: string;
-  lockedUntil?: Date;
-  sessionState?: string;
-  sessionVersion?: number;
-  identityId?: string;
-  sessionClass?: string;
-  idleExpiresAt?: Date;
-  absoluteExpiresAt?: Date;
-} = {}): {
+function createGuard(
+  overrides: {
+    identityState?: string;
+    verificationState?: string;
+    lockedUntil?: Date;
+    sessionState?: string;
+    sessionVersion?: number;
+    identityId?: string;
+    sessionClass?: string;
+    idleExpiresAt?: Date;
+    absoluteExpiresAt?: Date;
+  } = {},
+): {
   guard: AuthoritativeSessionGuard;
   jwt: jest.Mocked<JwtCryptographicPort>;
   sessions: jest.Mocked<SessionRepository>;

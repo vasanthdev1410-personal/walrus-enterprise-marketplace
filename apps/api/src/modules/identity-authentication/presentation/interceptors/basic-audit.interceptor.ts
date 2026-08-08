@@ -1,10 +1,4 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Inject,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Inject, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import type { Request } from 'express';
@@ -23,8 +17,7 @@ export class BasicAuditInterceptor implements NestInterceptor {
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest<Request & Partial<AuthenticatedRequest>>();
 
-    const operationType =
-      context.getHandler().name || context.getClass().name || 'HTTP_OPERATION';
+    const operationType = context.getHandler().name || context.getClass().name || 'HTTP_OPERATION';
 
     const subjectIdentityId = request.authentication?.subject;
     const sourceIpReference = request.ip ?? request.socket.remoteAddress ?? undefined;
@@ -47,8 +40,7 @@ export class BasicAuditInterceptor implements NestInterceptor {
           });
         },
         error: (error: unknown) => {
-          const errorMessage =
-            error instanceof Error ? error.message : 'UNHANDLED_ERROR';
+          const errorMessage = error instanceof Error ? error.message : 'UNHANDLED_ERROR';
           void this.auditLogger.logEvent({
             operationType,
             subjectIdentityId,

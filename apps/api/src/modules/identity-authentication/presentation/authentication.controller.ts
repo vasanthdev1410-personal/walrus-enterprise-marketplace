@@ -81,19 +81,18 @@ export class AuthenticationController {
           identifierType: body.identifierType,
           identifier: body.identifier,
           clientType: body.clientType,
-          ...(body.deviceSessionId === undefined
-            ? {}
-            : { deviceSessionId: body.deviceSessionId }),
+          ...(body.deviceSessionId === undefined ? {} : { deviceSessionId: body.deviceSessionId }),
         },
-        execute: () => this.authentication.login({
-          identifierType: body.identifierType,
-          identifier: body.identifier,
-          password: body.password,
-          clientType: body.clientType,
-          ...(body.deviceSessionId === undefined
-            ? {}
-            : { deviceSessionId: new UuidV7(body.deviceSessionId) }),
-        }),
+        execute: () =>
+          this.authentication.login({
+            identifierType: body.identifierType,
+            identifier: body.identifier,
+            password: body.password,
+            clientType: body.clientType,
+            ...(body.deviceSessionId === undefined
+              ? {}
+              : { deviceSessionId: new UuidV7(body.deviceSessionId) }),
+          }),
       });
       noStore(response);
       if (result.authenticationOutcome === 'MFA_REQUIRED') {
@@ -138,18 +137,17 @@ export class AuthenticationController {
           challengeId,
           ifMatch,
           clientType: body.clientType,
-          ...(body.deviceSessionId === undefined
-            ? {}
-            : { deviceSessionId: body.deviceSessionId }),
+          ...(body.deviceSessionId === undefined ? {} : { deviceSessionId: body.deviceSessionId }),
         },
-        execute: () => this.authentication.completeMfaLogin({
-          challengeId: parsedId,
-          evidence: body.verificationEvidence,
-          clientType: body.clientType,
-          ...(body.deviceSessionId === undefined
-            ? {}
-            : { deviceSessionId: new UuidV7(body.deviceSessionId) }),
-        }),
+        execute: () =>
+          this.authentication.completeMfaLogin({
+            challengeId: parsedId,
+            evidence: body.verificationEvidence,
+            clientType: body.clientType,
+            ...(body.deviceSessionId === undefined
+              ? {}
+              : { deviceSessionId: new UuidV7(body.deviceSessionId) }),
+          }),
       });
       noStore(response);
       this.deliverSession(response, body.clientType, result);
@@ -270,11 +268,12 @@ export class AuthenticationController {
       request: { identityId: claims.subject, sessionVersion: claims.sessionVersion },
       execute: async () => ({
         operationId: currentCorrelationId() ?? idempotencyKey,
-        accepted: (await this.authentication.logoutAll(
-          new UuidV7(claims.subject),
-          new UuidV7(claims.sessionId),
-          claims.sessionVersion,
-        )) >= 1,
+        accepted:
+          (await this.authentication.logoutAll(
+            new UuidV7(claims.subject),
+            new UuidV7(claims.sessionId),
+            claims.sessionVersion,
+          )) >= 1,
       }),
     });
     noStore(response);
@@ -286,8 +285,11 @@ export class AuthenticationController {
     const cookies = parseCookies(cookieHeader);
     if (!cookies.has(REFRESH_COOKIE)) return;
     const csrfCookie = cookies.get(CSRF_COOKIE);
-    if (csrfCookie === undefined || csrfHeader === undefined ||
-      !this.csrf.verify({ cookieToken: csrfCookie, headerToken: csrfHeader })) {
+    if (
+      csrfCookie === undefined ||
+      csrfHeader === undefined ||
+      !this.csrf.verify({ cookieToken: csrfCookie, headerToken: csrfHeader })
+    ) {
       throw new UnauthorizedException('CSRF_VALIDATION_FAILED');
     }
   }

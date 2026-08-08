@@ -17,7 +17,7 @@ RUN pnpm install --frozen-lockfile
 FROM dependencies AS build
 COPY . .
 RUN pnpm --filter @walrus/api... build
-RUN pnpm deploy --filter @walrus/api --prod /deployment
+RUN pnpm deploy --legacy --filter @walrus/api --prod /deployment
 
 FROM node:22.23.2-alpine AS runtime
 ENV NODE_ENV=production

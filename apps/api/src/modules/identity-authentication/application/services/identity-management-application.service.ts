@@ -43,10 +43,12 @@ export interface IdentityProfileResult {
   readonly verificationState: string;
   readonly aggregateVersion: number;
   readonly classification: string;
-  readonly primaryIdentifier?: {
-    readonly identifierType: string;
-    readonly verificationState: string;
-  } | undefined;
+  readonly primaryIdentifier?:
+    | {
+        readonly identifierType: string;
+        readonly verificationState: string;
+      }
+    | undefined;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly disabledAt?: Date | undefined;
@@ -259,7 +261,9 @@ export class IdentityManagementApplicationService {
     const now = this.clock.now();
     const updatedIdentity = new Identity({
       ...snapshot.identity.properties,
-      aggregateVersion: new AggregateVersion(snapshot.identity.properties.aggregateVersion.value + 1),
+      aggregateVersion: new AggregateVersion(
+        snapshot.identity.properties.aggregateVersion.value + 1,
+      ),
       updatedAt: now,
     });
 
@@ -283,8 +287,6 @@ export class IdentityManagementApplicationService {
 
     return this.mapToProfileResult({ ...snapshot, identity: updatedIdentity });
   }
-
-
 
   /**
    * M01-ID-004 deactivation. Marks the Identity DISABLED, appends an approved
@@ -571,15 +573,14 @@ export class IdentityManagementApplicationService {
     current: Credential,
     history: readonly PasswordHistoryRecord[],
   ): Promise<boolean> {
-    if (await this.passwordHashing.verify(candidatePassword, current.properties.protectedSecret.value)) {
+    if (
+      await this.passwordHashing.verify(candidatePassword, current.properties.protectedSecret.value)
+    ) {
       return true;
     }
     for (const record of history) {
       if (
-        await this.passwordHashing.verify(
-          candidatePassword,
-          record.properties.passwordHash.value,
-        )
+        await this.passwordHashing.verify(candidatePassword, record.properties.passwordHash.value)
       ) {
         return true;
       }
@@ -609,7 +610,8 @@ export class IdentityManagementApplicationService {
 
   private mapToProfileResult(snapshot: IdentityAuthenticationSnapshot): IdentityProfileResult {
     const { properties } = snapshot.identity;
-    const primaryId = snapshot.identifiers.find((i) => i.properties.isPrimary) ?? snapshot.identifiers[0];
+    const primaryId =
+      snapshot.identifiers.find((i) => i.properties.isPrimary) ?? snapshot.identifiers[0];
     const classification = snapshot.classificationAssignments.find(
       (c) => c.properties.assignmentState === 'EFFECTIVE',
     );

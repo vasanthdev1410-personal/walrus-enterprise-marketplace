@@ -23,9 +23,7 @@ describe('PrismaBasicAuditRepository', () => {
 
     const calls = createMock.mock.calls as unknown[][];
     expect(calls).toHaveLength(1);
-    const persistedData = calls[0]?.[0] as
-      | { data?: Record<string, unknown> }
-      | undefined;
+    const persistedData = calls[0]?.[0] as { data?: Record<string, unknown> } | undefined;
     expect(persistedData?.data).toMatchObject({
       operationType: 'M01-AUTH-001',
       actionOutcome: 'SUCCESS',

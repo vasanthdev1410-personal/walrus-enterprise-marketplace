@@ -234,7 +234,7 @@ describe('Module 01 identity management API (integration)', () => {
   });
 
   describe('M01-ID-002 GET /api/v1/identities/:id', () => {
-    it('returns profile for the caller\'s own valid identity id (200 OK)', async () => {
+    it("returns profile for the caller's own valid identity id (200 OK)", async () => {
       getProfile.mockResolvedValueOnce({
         identityId,
         identityState: 'ACTIVE',
@@ -253,7 +253,7 @@ describe('Module 01 identity management API (integration)', () => {
       expect(readProfile(response.body).identityId).toBe(identityId);
     });
 
-    it('conceals another identity\'s profile as 404 (no cross-user read)', async () => {
+    it("conceals another identity's profile as 404 (no cross-user read)", async () => {
       const otherIdentityId = '0191310f-789a-7123-8123-0000000000aa';
       await request(server)
         .get(`/identities/${otherIdentityId}`)

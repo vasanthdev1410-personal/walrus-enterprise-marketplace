@@ -61,9 +61,7 @@ describe('Module 01 authenticated verification API (integration)', () => {
   } as unknown as jest.Mocked<VerificationApplicationService>;
 
   const idempotency = {
-    execute: jest.fn(async (execution: { execute: () => Promise<unknown> }) =>
-      execution.execute(),
-    ),
+    execute: jest.fn(async (execution: { execute: () => Promise<unknown> }) => execution.execute()),
   } as unknown as jest.Mocked<ApiIdempotencyService>;
 
   const jwt = { verifyAccessToken: jest.fn() } as unknown as jest.Mocked<JwtCryptographicPort>;
@@ -233,9 +231,7 @@ describe('Module 01 authenticated verification API (integration)', () => {
     });
 
     it('returns 409 when a challenge is already active', async () => {
-      requestChallenge.mockRejectedValueOnce(
-        new VerificationError('CHALLENGE_ALREADY_ACTIVE'),
-      );
+      requestChallenge.mockRejectedValueOnce(new VerificationError('CHALLENGE_ALREADY_ACTIVE'));
 
       await request(server)
         .post('/verification-challenges')
@@ -250,9 +246,7 @@ describe('Module 01 authenticated verification API (integration)', () => {
     });
 
     it('returns 400 for a not-permitted verification request', async () => {
-      requestChallenge.mockRejectedValueOnce(
-        new VerificationError('VERIFICATION_NOT_PERMITTED'),
-      );
+      requestChallenge.mockRejectedValueOnce(new VerificationError('VERIFICATION_NOT_PERMITTED'));
 
       await request(server)
         .post('/verification-challenges')
@@ -301,9 +295,7 @@ describe('Module 01 authenticated verification API (integration)', () => {
     });
 
     it('returns 401 for an invalid or expired challenge', async () => {
-      confirmChallenge.mockRejectedValueOnce(
-        new VerificationError('CHALLENGE_INVALID_OR_EXPIRED'),
-      );
+      confirmChallenge.mockRejectedValueOnce(new VerificationError('CHALLENGE_INVALID_OR_EXPIRED'));
 
       await request(server)
         .post(`/verification-challenges/${challengeId}/confirmations`)
@@ -344,9 +336,7 @@ describe('Module 01 authenticated verification API (integration)', () => {
     });
 
     it('returns 409 for a stale version', async () => {
-      confirmChallenge.mockRejectedValueOnce(
-        new VerificationError('RESOURCE_STATE_CONFLICT'),
-      );
+      confirmChallenge.mockRejectedValueOnce(new VerificationError('RESOURCE_STATE_CONFLICT'));
 
       await request(server)
         .post(`/verification-challenges/${challengeId}/confirmations`)
@@ -437,9 +427,7 @@ describe('Module 01 authenticated verification API (integration)', () => {
     });
 
     it('returns 409 for a stale version', async () => {
-      commitContactChange.mockRejectedValueOnce(
-        new VerificationError('RESOURCE_STATE_CONFLICT'),
-      );
+      commitContactChange.mockRejectedValueOnce(new VerificationError('RESOURCE_STATE_CONFLICT'));
 
       await request(server)
         .post(`/verification-challenges/${challengeId}/commits`)

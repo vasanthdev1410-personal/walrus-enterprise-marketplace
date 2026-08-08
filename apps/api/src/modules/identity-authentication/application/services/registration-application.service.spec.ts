@@ -216,7 +216,9 @@ describe('RegistrationApplicationService', () => {
     });
 
     it('conceals identifier existence when the identifier is already registered', async () => {
-      identityManagement.register.mockRejectedValue(new IdentityError('IDENTIFIER_ALREADY_REGISTERED'));
+      identityManagement.register.mockRejectedValue(
+        new IdentityError('IDENTIFIER_ALREADY_REGISTERED'),
+      );
       UUID_QUEUE.length = 0;
 
       const result = await service.register({
@@ -294,7 +296,9 @@ describe('RegistrationApplicationService', () => {
     });
 
     it('rejects when the If-Match version does not match', async () => {
-      identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot('PENDING_VERIFICATION', 'UNVERIFIED', 3));
+      identityRepository.findAuthenticationById.mockResolvedValue(
+        buildSnapshot('PENDING_VERIFICATION', 'UNVERIFIED', 3),
+      );
 
       await expect(
         service.requestVerificationChallenge({
@@ -554,7 +558,11 @@ describe('RegistrationApplicationService', () => {
 
       const result = await service.getStatus(new UuidV7(REGISTRATION_ID));
 
-      expect(result).toEqual({ registrationId: REGISTRATION_ID, status: 'PENDING_VERIFICATION', version: 1 });
+      expect(result).toEqual({
+        registrationId: REGISTRATION_ID,
+        status: 'PENDING_VERIFICATION',
+        version: 1,
+      });
     });
 
     it('reports VERIFIED once the identifier is verified', async () => {

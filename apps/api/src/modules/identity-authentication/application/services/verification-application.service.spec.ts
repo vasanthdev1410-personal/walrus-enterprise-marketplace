@@ -268,7 +268,9 @@ describe('VerificationApplicationService', () => {
 
     it('rejects a destination already owned by the caller', async () => {
       identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
-      identityRepository.findByIdentifierLookups.mockResolvedValue(buildSnapshot('ACTIVE', IDENTITY_ID));
+      identityRepository.findByIdentifierLookups.mockResolvedValue(
+        buildSnapshot('ACTIVE', IDENTITY_ID),
+      );
 
       await expect(
         service.requestChallenge({
@@ -564,9 +566,7 @@ describe('VerificationApplicationService', () => {
       expect(attached?.properties.verificationState).toBe('VERIFIED');
       expect(attached?.properties.protectedNormalizedValue.value).toBe(DESTINATION);
       expect(attached?.properties.verifiedAt).toEqual(CONSUMED_AT);
-      const retired = changeSet?.identifiers.find(
-        (identifier) => !identifier.properties.isPrimary,
-      );
+      const retired = changeSet?.identifiers.find((identifier) => !identifier.properties.isPrimary);
       expect(retired?.properties.verificationState).toBe('RETIRED');
       expect(retired?.properties.retiredAt).toEqual(FIXED_NOW);
       expect(identityRepository.save.mock.calls[0]?.[1]?.value).toBe(2);
@@ -672,9 +672,7 @@ describe('VerificationApplicationService', () => {
     });
 
     it('rejects a stale If-Match version with a state conflict', async () => {
-      verificationChallenges.findAggregateById.mockResolvedValue(
-        buildVerifiedChallengeAggregate(),
-      );
+      verificationChallenges.findAggregateById.mockResolvedValue(buildVerifiedChallengeAggregate());
 
       await expect(
         service.commitContactChange({
@@ -705,7 +703,9 @@ describe('VerificationApplicationService', () => {
 
     it('rejects a replay when the destination is already owned by the caller', async () => {
       verificationChallenges.findAggregateById.mockResolvedValue(buildVerifiedChallengeAggregate());
-      identityRepository.findByIdentifierLookups.mockResolvedValue(buildSnapshot('ACTIVE', IDENTITY_ID));
+      identityRepository.findByIdentifierLookups.mockResolvedValue(
+        buildSnapshot('ACTIVE', IDENTITY_ID),
+      );
 
       await expect(
         service.commitContactChange({

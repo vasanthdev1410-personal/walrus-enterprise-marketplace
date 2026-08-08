@@ -138,8 +138,7 @@ export class VerificationApplicationService {
       throw new VerificationError('VERIFICATION_NOT_PERMITTED');
     }
 
-    const identifierType: IdentifierType =
-      command.channelType === 'EMAIL' ? 'EMAIL' : 'MOBILE';
+    const identifierType: IdentifierType = command.channelType === 'EMAIL' ? 'EMAIL' : 'MOBILE';
     const canonicalValue = this.canonicalizeDestination(command.channelType, command.destination);
     if (canonicalValue === null) throw new VerificationError('VERIFICATION_NOT_PERMITTED');
 
@@ -404,8 +403,7 @@ export class VerificationApplicationService {
       throw new VerificationError('RESOURCE_STATE_CONFLICT');
     }
 
-    const identifierType: IdentifierType =
-      challenge.channelType === 'EMAIL' ? 'EMAIL' : 'MOBILE';
+    const identifierType: IdentifierType = challenge.channelType === 'EMAIL' ? 'EMAIL' : 'MOBILE';
     const canonicalDestination = challenge.protectedDestinationReference.value;
     const lookups = this.identifierLookup.createLookupsForResolution({
       environment: this.options.environment,
@@ -425,7 +423,6 @@ export class VerificationApplicationService {
 
     const primary = snapshot.identifiers.find((candidate) => candidate.properties.isPrimary);
     if (primary === undefined) throw new VerificationError('VERIFICATION_NOT_PERMITTED');
-
 
     const now = this.clock.now();
     const verifiedAt = challenge.consumedAt ?? now;

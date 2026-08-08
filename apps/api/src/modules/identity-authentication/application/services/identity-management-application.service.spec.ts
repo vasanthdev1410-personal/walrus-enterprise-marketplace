@@ -1,4 +1,7 @@
-import type { IdentityRepository, IdentityAuthenticationSnapshot } from '../../domain/identity/repositories/identity-repository';
+import type {
+  IdentityRepository,
+  IdentityAuthenticationSnapshot,
+} from '../../domain/identity/repositories/identity-repository';
 import type { SessionRepository } from '../../domain/session/repositories/session-repository';
 import type { IdentityState } from '../../domain/identity/value-objects/identity-state';
 import { OptimisticConcurrencyError } from '../../domain/shared/errors/optimistic-concurrency.error';
@@ -363,9 +366,9 @@ describe('IdentityManagementApplicationService', () => {
     it('rejects an incorrect current password without persisting anything', async () => {
       mockPasswordHashing.verifyForAuthentication.mockResolvedValue(false);
 
-      await expect(
-        service.changePassword(new UuidV7(IDENTITY_ID), command),
-      ).rejects.toMatchObject({ code: 'CURRENT_CREDENTIAL_INVALID' });
+      await expect(service.changePassword(new UuidV7(IDENTITY_ID), command)).rejects.toMatchObject({
+        code: 'CURRENT_CREDENTIAL_INVALID',
+      });
       expect(mockIdentityRepo.save.mock.calls).toHaveLength(0);
       expect(mockSessionRepo.revokeAllSessions.mock.calls).toHaveLength(0);
     });
@@ -393,9 +396,9 @@ describe('IdentityManagementApplicationService', () => {
     it('rejects reuse of the current password hash', async () => {
       mockPasswordHashing.verify.mockResolvedValue(true);
 
-      await expect(
-        service.changePassword(new UuidV7(IDENTITY_ID), command),
-      ).rejects.toMatchObject({ code: 'PASSWORD_POLICY_FAILED' });
+      await expect(service.changePassword(new UuidV7(IDENTITY_ID), command)).rejects.toMatchObject({
+        code: 'PASSWORD_POLICY_FAILED',
+      });
       expect(mockIdentityRepo.save.mock.calls).toHaveLength(0);
     });
 
@@ -411,9 +414,9 @@ describe('IdentityManagementApplicationService', () => {
         }),
       ]);
 
-      await expect(
-        service.changePassword(new UuidV7(IDENTITY_ID), command),
-      ).rejects.toMatchObject({ code: 'PASSWORD_POLICY_FAILED' });
+      await expect(service.changePassword(new UuidV7(IDENTITY_ID), command)).rejects.toMatchObject({
+        code: 'PASSWORD_POLICY_FAILED',
+      });
       expect(mockIdentityRepo.save.mock.calls).toHaveLength(0);
     });
 
@@ -432,25 +435,25 @@ describe('IdentityManagementApplicationService', () => {
         buildCredentialSnapshot('current-hash', 'DISABLED'),
       );
 
-      await expect(
-        service.changePassword(new UuidV7(IDENTITY_ID), command),
-      ).rejects.toMatchObject({ code: 'CURRENT_CREDENTIAL_INVALID' });
+      await expect(service.changePassword(new UuidV7(IDENTITY_ID), command)).rejects.toMatchObject({
+        code: 'CURRENT_CREDENTIAL_INVALID',
+      });
     });
 
     it('rejects when no active password credential exists', async () => {
       mockIdentityRepo.findAuthenticationById.mockResolvedValue(buildSnapshot());
 
-      await expect(
-        service.changePassword(new UuidV7(IDENTITY_ID), command),
-      ).rejects.toMatchObject({ code: 'CURRENT_CREDENTIAL_INVALID' });
+      await expect(service.changePassword(new UuidV7(IDENTITY_ID), command)).rejects.toMatchObject({
+        code: 'CURRENT_CREDENTIAL_INVALID',
+      });
     });
 
     it('maps a concurrent identity update to a state conflict', async () => {
       mockIdentityRepo.save.mockRejectedValue(new OptimisticConcurrencyError('Identity'));
 
-      await expect(
-        service.changePassword(new UuidV7(IDENTITY_ID), command),
-      ).rejects.toMatchObject({ code: 'RESOURCE_STATE_CONFLICT' });
+      await expect(service.changePassword(new UuidV7(IDENTITY_ID), command)).rejects.toMatchObject({
+        code: 'RESOURCE_STATE_CONFLICT',
+      });
       expect(mockSessionRepo.revokeAllSessions.mock.calls).toHaveLength(0);
     });
   });

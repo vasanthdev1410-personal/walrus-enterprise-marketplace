@@ -35,7 +35,11 @@ async function bootstrap(): Promise<void> {
   // The OpenAPI surface is development tooling; it must not be exposed in
   // production where it would disclose the internal API contract.
   if (configuration.values.APP_ENV !== 'production') {
-    SwaggerModule.setup('api/docs', application, SwaggerModule.createDocument(application, openApi));
+    SwaggerModule.setup(
+      'api/docs',
+      application,
+      SwaggerModule.createDocument(application, openApi),
+    );
   }
 
   await application.listen(configuration.values.API_PORT, '0.0.0.0');

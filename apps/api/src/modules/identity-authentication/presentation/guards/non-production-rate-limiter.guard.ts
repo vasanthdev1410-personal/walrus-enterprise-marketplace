@@ -10,10 +10,7 @@ import { Reflector } from '@nestjs/core';
 import type { Request, Response } from 'express';
 import { RATE_LIMITER } from '../authentication.tokens';
 import type { NonProductionRateLimiterPort } from '../../application/ports/non-production-rate-limiter.port';
-import {
-  RATE_LIMIT_METADATA,
-  type RateLimitOptions,
-} from '../decorators/rate-limit.decorator';
+import { RATE_LIMIT_METADATA, type RateLimitOptions } from '../decorators/rate-limit.decorator';
 import { createHash } from 'node:crypto';
 
 const DEFAULT_LIMIT = 100;
@@ -31,11 +28,10 @@ export class NonProductionRateLimiterGuard implements CanActivate {
     const request = httpContext.getRequest<Request>();
     const response = httpContext.getResponse<Response>();
 
-    const options =
-      this.reflector.getAllAndOverride<RateLimitOptions | undefined>(RATE_LIMIT_METADATA, [
-        context.getHandler(),
-        context.getClass(),
-      ]) ?? { limit: DEFAULT_LIMIT, windowSeconds: DEFAULT_WINDOW_SECONDS };
+    const options = this.reflector.getAllAndOverride<RateLimitOptions | undefined>(
+      RATE_LIMIT_METADATA,
+      [context.getHandler(), context.getClass()],
+    ) ?? { limit: DEFAULT_LIMIT, windowSeconds: DEFAULT_WINDOW_SECONDS };
 
     const ip = request.ip ?? request.socket.remoteAddress ?? '127.0.0.1';
     const route = request.route as { readonly path?: string } | undefined;

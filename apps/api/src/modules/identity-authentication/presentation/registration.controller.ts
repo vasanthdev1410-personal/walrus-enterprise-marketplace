@@ -75,18 +75,14 @@ export class RegistrationController {
         request: {
           identifierType: body.identifierType,
           identifier: body.identifier,
-          ...(body.classification === undefined
-            ? {}
-            : { classification: body.classification }),
+          ...(body.classification === undefined ? {} : { classification: body.classification }),
         },
         execute: () =>
           this.registrations.register({
             identifierType: body.identifierType,
             identifier: body.identifier,
             password: body.password,
-            ...(body.classification === undefined
-              ? {}
-              : { classification: body.classification }),
+            ...(body.classification === undefined ? {} : { classification: body.classification }),
           }),
       });
       noStore(response);
@@ -295,4 +291,3 @@ function parseRegistrationId(value: string): UuidV7 {
     throw new NotFoundException('RESOURCE_NOT_AVAILABLE');
   }
 }
-

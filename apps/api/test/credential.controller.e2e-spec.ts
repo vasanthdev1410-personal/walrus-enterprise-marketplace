@@ -42,9 +42,7 @@ describe('Module 01 credential mutation API (integration)', () => {
   } as unknown as jest.Mocked<IdentityManagementApplicationService>;
 
   const idempotency = {
-    execute: jest.fn(async (execution: { execute: () => Promise<unknown> }) =>
-      execution.execute(),
-    ),
+    execute: jest.fn(async (execution: { execute: () => Promise<unknown> }) => execution.execute()),
   } as unknown as jest.Mocked<ApiIdempotencyService>;
 
   const jwt = { verifyAccessToken: jest.fn() } as unknown as jest.Mocked<JwtCryptographicPort>;
@@ -190,9 +188,7 @@ describe('Module 01 credential mutation API (integration)', () => {
     });
 
     it('returns 400 for an incorrect current password', async () => {
-      changePassword.mockRejectedValueOnce(
-        new CredentialError('CURRENT_CREDENTIAL_INVALID'),
-      );
+      changePassword.mockRejectedValueOnce(new CredentialError('CURRENT_CREDENTIAL_INVALID'));
 
       await request(server)
         .post('/credentials/password-change')
@@ -262,4 +258,3 @@ describe('Module 01 credential mutation API (integration)', () => {
     });
   });
 });
-

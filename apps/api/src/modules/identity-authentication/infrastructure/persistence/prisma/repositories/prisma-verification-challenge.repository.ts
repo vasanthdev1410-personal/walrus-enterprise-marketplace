@@ -93,9 +93,7 @@ export class PrismaVerificationChallengeRepository implements VerificationChalle
     });
   }
 
-  public async rejectOtpChallenge(
-    command: RejectOtpChallengePersistenceCommand,
-  ): Promise<boolean> {
+  public async rejectOtpChallenge(command: RejectOtpChallengePersistenceCommand): Promise<boolean> {
     return this.prisma.$transaction(async (transaction) => {
       const challenge = await transaction.verificationChallenge.updateMany({
         where: {

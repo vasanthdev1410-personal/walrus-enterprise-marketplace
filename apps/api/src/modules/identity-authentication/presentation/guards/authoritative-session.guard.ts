@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import type { JwtCryptographicPort } from '../../application/ports/jwt-cryptographic.port';
 import type { IdentityRepository } from '../../domain/identity/repositories/identity-repository';

@@ -25,7 +25,10 @@ import {
   SESSION_REPOSITORY,
   VERIFICATION_CHALLENGE_REPOSITORY,
 } from './infrastructure/persistence/prisma/prisma.module';
-import { SystemClockAdapter, SystemUuidV7Generator } from './infrastructure/runtime/system-runtime.adapter';
+import {
+  SystemClockAdapter,
+  SystemUuidV7Generator,
+} from './infrastructure/runtime/system-runtime.adapter';
 import { AuthenticationController } from './presentation/authentication.controller';
 import { CredentialsController } from './presentation/credentials.controller';
 import { IdentityController } from './presentation/identity.controller';
@@ -79,26 +82,46 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     {
       provide: ENVELOPE_ENCRYPTION,
       inject: [MODULE_CONFIGURATION, ConfigurationService],
-      useFactory: (configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>, application: ConfigurationService) =>
-        NonProductionEnvelopeEncryptionAdapter.fromFileReferences(configuration, application.values.APP_ENV),
+      useFactory: (
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) =>
+        NonProductionEnvelopeEncryptionAdapter.fromFileReferences(
+          configuration,
+          application.values.APP_ENV,
+        ),
     },
     {
       provide: JWT_CRYPTOGRAPHY,
       inject: [MODULE_CONFIGURATION, ConfigurationService],
-      useFactory: (configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>, application: ConfigurationService) =>
-        NonProductionJwtAdapter.fromPemFileReferences(configuration, application.values.APP_ENV),
+      useFactory: (
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) => NonProductionJwtAdapter.fromPemFileReferences(configuration, application.values.APP_ENV),
     },
     {
       provide: IDENTIFIER_LOOKUP,
       inject: [MODULE_CONFIGURATION, ConfigurationService],
-      useFactory: (configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>, application: ConfigurationService) =>
-        NonProductionIdentifierLookupAdapter.fromFileReferences(configuration, application.values.APP_ENV),
+      useFactory: (
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) =>
+        NonProductionIdentifierLookupAdapter.fromFileReferences(
+          configuration,
+          application.values.APP_ENV,
+        ),
     },
     {
       provide: REFRESH_TOKENS,
       inject: [MODULE_CONFIGURATION, ConfigurationService],
-      useFactory: (configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>, application: ConfigurationService) =>
-        NonProductionRefreshTokenAdapter.fromFileReferences(configuration, application.values.APP_ENV),
+      useFactory: (
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) =>
+        NonProductionRefreshTokenAdapter.fromFileReferences(
+          configuration,
+          application.values.APP_ENV,
+        ),
     },
     {
       provide: PASSWORD_HASHING,
@@ -109,14 +132,23 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     {
       provide: TOTP,
       inject: [ENVELOPE_ENCRYPTION, MODULE_CONFIGURATION, ConfigurationService],
-      useFactory: (encryption: NonProductionEnvelopeEncryptionAdapter, configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>, application: ConfigurationService) =>
-        new NonProductionTotpAdapter(encryption, configuration, application.values.APP_ENV),
+      useFactory: (
+        encryption: NonProductionEnvelopeEncryptionAdapter,
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) => new NonProductionTotpAdapter(encryption, configuration, application.values.APP_ENV),
     },
     {
       provide: OTP_CRYPTOGRAPHY,
       inject: [MODULE_CONFIGURATION, ConfigurationService],
-      useFactory: (configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>, application: ConfigurationService) =>
-        NonProductionOtpRecoveryCodeAdapter.fromFileReferences(configuration, application.values.APP_ENV),
+      useFactory: (
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) =>
+        NonProductionOtpRecoveryCodeAdapter.fromFileReferences(
+          configuration,
+          application.values.APP_ENV,
+        ),
     },
     {
       provide: OTP_DELIVERY,
@@ -126,8 +158,24 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     },
     {
       provide: MFA,
-      inject: [IDENTITY_REPOSITORY, VERIFICATION_CHALLENGE_REPOSITORY, TOTP, CLOCK, UUID_V7_GENERATOR, MODULE_CONFIGURATION, ConfigurationService],
-      useFactory: (identities: never, challenges: never, totp: NonProductionTotpAdapter, clock: SystemClockAdapter, identifiers: SystemUuidV7Generator, configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>, application: ConfigurationService) =>
+      inject: [
+        IDENTITY_REPOSITORY,
+        VERIFICATION_CHALLENGE_REPOSITORY,
+        TOTP,
+        CLOCK,
+        UUID_V7_GENERATOR,
+        MODULE_CONFIGURATION,
+        ConfigurationService,
+      ],
+      useFactory: (
+        identities: never,
+        challenges: never,
+        totp: NonProductionTotpAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) =>
         new TotpMfaAuthenticationAdapter(identities, challenges, totp, clock, identifiers, {
           environment: application.values.APP_ENV,
           challengeLifetimeSeconds: configuration.totp.challengeLifetimeSeconds,
@@ -137,20 +185,35 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     {
       provide: CSRF_PROTECTION,
       inject: [MODULE_CONFIGURATION, ConfigurationService],
-      useFactory: (configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>, application: ConfigurationService) =>
-        NonProductionCsrfAdapter.fromFileReferences(configuration, application.values.APP_ENV),
+      useFactory: (
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) => NonProductionCsrfAdapter.fromFileReferences(configuration, application.values.APP_ENV),
     },
     {
       provide: API_IDEMPOTENCY,
       inject: [API_IDEMPOTENCY_REPOSITORY, ENVELOPE_ENCRYPTION, CLOCK, UUID_V7_GENERATOR],
-      useFactory: (repository: never, encryption: NonProductionEnvelopeEncryptionAdapter, clock: SystemClockAdapter, identifiers: SystemUuidV7Generator) =>
-        new ApiIdempotencyService(repository, encryption, clock, identifiers),
+      useFactory: (
+        repository: never,
+        encryption: NonProductionEnvelopeEncryptionAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+      ) => new ApiIdempotencyService(repository, encryption, clock, identifiers),
     },
     { provide: RATE_LIMITER, useExisting: NON_PRODUCTION_RATE_LIMIT_REPOSITORY },
     { provide: BASIC_AUDIT_LOGGER, useExisting: BASIC_AUDIT_REPOSITORY },
     {
       provide: IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
-      inject: [IDENTITY_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHING, IDENTIFIER_LOOKUP, CLOCK, UUID_V7_GENERATOR, MODULE_CONFIGURATION, ConfigurationService],
+      inject: [
+        IDENTITY_REPOSITORY,
+        SESSION_REPOSITORY,
+        PASSWORD_HASHING,
+        IDENTIFIER_LOOKUP,
+        CLOCK,
+        UUID_V7_GENERATOR,
+        MODULE_CONFIGURATION,
+        ConfigurationService,
+      ],
       useFactory: (
         identities: never,
         sessions: never,
@@ -178,7 +241,17 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     },
     {
       provide: REGISTRATION_APPLICATION_SERVICE,
-      inject: [IDENTITY_MANAGEMENT_APPLICATION_SERVICE, IDENTITY_REPOSITORY, VERIFICATION_CHALLENGE_REPOSITORY, OTP_CRYPTOGRAPHY, OTP_DELIVERY, CLOCK, UUID_V7_GENERATOR, MODULE_CONFIGURATION, ConfigurationService],
+      inject: [
+        IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
+        IDENTITY_REPOSITORY,
+        VERIFICATION_CHALLENGE_REPOSITORY,
+        OTP_CRYPTOGRAPHY,
+        OTP_DELIVERY,
+        CLOCK,
+        UUID_V7_GENERATOR,
+        MODULE_CONFIGURATION,
+        ConfigurationService,
+      ],
       useFactory: (
         identityManagement: IdentityManagementApplicationService,
         identities: never,
@@ -207,7 +280,17 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     },
     {
       provide: VERIFICATION_APPLICATION_SERVICE,
-      inject: [IDENTITY_REPOSITORY, VERIFICATION_CHALLENGE_REPOSITORY, OTP_CRYPTOGRAPHY, OTP_DELIVERY, IDENTIFIER_LOOKUP, CLOCK, UUID_V7_GENERATOR, MODULE_CONFIGURATION, ConfigurationService],
+      inject: [
+        IDENTITY_REPOSITORY,
+        VERIFICATION_CHALLENGE_REPOSITORY,
+        OTP_CRYPTOGRAPHY,
+        OTP_DELIVERY,
+        IDENTIFIER_LOOKUP,
+        CLOCK,
+        UUID_V7_GENERATOR,
+        MODULE_CONFIGURATION,
+        ConfigurationService,
+      ],
       useFactory: (
         identities: never,
         challenges: never,
@@ -236,19 +319,55 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     },
     {
       provide: AUTHENTICATION_APPLICATION_SERVICE,
-      inject: [IDENTITY_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHING, IDENTIFIER_LOOKUP, REFRESH_TOKENS, JWT_CRYPTOGRAPHY, MFA, CLOCK, UUID_V7_GENERATOR, MODULE_CONFIGURATION, ConfigurationService],
-      useFactory: (identities: never, sessions: never, passwords: Argon2idPasswordHashingAdapter, lookups: NonProductionIdentifierLookupAdapter, refreshTokens: NonProductionRefreshTokenAdapter, jwt: NonProductionJwtAdapter, mfa: TotpMfaAuthenticationAdapter, clock: SystemClockAdapter, identifiers: SystemUuidV7Generator, configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>, application: ConfigurationService) =>
-        new AuthenticationApplicationService(identities, sessions, passwords, lookups, refreshTokens, jwt, mfa, clock, identifiers, {
-          environment: application.values.APP_ENV,
-          accessTokenLifetimeSeconds: configuration.jwt.accessTokenLifetimeSeconds,
-          standardRefreshTokenLifetimeSeconds: configuration.refreshToken.standardLifetimeSeconds,
-          privilegedRefreshTokenLifetimeSeconds: configuration.refreshToken.privilegedLifetimeSeconds,
-          sessions: {
-            STANDARD_AUTHENTICATION: configuration.session.standard,
-            PRIVILEGED_ADMIN_AUTHENTICATION: configuration.session.privilegedAdmin,
-            SUPER_ADMIN_AUTHENTICATION: configuration.session.superAdmin,
+      inject: [
+        IDENTITY_REPOSITORY,
+        SESSION_REPOSITORY,
+        PASSWORD_HASHING,
+        IDENTIFIER_LOOKUP,
+        REFRESH_TOKENS,
+        JWT_CRYPTOGRAPHY,
+        MFA,
+        CLOCK,
+        UUID_V7_GENERATOR,
+        MODULE_CONFIGURATION,
+        ConfigurationService,
+      ],
+      useFactory: (
+        identities: never,
+        sessions: never,
+        passwords: Argon2idPasswordHashingAdapter,
+        lookups: NonProductionIdentifierLookupAdapter,
+        refreshTokens: NonProductionRefreshTokenAdapter,
+        jwt: NonProductionJwtAdapter,
+        mfa: TotpMfaAuthenticationAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) =>
+        new AuthenticationApplicationService(
+          identities,
+          sessions,
+          passwords,
+          lookups,
+          refreshTokens,
+          jwt,
+          mfa,
+          clock,
+          identifiers,
+          {
+            environment: application.values.APP_ENV,
+            accessTokenLifetimeSeconds: configuration.jwt.accessTokenLifetimeSeconds,
+            standardRefreshTokenLifetimeSeconds: configuration.refreshToken.standardLifetimeSeconds,
+            privilegedRefreshTokenLifetimeSeconds:
+              configuration.refreshToken.privilegedLifetimeSeconds,
+            sessions: {
+              STANDARD_AUTHENTICATION: configuration.session.standard,
+              PRIVILEGED_ADMIN_AUTHENTICATION: configuration.session.privilegedAdmin,
+              SUPER_ADMIN_AUTHENTICATION: configuration.session.superAdmin,
+            },
           },
-        }),
+        ),
     },
     AuthoritativeSessionGuard,
     NonProductionRateLimiterGuard,

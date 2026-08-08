@@ -38,9 +38,7 @@ describe('Module 01 registration API (integration)', () => {
   } as unknown as jest.Mocked<RegistrationApplicationService>;
 
   const idempotency = {
-    execute: jest.fn(async (execution: { execute: () => Promise<unknown> }) =>
-      execution.execute(),
-    ),
+    execute: jest.fn(async (execution: { execute: () => Promise<unknown> }) => execution.execute()),
   } as unknown as jest.Mocked<ApiIdempotencyService>;
 
   const rateLimiter = {
@@ -267,9 +265,7 @@ describe('Module 01 registration API (integration)', () => {
     it('returns 404 for an unknown registration', async () => {
       getStatus.mockRejectedValueOnce(new RegistrationError('REGISTRATION_NOT_FOUND'));
 
-      await request(server)
-        .get(`/registrations/${registrationId}/status`)
-        .expect(404);
+      await request(server).get(`/registrations/${registrationId}/status`).expect(404);
     });
   });
 });

@@ -62,9 +62,7 @@ export class IdentityController {
         identifierType: body.identifierType,
         identifier: body.identifier,
         password: body.password,
-        ...(body.classification === undefined
-          ? {}
-          : { classification: body.classification }),
+        ...(body.classification === undefined ? {} : { classification: body.classification }),
       });
       noStore(response);
       return success(this.toResponseProfile(result));
@@ -91,7 +89,10 @@ export class IdentityController {
 
   @Get(':id')
   @UseGuards(AuthoritativeSessionGuard)
-  @ApiOperation({ operationId: 'M01-ID-002', summary: 'Retrieve current identity profile by ID (self-service only)' })
+  @ApiOperation({
+    operationId: 'M01-ID-002',
+    summary: 'Retrieve current identity profile by ID (self-service only)',
+  })
   public async getProfileById(
     @Param('id') id: string,
     @Req() request: AuthenticatedRequest,
@@ -110,9 +111,7 @@ export class IdentityController {
     }
     try {
       noStore(response);
-      return success(
-        this.toResponseProfile(await this.identityService.getProfile(identityId)),
-      );
+      return success(this.toResponseProfile(await this.identityService.getProfile(identityId)));
     } catch (error) {
       this.handleError(error);
     }
@@ -132,9 +131,7 @@ export class IdentityController {
     try {
       const identityId = new UuidV7(request.authentication.subject);
       noStore(response);
-      return success(
-        this.toResponseProfile(await this.identityService.updateProfile(identityId)),
-      );
+      return success(this.toResponseProfile(await this.identityService.updateProfile(identityId)));
     } catch (error) {
       this.handleError(error);
     }
@@ -168,7 +165,10 @@ export class IdentityController {
 
   @Delete('me')
   @UseGuards(AuthoritativeSessionGuard)
-  @ApiOperation({ operationId: 'M01-ID-005', summary: 'Soft-delete / tombstone staging for identity' })
+  @ApiOperation({
+    operationId: 'M01-ID-005',
+    summary: 'Soft-delete / tombstone staging for identity',
+  })
   public async softDeleteMyIdentity(
     @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
@@ -233,5 +233,3 @@ export class IdentityController {
     throw error;
   }
 }
-
-
