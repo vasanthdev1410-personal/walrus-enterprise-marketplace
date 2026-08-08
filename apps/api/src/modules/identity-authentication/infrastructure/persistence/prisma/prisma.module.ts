@@ -5,12 +5,16 @@ import { PrismaRecoveryRequestRepository } from './repositories/prisma-recovery-
 import { PrismaSessionRepository } from './repositories/prisma-session.repository';
 import { PrismaVerificationChallengeRepository } from './repositories/prisma-verification-challenge.repository';
 import { PrismaApiIdempotencyRepository } from './repositories/prisma-api-idempotency.repository';
+import { PrismaNonProductionRateLimitRepository } from './repositories/prisma-non-production-rate-limit.repository';
+import { PrismaBasicAuditRepository } from './repositories/prisma-basic-audit.repository';
 
 export const IDENTITY_REPOSITORY = Symbol('IDENTITY_REPOSITORY');
 export const SESSION_REPOSITORY = Symbol('SESSION_REPOSITORY');
 export const VERIFICATION_CHALLENGE_REPOSITORY = Symbol('VERIFICATION_CHALLENGE_REPOSITORY');
 export const RECOVERY_REQUEST_REPOSITORY = Symbol('RECOVERY_REQUEST_REPOSITORY');
 export const API_IDEMPOTENCY_REPOSITORY = Symbol('API_IDEMPOTENCY_REPOSITORY');
+export const NON_PRODUCTION_RATE_LIMIT_REPOSITORY = Symbol('NON_PRODUCTION_RATE_LIMIT_REPOSITORY');
+export const BASIC_AUDIT_REPOSITORY = Symbol('BASIC_AUDIT_REPOSITORY');
 
 @Global()
 @Module({
@@ -21,6 +25,8 @@ export const API_IDEMPOTENCY_REPOSITORY = Symbol('API_IDEMPOTENCY_REPOSITORY');
     PrismaVerificationChallengeRepository,
     PrismaRecoveryRequestRepository,
     PrismaApiIdempotencyRepository,
+    PrismaNonProductionRateLimitRepository,
+    PrismaBasicAuditRepository,
     { provide: IDENTITY_REPOSITORY, useExisting: PrismaIdentityRepository },
     { provide: SESSION_REPOSITORY, useExisting: PrismaSessionRepository },
     {
@@ -29,6 +35,11 @@ export const API_IDEMPOTENCY_REPOSITORY = Symbol('API_IDEMPOTENCY_REPOSITORY');
     },
     { provide: RECOVERY_REQUEST_REPOSITORY, useExisting: PrismaRecoveryRequestRepository },
     { provide: API_IDEMPOTENCY_REPOSITORY, useExisting: PrismaApiIdempotencyRepository },
+    {
+      provide: NON_PRODUCTION_RATE_LIMIT_REPOSITORY,
+      useExisting: PrismaNonProductionRateLimitRepository,
+    },
+    { provide: BASIC_AUDIT_REPOSITORY, useExisting: PrismaBasicAuditRepository },
   ],
   exports: [
     PrismaService,
@@ -37,6 +48,8 @@ export const API_IDEMPOTENCY_REPOSITORY = Symbol('API_IDEMPOTENCY_REPOSITORY');
     VERIFICATION_CHALLENGE_REPOSITORY,
     RECOVERY_REQUEST_REPOSITORY,
     API_IDEMPOTENCY_REPOSITORY,
+    NON_PRODUCTION_RATE_LIMIT_REPOSITORY,
+    BASIC_AUDIT_REPOSITORY,
   ],
 })
 // NestJS modules are declarative metadata containers and intentionally have no members.

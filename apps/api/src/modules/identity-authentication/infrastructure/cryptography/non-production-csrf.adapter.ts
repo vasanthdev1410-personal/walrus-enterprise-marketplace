@@ -1,17 +1,26 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
-import type { CsrfProtectionPort, CsrfTokenPair } from '../../presentation/ports/csrf-protection.port';
+import type {
+  CsrfProtectionPort,
+  CsrfTokenPair,
+} from '../../presentation/ports/csrf-protection.port';
 import type { IdentityAuthenticationConfiguration } from '../configuration/identity-authentication.configuration';
 
-interface CsrfKey { readonly version: string; readonly key: Buffer }
+interface CsrfKey {
+  readonly version: string;
+  readonly key: Buffer;
+}
 const KEY_BYTES = 32;
 const VERSION_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
 
 export class NonProductionCsrfAdapter implements CsrfProtectionPort {
   private readonly keys: ReadonlyMap<string, Buffer>;
 
-  public constructor(private readonly active: CsrfKey, previous: readonly CsrfKey[]) {
+  public constructor(
+    private readonly active: CsrfKey,
+    previous: readonly CsrfKey[],
+  ) {
     assertKey(active);
     const keys = new Map([[active.version, active.key]]);
     for (const key of previous) {
@@ -27,9 +36,15 @@ export class NonProductionCsrfAdapter implements CsrfProtectionPort {
     environment: string,
   ): Promise<NonProductionCsrfAdapter> {
     if (environment === 'production') throw new Error('Non-production CSRF adapter prohibited');
-    const active = await loadKey(configuration.csrf.activeKeyVersion, configuration.csrf.activeKeyReference);
-    const previous = await Promise.all(Object.entries(configuration.csrf.verificationKeyReferences)
-      .map(async ([version, reference]) => loadKey(version, reference)));
+    const active = await loadKey(
+      configuration.csrf.activeKeyVersion,
+      configuration.csrf.activeKeyReference,
+    );
+    const previous = await Promise.all(
+      Object.entries(configuration.csrf.verificationKeyReferences).map(
+        async ([version, reference]) => loadKey(version, reference),
+      ),
+    );
     return new NonProductionCsrfAdapter(active, previous);
   }
 
@@ -59,7 +74,8 @@ export class NonProductionCsrfAdapter implements CsrfProtectionPort {
 }
 
 function assertKey(value: CsrfKey): void {
-  if (!VERSION_PATTERN.test(value.version) || value.key.length !== KEY_BYTES) throw new Error('Invalid CSRF key');
+  if (!VERSION_PATTERN.test(value.version) || value.key.length !== KEY_BYTES)
+    throw new Error('Invalid CSRF key');
 }
 
 async function loadKey(version: string, reference: string): Promise<CsrfKey> {

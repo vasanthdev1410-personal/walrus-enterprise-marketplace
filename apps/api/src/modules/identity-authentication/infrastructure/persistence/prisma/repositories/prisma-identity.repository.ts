@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../../../../generated/prisma/client';
 import type { Identity } from '../../../../domain/identity/entities/identity';
+import type { PasswordHistoryRecord } from '../../../../domain/identity/entities/password-history-record';
 import type {
   IdentityAuthenticationSnapshot,
   IdentityAggregateChangeSet,
@@ -45,6 +46,18 @@ export class PrismaIdentityRepository implements IdentityRepository {
       where: { identityId: identityId.value },
     });
     return record === null ? null : identityMapper.toDomain(record);
+  }
+
+  public async findPasswordHistory(
+    identityId: UuidV7,
+    limit: number,
+  ): Promise<readonly PasswordHistoryRecord[]> {
+    const records = await this.prisma.passwordHistoryRecord.findMany({
+      where: { identityId: identityId.value },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return Object.freeze(records.map((record) => passwordHistoryMapper.toDomain(record)));
   }
 
   public async advanceTotpReplayState(

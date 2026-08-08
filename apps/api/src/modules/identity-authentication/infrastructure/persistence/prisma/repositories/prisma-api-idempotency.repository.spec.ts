@@ -6,13 +6,19 @@ describe('PrismaApiIdempotencyRepository', () => {
       apiIdempotencyRecord: {
         create: jest.fn().mockRejectedValue({ code: 'P2002' }),
         findUniqueOrThrow: jest.fn().mockResolvedValue({
-          requestFingerprint: 'fingerprint', processingState: 'COMPLETED', responseReference: 'protected-result',
+          requestFingerprint: 'fingerprint',
+          processingState: 'COMPLETED',
+          responseReference: 'protected-result',
         }),
       },
     };
     const result = await new PrismaApiIdempotencyRepository(prisma as never).acquire({
-      recordId: 'record', scope: 'scope', operationType: 'operation', idempotencyKey: 'key',
-      requestFingerprint: 'fingerprint', createdAt: new Date(),
+      recordId: 'record',
+      scope: 'scope',
+      operationType: 'operation',
+      idempotencyKey: 'key',
+      requestFingerprint: 'fingerprint',
+      createdAt: new Date(),
     });
     expect(result).toEqual({ outcome: 'COMPLETED', protectedResultReference: 'protected-result' });
   });
@@ -22,13 +28,19 @@ describe('PrismaApiIdempotencyRepository', () => {
       apiIdempotencyRecord: {
         create: jest.fn().mockRejectedValue({ code: 'P2002' }),
         findUniqueOrThrow: jest.fn().mockResolvedValue({
-          requestFingerprint: 'other', processingState: 'COMPLETED', responseReference: 'protected-result',
+          requestFingerprint: 'other',
+          processingState: 'COMPLETED',
+          responseReference: 'protected-result',
         }),
       },
     };
     const result = await new PrismaApiIdempotencyRepository(prisma as never).acquire({
-      recordId: 'record', scope: 'scope', operationType: 'operation', idempotencyKey: 'key',
-      requestFingerprint: 'fingerprint', createdAt: new Date(),
+      recordId: 'record',
+      scope: 'scope',
+      operationType: 'operation',
+      idempotencyKey: 'key',
+      requestFingerprint: 'fingerprint',
+      createdAt: new Date(),
     });
     expect(result).toEqual({ outcome: 'FINGERPRINT_MISMATCH' });
   });

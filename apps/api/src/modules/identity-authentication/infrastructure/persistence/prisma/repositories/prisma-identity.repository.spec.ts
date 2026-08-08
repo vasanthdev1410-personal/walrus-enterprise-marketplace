@@ -98,6 +98,37 @@ describe('PrismaIdentityRepository transaction contract', () => {
     ).rejects.toBeInstanceOf(OptimisticConcurrencyError);
   });
 
+  it('loads the most recent password history hashes capped at the policy depth', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      {
+        passwordHistoryId: '01890f3e-7b5a-7cc0-8c9d-123456789001',
+        identityId: identityId.value,
+        passwordHash: 'hashed-recent',
+        hashAlgorithmReference: 'argon2id-v19',
+        createdAt: new Date('2026-08-05T12:00:00.000Z'),
+      },
+      {
+        passwordHistoryId: '01890f3e-7b5a-7cc0-8c9d-123456789002',
+        identityId: identityId.value,
+        passwordHash: 'hashed-older',
+        hashAlgorithmReference: 'argon2id-v19',
+        createdAt: new Date('2026-08-04T12:00:00.000Z'),
+      },
+    ]);
+    const prisma = { passwordHistoryRecord: { findMany } } as unknown as PrismaService;
+
+    const result = await new PrismaIdentityRepository(prisma).findPasswordHistory(identityId, 5);
+
+    expect(findMany).toHaveBeenCalledWith({
+      where: { identityId: identityId.value },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+    expect(result).toHaveLength(2);
+    expect(result[0]?.properties.passwordHash.value).toBe('hashed-recent');
+    expect(result[1]?.properties.hashAlgorithmReference).toBe('argon2id-v19');
+  });
+
   it('resolves authentication state only through protected identifier lookup digests', async () => {
     const findFirst = jest.fn().mockResolvedValue(null);
     const prisma = { identityIdentifier: { findFirst } } as unknown as PrismaService;

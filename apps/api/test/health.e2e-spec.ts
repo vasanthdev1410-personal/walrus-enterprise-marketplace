@@ -64,8 +64,18 @@ function configureModule01TestKeys(directory: string): void {
   for (const [prefix, fileName] of references) {
     const path = join(directory, `${fileName}.key`);
     writeFileSync(path, Buffer.alloc(32, fileName.length).toString('base64url'));
-    process.env[`${prefix}_ACTIVE_KEY_VERSION`.replace('M01_ENVELOPE_KEK_ACTIVE_KEY', 'M01_ENVELOPE_KEK_ACTIVE')] = 'test-v1';
-    process.env[`${prefix}_ACTIVE_KEY_REFERENCE`.replace('M01_ENVELOPE_KEK_ACTIVE_KEY', 'M01_ENVELOPE_KEK_ACTIVE')] = `file:${path}`;
+    process.env[
+      `${prefix}_ACTIVE_KEY_VERSION`.replace(
+        'M01_ENVELOPE_KEK_ACTIVE_KEY',
+        'M01_ENVELOPE_KEK_ACTIVE',
+      )
+    ] = 'test-v1';
+    process.env[
+      `${prefix}_ACTIVE_KEY_REFERENCE`.replace(
+        'M01_ENVELOPE_KEK_ACTIVE_KEY',
+        'M01_ENVELOPE_KEK_ACTIVE',
+      )
+    ] = `file:${path}`;
   }
   process.env.REFRESH_TOKEN_HMAC_VERIFICATION_KEY_REFERENCES_JSON = '{}';
   process.env.OTP_HMAC_VERIFICATION_KEY_REFERENCES_JSON = '{}';

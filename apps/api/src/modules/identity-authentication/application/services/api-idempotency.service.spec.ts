@@ -5,7 +5,9 @@ import { ApiIdempotencyService } from './api-idempotency.service';
 
 describe('ApiIdempotencyService', () => {
   const repository: jest.Mocked<ApiIdempotencyPort> = {
-    acquire: jest.fn(), complete: jest.fn(), abandon: jest.fn(),
+    acquire: jest.fn(),
+    complete: jest.fn(),
+    abandon: jest.fn(),
   };
   const encryption = {
     encrypt: jest.fn((value: Uint8Array) => ({ value: Buffer.from(value).toString('base64') })),
@@ -23,8 +25,15 @@ describe('ApiIdempotencyService', () => {
   it('persists the protected committed result', async () => {
     repository.acquire.mockResolvedValue({ outcome: 'ACQUIRED' });
     const execute = jest.fn().mockResolvedValue({ accepted: true });
-    await expect(service.execute({ scope: 'client', operationType: 'op', idempotencyKey: 'key', request: { a: 1 }, execute }))
-      .resolves.toEqual({ accepted: true });
+    await expect(
+      service.execute({
+        scope: 'client',
+        operationType: 'op',
+        idempotencyKey: 'key',
+        request: { a: 1 },
+        execute,
+      }),
+    ).resolves.toEqual({ accepted: true });
     expect(execute).toHaveBeenCalledTimes(1);
     expect(repository.complete.mock.calls).toHaveLength(1);
   });
@@ -38,8 +47,15 @@ describe('ApiIdempotencyService', () => {
       }),
     });
     const execute = jest.fn();
-    await expect(service.execute({ scope: 'client', operationType: 'op', idempotencyKey: 'key', request: { a: 1 }, execute }))
-      .resolves.toEqual({ accepted: true });
+    await expect(
+      service.execute({
+        scope: 'client',
+        operationType: 'op',
+        idempotencyKey: 'key',
+        request: { a: 1 },
+        execute,
+      }),
+    ).resolves.toEqual({ accepted: true });
     expect(execute).not.toHaveBeenCalled();
   });
 
@@ -47,8 +63,15 @@ describe('ApiIdempotencyService', () => {
     repository.acquire.mockResolvedValue({ outcome: 'ACQUIRED' });
     repository.complete.mockRejectedValue(new Error('database unavailable'));
     const execute = jest.fn().mockResolvedValue({ committed: true });
-    await expect(service.execute({ scope: 'client', operationType: 'op', idempotencyKey: 'key', request: {}, execute }))
-      .rejects.toThrow('database unavailable');
+    await expect(
+      service.execute({
+        scope: 'client',
+        operationType: 'op',
+        idempotencyKey: 'key',
+        request: {},
+        execute,
+      }),
+    ).rejects.toThrow('database unavailable');
     expect(execute).toHaveBeenCalledTimes(1);
     expect(repository.abandon.mock.calls).toHaveLength(0);
   });

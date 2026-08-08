@@ -8,16 +8,25 @@ import { PlatformLogger } from './platform/logging/platform-logger.service';
 import { RequestLoggingMiddleware } from './platform/logging/request-logging.middleware';
 import { MetricsService } from './platform/metrics/metrics.service';
 import { RequestContextMiddleware } from './platform/request-context/request-context.middleware';
+import { SecurityHeadersMiddleware } from './platform/security/security-headers.middleware';
 import { IdentityAuthenticationModule } from './modules/identity-authentication/identity-authentication.module';
 
 @Module({
   imports: [ConfigurationModule, PrismaModule, IdentityAuthenticationModule],
   controllers: [HealthController],
-  providers: [HealthService, MetricsService, PlatformLogger, GlobalExceptionFilter],
+  providers: [
+    HealthService,
+    MetricsService,
+    PlatformLogger,
+    GlobalExceptionFilter,
+    SecurityHeadersMiddleware,
+  ],
   exports: [PlatformLogger],
 })
 export class AppModule implements NestModule {
   public configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RequestContextMiddleware, RequestLoggingMiddleware).forRoutes('*');
+    consumer
+      .apply(RequestContextMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware)
+      .forRoutes('*');
   }
 }
