@@ -7,3 +7,5 @@ build
 pnpm-lock.yaml
 apps/api/src/generated
 *.tfstate
+
+**/next-env.d.ts

@@ -15,21 +15,21 @@
   "dependencies": {
     "@walrus/types": "workspace:*",
     "@walrus/ui": "workspace:*",
-    "next": "15.5.22",
+    "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "15.5.22",
+    "@next/eslint-plugin-next": "16.3.0",
     "@playwright/test": "^1.62.1",
-    "@types/node": "22.19.15",
-    "@types/react": "19.2.14",
-    "@types/react-dom": "19.2.3",
+    "@types/node": "26.1.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
     "@vitest/coverage-v8": "4.1.10",
     "@walrus/eslint-config": "workspace:*",
     "@walrus/tsconfig": "workspace:*",
     "eslint": "10.8.0",
-    "typescript": "5.9.3",
+    "typescript": "6.0.3",
     "vitest": "4.1.10"
   }
 }
