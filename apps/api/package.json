@@ -8,8 +8,8 @@
     "lint": "eslint src test prisma.config.ts --max-warnings=0",
     "prisma:validate": "prisma validate",
     "start": "node dist/main.js",
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
-    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage --runInBand",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --maxWorkers=2",
+    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage --maxWorkers=2",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

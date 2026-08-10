@@ -5,7 +5,7 @@ Module 00 contains platform scaffolding only; it intentionally contains no busin
 
 ## Prerequisites
 
-- Node.js 22.23.2
+- Node.js 26.6.0
 - pnpm 10.34.5
 - Docker Engine with Docker Compose
 - Flutter stable with Dart stable
