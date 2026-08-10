@@ -33,6 +33,17 @@ export interface VerificationChallengeRepository {
   insert(changeSet: VerificationAggregateChangeSet): Promise<void>;
   save(changeSet: VerificationAggregateChangeSet, expectedVersion: AggregateVersion): Promise<void>;
   completeTotpChallenge(command: CompleteTotpChallengePersistenceCommand): Promise<boolean>;
+  /**
+   * Atomically completes an MFA_ENROLLMENT challenge (M01-MFA-002): activates
+   * the pending TOTP factor and its enrollment, marks the challenge VERIFIED,
+   * advances its version and appends the SUCCEEDED attempt. Guards against
+   * TOTP step replay (lastAcceptedTimeStep), concurrent confirmations and
+   * expiry. Returns false when the factor/enrollment can no longer be
+   * activated (e.g. already active) without mutating any state.
+   */
+  completeMfaEnrollmentChallenge(
+    command: CompleteMfaEnrollmentChallengePersistenceCommand,
+  ): Promise<boolean>;
   rejectTotpChallenge(command: RejectTotpChallengePersistenceCommand): Promise<boolean>;
   /**
    * Atomically marks an issued OTP challenge VERIFIED and its active evidence
@@ -54,6 +65,16 @@ export interface VerificationChallengeAggregate {
 
 export interface CompleteTotpChallengePersistenceCommand {
   readonly challengeId: UuidV7;
+  readonly factorId: UuidV7;
+  readonly candidateTimeStep: bigint;
+  readonly attempt: VerificationAttempt;
+  readonly expectedVersion: AggregateVersion;
+  readonly completedAt: Date;
+}
+
+export interface CompleteMfaEnrollmentChallengePersistenceCommand {
+  readonly challengeId: UuidV7;
+  readonly enrollmentId: UuidV7;
   readonly factorId: UuidV7;
   readonly candidateTimeStep: bigint;
   readonly attempt: VerificationAttempt;

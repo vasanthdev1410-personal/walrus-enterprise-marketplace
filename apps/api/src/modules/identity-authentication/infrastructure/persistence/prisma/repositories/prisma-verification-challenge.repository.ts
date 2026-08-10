@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { VerificationChallenge } from '../../../../domain/verification/entities/verification-challenge';
 import type {
+  CompleteMfaEnrollmentChallengePersistenceCommand,
   CompleteTotpChallengePersistenceCommand,
   ConfirmOtpChallengePersistenceCommand,
   RejectOtpChallengePersistenceCommand,
@@ -168,6 +169,71 @@ export class PrismaVerificationChallengeRepository implements VerificationChalle
         },
       });
       if (challenge.count !== 1) throw new Error('TOTP challenge changed concurrently');
+      await transaction.verificationAttempt.create({
+        data: verificationAttemptMapper.toPersistence(command.attempt),
+      });
+      return true;
+    });
+  }
+
+  public async completeMfaEnrollmentChallenge(
+    command: CompleteMfaEnrollmentChallengePersistenceCommand,
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (transaction) => {
+      // The pending factor is activated only if its TOTP replay guard is not
+      // regressing (no previously accepted time step may be replayed). The
+      // factor must still be PENDING_VERIFICATION, so an already-activated
+      // factor (concurrent confirmation) makes the whole completion fail.
+      const factor = await transaction.mfaFactor.updateMany({
+        where: {
+          mfaFactorId: command.factorId.value,
+          mfaEnrollmentId: command.enrollmentId.value,
+          factorType: 'TOTP_AUTHENTICATOR',
+          factorState: 'PENDING_VERIFICATION',
+          OR: [
+            { lastAcceptedTimeStep: null },
+            { lastAcceptedTimeStep: { lt: command.candidateTimeStep } },
+          ],
+        },
+        data: {
+          factorState: 'ACTIVE',
+          verifiedAt: command.completedAt,
+          lastAcceptedTimeStep: command.candidateTimeStep,
+          lastUsedAt: command.completedAt,
+          updatedAt: command.completedAt,
+        },
+      });
+      if (factor.count !== 1) return false;
+
+      const enrollment = await transaction.mfaEnrollment.updateMany({
+        where: {
+          mfaEnrollmentId: command.enrollmentId.value,
+          enrollmentState: 'PENDING_VERIFICATION',
+        },
+        data: {
+          enrollmentState: 'ACTIVE',
+          activatedAt: command.completedAt,
+          updatedAt: command.completedAt,
+        },
+      });
+      if (enrollment.count !== 1) return false;
+
+      const challenge = await transaction.verificationChallenge.updateMany({
+        where: {
+          challengeId: command.challengeId.value,
+          challengeState: 'CHALLENGE_ISSUED',
+          aggregateVersion: command.expectedVersion.value,
+          expiresAt: { gt: command.completedAt },
+        },
+        data: {
+          challengeState: 'VERIFIED',
+          attemptCount: { increment: 1 },
+          aggregateVersion: { increment: 1 },
+          consumedAt: command.completedAt,
+          updatedAt: command.completedAt,
+        },
+      });
+      if (challenge.count !== 1) throw new Error('MFA enrollment challenge changed concurrently');
       await transaction.verificationAttempt.create({
         data: verificationAttemptMapper.toPersistence(command.attempt),
       });

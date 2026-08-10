@@ -126,6 +126,7 @@ describe('VerificationApplicationService', () => {
     confirmOtpChallenge: jest.fn(),
     rejectOtpChallenge: jest.fn(),
     expireActiveChallengesForIdentity: jest.fn(),
+    completeMfaEnrollmentChallenge: jest.fn(),
   };
 
   const otpCrypto: jest.Mocked<OtpRecoveryCodeCryptographicPort> = {

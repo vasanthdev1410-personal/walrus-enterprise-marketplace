@@ -3,6 +3,7 @@ import { ConfigurationService } from '../../platform/configuration/configuration
 import { ApiIdempotencyService } from './application/services/api-idempotency.service';
 import { AuthenticationApplicationService } from './application/services/authentication-application.service';
 import { IdentityManagementApplicationService } from './application/services/identity-management-application.service';
+import { MfaEnrollmentApplicationService } from './application/services/mfa-enrollment-application.service';
 import { PasswordResetApplicationService } from './application/services/password-reset-application.service';
 import { RegistrationApplicationService } from './application/services/registration-application.service';
 import { TotpMfaAuthenticationAdapter } from './application/services/totp-mfa-authentication.adapter';
@@ -33,6 +34,7 @@ import {
 import { AuthenticationController } from './presentation/authentication.controller';
 import { CredentialsController } from './presentation/credentials.controller';
 import { IdentityController } from './presentation/identity.controller';
+import { MfaController } from './presentation/mfa.controller';
 import { RegistrationController } from './presentation/registration.controller';
 import { VerificationController } from './presentation/verification.controller';
 import {
@@ -40,6 +42,7 @@ import {
   BASIC_AUDIT_LOGGER,
   CSRF_PROTECTION,
   IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
+  MFA_ENROLLMENT_APPLICATION_SERVICE,
   PASSWORD_RESET_APPLICATION_SERVICE,
   RATE_LIMITER,
   REGISTRATION_APPLICATION_SERVICE,
@@ -71,6 +74,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     AuthenticationController,
     CredentialsController,
     IdentityController,
+    MfaController,
     RegistrationController,
     VerificationController,
   ],
@@ -318,6 +322,32 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
             maximumVerificationAttempts: configuration.otp.maximumVerificationAttempts,
           },
         ),
+    },
+    {
+      provide: MFA_ENROLLMENT_APPLICATION_SERVICE,
+      inject: [
+        IDENTITY_REPOSITORY,
+        VERIFICATION_CHALLENGE_REPOSITORY,
+        TOTP,
+        CLOCK,
+        UUID_V7_GENERATOR,
+        MODULE_CONFIGURATION,
+        ConfigurationService,
+      ],
+      useFactory: (
+        identities: never,
+        challenges: never,
+        totp: NonProductionTotpAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) =>
+        new MfaEnrollmentApplicationService(identities, challenges, totp, clock, identifiers, {
+          environment: application.values.APP_ENV,
+          challengeLifetimeSeconds: configuration.totp.challengeLifetimeSeconds,
+          maximumVerificationAttempts: configuration.totp.maximumVerificationAttempts,
+        }),
     },
     {
       provide: PASSWORD_RESET_APPLICATION_SERVICE,

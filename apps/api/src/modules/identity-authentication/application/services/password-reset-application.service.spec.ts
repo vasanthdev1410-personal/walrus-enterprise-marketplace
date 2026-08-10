@@ -165,6 +165,7 @@ function createFixture(): PasswordResetFixture {
     confirmOtpChallenge: jest.fn().mockResolvedValue(true),
     rejectOtpChallenge: jest.fn().mockResolvedValue(true),
     expireActiveChallengesForIdentity: jest.fn().mockResolvedValue(0),
+    completeMfaEnrollmentChallenge: jest.fn(),
   };
 
   const passwordHashing: jest.Mocked<PasswordHashingPort> = {
