@@ -1,12 +1,19 @@
 import { canonicalizeIdentifier } from '../../domain/identity/value-objects/canonicalize-identifier';
 import type { IdentifierType } from '../../domain/identity/value-objects/identifier-type';
 import type { IdentityRepository } from '../../domain/identity/repositories/identity-repository';
+import { Identity } from '../../domain/identity/entities/identity';
+import { RecoveryCodeRecord } from '../../domain/identity/entities/recovery-code-record';
+import { RecoveryCodeSet } from '../../domain/identity/entities/recovery-code-set';
+import { TrustedDevice } from '../../domain/identity/entities/trusted-device';
 import { RecoveryApprovalRecord } from '../../domain/recovery/entities/recovery-approval-record';
 import { RecoveryAttempt } from '../../domain/recovery/entities/recovery-attempt';
 import { RecoveryEvidenceRecord } from '../../domain/recovery/entities/recovery-evidence-record';
+import { RecoveryNotificationRecord } from '../../domain/recovery/entities/recovery-notification-record';
 import { RecoveryRequest } from '../../domain/recovery/entities/recovery-request';
 import { RecoveryStateTransition } from '../../domain/recovery/entities/recovery-state-transition';
 import type { RecoveryRequestRepository } from '../../domain/recovery/repositories/recovery-request-repository';
+import type { SessionRepository } from '../../domain/session/repositories/session-repository';
+import type { VerificationChallengeRepository } from '../../domain/verification/repositories/verification-challenge-repository';
 import type { RecoveryApprovalDecision } from '../../domain/recovery/value-objects/recovery-approval-decision';
 import {
   type RecoveryEvidenceBoundary,
@@ -130,6 +137,28 @@ export interface RecordApprovalDecisionCommand {
 export interface RecoveryApprovalDecisionResult {
   readonly recoveryRequestId: string;
   readonly recordedDecision: RecoveryApprovalDecision;
+  readonly version: number;
+}
+
+/**
+ * M01-REC-006. Completes an approved recovery. The recovery-request locator
+ * is the caller's Bound Recovery Session credential; the version precondition
+ * (If-Match) guards the aggregate write. Only an APPROVED request, or an
+ * EVIDENCE_VERIFIED request whose deterministic policy row requires no human
+ * approval, may execute.
+ */
+export interface ExecuteRecoveryCommand {
+  readonly recoveryRequestId: UuidV7;
+  readonly expectedRecoveryVersion: number;
+  /** Must equal the operation the recovery session is bound to. */
+  readonly permittedOperation: RecoveryOperationClass;
+  readonly recoveryPolicyVersion: string;
+}
+
+export interface RecoveryExecutionResult {
+  readonly recoveryRequestId: string;
+  readonly safeState: 'COMPLETED';
+  readonly reauthenticationRequired: true;
   readonly version: number;
 }
 
@@ -306,6 +335,8 @@ export class RecoveryRequestApplicationService {
   public constructor(
     private readonly identityRepository: IdentityRepository,
     private readonly recoveryRequests: RecoveryRequestRepository,
+    private readonly sessionRepository: SessionRepository,
+    private readonly verificationChallenges: VerificationChallengeRepository,
     private readonly identifierLookup: IdentifierLookupCryptographicPort,
     private readonly otpCrypto: OtpRecoveryCodeCryptographicPort,
     private readonly approvalAuthorization: ApprovalAuthorizationPort,
@@ -1006,6 +1037,227 @@ export class RecoveryRequestApplicationService {
     return {
       recoveryRequestId: command.recoveryRequestId.value,
       recordedDecision: command.decision,
+      version: updated.properties.aggregateVersion.value,
+    };
+  }
+
+  /**
+   * M01-REC-006. Completes an approved recovery.
+   *
+   * Both approved execution paths are supported: an APPROVED request (dual
+   * control satisfied) and an EVIDENCE_VERIFIED request whose deterministic
+   * policy row requires no human approval (the canonical machine skips
+   * APPROVAL_PENDING). An EVIDENCE_VERIFIED request that does require approval
+   * is answered RECOVERY_APPROVAL_REQUIRED; every other state fails closed
+   * with RECOVERY_STATE_CONFLICT so a request can be executed at most once.
+   *
+   * Completion effects are committed in a fail-closed order: the identity's
+   * trusted devices are revoked and its unused recovery codes and code sets
+   * are invalidated atomically BEFORE the request is marked COMPLETED, so a
+   * completed recovery can never leave usable recovery material behind. The
+   * request transition itself is a single-winner atomic write (version +
+   * executable-state guard); outstanding recovery challenges are then expired
+   * and every applicable Session and Refresh Token Family is revoked so fresh
+   * ordinary authentication is required. Recovery completion never establishes
+   * an ordinary authenticated session and never grants Module 02 access.
+   */
+  public async executeRecovery(command: ExecuteRecoveryCommand): Promise<RecoveryExecutionResult> {
+    const request = await this.recoveryRequests.findById(command.recoveryRequestId);
+    const now = this.clock.now();
+    // Unknown and invalid locators are answered uniformly so recovery state is
+    // never enumerable through this endpoint.
+    if (request === null) throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    const properties = request.properties;
+    if (properties.aggregateVersion.value !== command.expectedRecoveryVersion) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+    if (properties.expiresAt <= now) throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    // The recovery session is bound to exactly one permitted operation; the
+    // client can never widen or reselect it (spec Section 23 Recovery Session).
+    if (command.permittedOperation !== properties.permittedOperation.value) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+    // The client can never select a weaker policy row (spec Part 5.5).
+    if (command.recoveryPolicyVersion !== this.options.recoveryPolicyVersion) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+    // Only APPROVED (dual control) or EVIDENCE_VERIFIED-without-required-
+    // approval may execute; premature, pending, terminal and already-executed
+    // states all fail closed.
+    if (
+      properties.recoveryState !== 'APPROVED' &&
+      properties.recoveryState !== 'EVIDENCE_VERIFIED'
+    ) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+
+    // Defense-in-depth: the identity bound to the request must still be an
+    // eligible, VERIFIED, non-deleted identity (mirrors M01-REC-002/004/005).
+    const snapshot = await this.identityRepository.findAuthenticationById(properties.identityId);
+    if (
+      snapshot?.identity.properties.identityState !== 'ACTIVE' ||
+      snapshot.identity.properties.verificationState !== 'VERIFIED'
+    ) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+
+    // When the request reached EVIDENCE_VERIFIED without passing through
+    // APPROVAL_PENDING, the deterministic policy row must in fact require no
+    // human approval; otherwise the required approvals are incomplete and the
+    // canonical machine forbids execution (spec Section 23).
+    if (properties.recoveryState === 'EVIDENCE_VERIFIED') {
+      const classification = effectiveClassification(snapshot.classificationAssignments);
+      if (approvalRequirement(classification)) {
+        throw new RecoveryError('RECOVERY_APPROVAL_REQUIRED');
+      }
+    }
+
+    // Mandatory completion effects (spec Recovery-Triggered Invalidation),
+    // committed BEFORE the request is reported COMPLETED: revoke applicable
+    // trusted devices and invalidate unused recovery codes/sets in one
+    // version-guarded identity write. A stale identity write rolls back with
+    // RECOVERY_STATE_CONFLICT and nothing is reported as completed.
+    const updatedIdentity = new Identity({
+      ...snapshot.identity.properties,
+      aggregateVersion: new AggregateVersion(snapshot.identity.properties.aggregateVersion.value + 1),
+      updatedAt: now,
+    });
+    const revokedDevices = (snapshot.trustedDevices ?? []).map((device) => {
+      const state = device.properties.deviceState;
+      if (state !== 'TRUSTED' && state !== 'PENDING') return device;
+      return new TrustedDevice({
+        ...device.properties,
+        deviceState: 'REVOKED',
+        revokedAt: now,
+        revocationReason: 'RECOVERY_EXECUTION',
+        updatedAt: now,
+      });
+    });
+    const codeSets = await this.identityRepository.findRecoveryCodeSets(properties.identityId);
+    // No successor set is issued here (recovery-code regeneration is a
+    // separate M01-MFA-005 operation), so the active set is INVALIDATED rather
+    // than SUPERSEDED; every unused code is invalidated in the same write.
+    const invalidatedSets =
+      codeSets?.recoveryCodeSets.map((set) =>
+        set.properties.setState === 'ACTIVE'
+          ? new RecoveryCodeSet({
+              ...set.properties,
+              setState: 'INVALIDATED',
+              invalidatedAt: now,
+              invalidationReason: 'RECOVERY_EXECUTION',
+            })
+          : set,
+      ) ?? [];
+    const invalidatedCodes =
+      codeSets?.recoveryCodes.map((code) =>
+        code.properties.codeState === 'ACTIVE'
+          ? new RecoveryCodeRecord({
+              ...code.properties,
+              codeState: 'INVALIDATED',
+              invalidatedAt: now,
+            })
+          : code,
+      ) ?? [];
+    try {
+      await this.identityRepository.save(
+        {
+          identity: updatedIdentity,
+          identifiers: snapshot.identifiers,
+          credentials: snapshot.credentials,
+          classificationAssignments: snapshot.classificationAssignments,
+          mfaEnrollments: snapshot.mfaEnrollments,
+          mfaFactors: snapshot.mfaFactors,
+          recoveryCodeSets: invalidatedSets,
+          recoveryCodes: invalidatedCodes,
+          trustedDevices: revokedDevices,
+          credentialHistoryToAppend: [],
+          passwordHistoryToAppend: [],
+          stateTransitionsToAppend: [],
+        },
+        snapshot.identity.properties.aggregateVersion,
+      );
+    } catch (error) {
+      if (error instanceof OptimisticConcurrencyError) {
+        throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+      }
+      throw error;
+    }
+
+    // Canonical machine (spec Section 23): APPROVED (or EVIDENCE_VERIFIED when
+    // approval is not required) → EXECUTING → COMPLETED. Both transitions are
+    // recorded so the immutable audit trail is complete, and the request is
+    // reported COMPLETED with executionStartedAt/completedAt.
+    const stateVersion = properties.stateVersion + 2;
+    const transitions: RecoveryStateTransition[] = [
+      transition(properties, this.identifiers.next(), properties.recoveryState, 'EXECUTING', properties.stateVersion + 1, now),
+      transition(properties, this.identifiers.next(), 'EXECUTING', 'COMPLETED', stateVersion, now),
+    ];
+    // The completion notification targets the identity's verified recovery
+    // channel (server-stored destination, never client-supplied), mirroring
+    // the password-reset flow; the reference is a protected value.
+    const verifiedDestination = snapshot.identifiers.find(
+      (identifier) => identifier.properties.verificationState === 'VERIFIED',
+    );
+    const notification = new RecoveryNotificationRecord({
+      recoveryNotificationId: this.identifiers.next(),
+      recoveryRequestId: command.recoveryRequestId,
+      notificationType: 'RECOVERY_COMPLETED',
+      deliveryState: 'PENDING',
+      protectedDestinationReference:
+        verifiedDestination?.properties.protectedNormalizedValue ??
+        new ProtectedValue(`recovery:${properties.identityId.value}`),
+      createdAt: now,
+    });
+    const updated = new RecoveryRequest({
+      ...properties,
+      recoveryState: 'COMPLETED',
+      stateVersion,
+      aggregateVersion: new AggregateVersion(properties.aggregateVersion.value + 1),
+      executionStartedAt: now,
+      completedAt: now,
+      updatedAt: now,
+    });
+    try {
+      await this.recoveryRequests.executeRecovery({
+        recoveryRequestId: command.recoveryRequestId,
+        expectedRecoveryVersion: properties.aggregateVersion,
+        updatedRecoveryRequest: updated,
+        transitionsToAppend: transitions,
+        notification,
+      });
+    } catch (error) {
+      // The single-winner guard throws on a stale version or an already
+      // completed request and rolls the change set back, so concurrent
+      // executions can never apply completion twice.
+      if (error instanceof OptimisticConcurrencyError) {
+        throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+      }
+      throw error;
+    }
+
+    // Remaining cross-boundary completion effects (idempotent): expire any
+    // outstanding account-recovery challenges, then revoke every applicable
+    // Session and Refresh Token Family so fresh ordinary authentication is
+    // required (spec Recovery-Triggered Invalidation). These effects share no
+    // consistency boundary with the recovery aggregate, so they commit after
+    // the request is durably COMPLETED; a delivery failure surfaces as an HTTP
+    // error (completion is never reported as success) and the idempotent
+    // effects are re-applied on retry, mirroring the approved password-reset
+    // completion pattern.
+    await this.verificationChallenges.expireActiveChallengesForIdentity(
+      properties.identityId,
+      'ACCOUNT_RECOVERY',
+    );
+    await this.sessionRepository.revokeAllSessionsForRecovery({
+      identityId: properties.identityId,
+      revokedAt: now,
+      revocationReason: 'RECOVERY_EXECUTION',
+    });
+
+    return {
+      recoveryRequestId: command.recoveryRequestId.value,
+      safeState: 'COMPLETED',
+      reauthenticationRequired: true,
       version: updated.properties.aggregateVersion.value,
     };
   }

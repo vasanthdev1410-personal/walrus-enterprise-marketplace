@@ -3,6 +3,7 @@ import type { RecoveryApprovalRecord } from '../../../../domain/recovery/entitie
 import type { RecoveryEvidenceRecord } from '../../../../domain/recovery/entities/recovery-evidence-record';
 import type { RecoveryRequest } from '../../../../domain/recovery/entities/recovery-request';
 import type {
+  ExecuteRecoveryPersistenceCommand,
   RecoveryAggregateChangeSet,
   RecordApprovalDecisionPersistenceCommand,
   RecoveryRequestRepository,
@@ -108,6 +109,39 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
       for (const transition of command.transitionsToAppend) {
         await transaction.recoveryStateTransition.create({
           data: recoveryStateTransitionMapper.toPersistence(transition),
+        });
+      }
+    });
+  }
+
+  public async executeRecovery(
+    command: ExecuteRecoveryPersistenceCommand,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      // Single-winner execution gate: the version guard plus the
+      // executable-state guard (APPROVED, or EVIDENCE_VERIFIED when approval is
+      // not required) make the transition to COMPLETED atomic. A concurrent
+      // execution or a stale caller cannot re-apply completion; the transaction
+      // rolls back with OptimisticConcurrencyError and no state is mutated.
+      const updated = await transaction.recoveryRequest.updateMany({
+        where: {
+          recoveryRequestId: command.recoveryRequestId.value,
+          aggregateVersion: command.expectedRecoveryVersion.value,
+          recoveryState: { in: ['APPROVED', 'EVIDENCE_VERIFIED'] },
+        },
+        data: recoveryRequestMapper.toPersistence(command.updatedRecoveryRequest),
+      });
+      if (updated.count !== 1) {
+        throw new OptimisticConcurrencyError('RecoveryRequest');
+      }
+      for (const transition of command.transitionsToAppend) {
+        await transaction.recoveryStateTransition.create({
+          data: recoveryStateTransitionMapper.toPersistence(transition),
+        });
+      }
+      if (command.notification !== undefined) {
+        await transaction.recoveryNotificationRecord.create({
+          data: recoveryNotificationMapper.toPersistence(command.notification),
         });
       }
     });

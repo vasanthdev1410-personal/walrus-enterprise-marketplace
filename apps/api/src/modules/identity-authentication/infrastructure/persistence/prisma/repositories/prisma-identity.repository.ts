@@ -35,6 +35,7 @@ type IdentityAuthenticationRecord = Prisma.IdentityGetPayload<{
     credentials: true;
     classificationAssignments: true;
     mfaEnrollments: { include: { factors: true } };
+    trustedDevices: true;
   };
 }>;
 
@@ -125,6 +126,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
             credentials: true,
             classificationAssignments: true,
             mfaEnrollments: { include: { factors: true } },
+            trustedDevices: true,
           },
         },
       },
@@ -143,6 +145,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
         credentials: true,
         classificationAssignments: true,
         mfaEnrollments: { include: { factors: true } },
+        trustedDevices: true,
       },
     });
     return record === null ? null : this.toAuthenticationSnapshot(record);
@@ -171,6 +174,9 @@ export class PrismaIdentityRepository implements IdentityRepository {
         identity.mfaEnrollments.flatMap((enrollment) =>
           enrollment.factors.map((factor) => mfaFactorMapper.toDomain(factor)),
         ),
+      ),
+      trustedDevices: Object.freeze(
+        identity.trustedDevices.map((device) => trustedDeviceMapper.toDomain(device)),
       ),
     });
   }

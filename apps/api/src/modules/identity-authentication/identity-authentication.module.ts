@@ -390,6 +390,8 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
       inject: [
         IDENTITY_REPOSITORY,
         RECOVERY_REQUEST_REPOSITORY,
+        SESSION_REPOSITORY,
+        VERIFICATION_CHALLENGE_REPOSITORY,
         IDENTIFIER_LOOKUP,
         OTP_CRYPTOGRAPHY,
         APPROVAL_AUTHORIZATION,
@@ -401,6 +403,8 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
       useFactory: (
         identities: never,
         recoveryRequests: never,
+        sessions: never,
+        challenges: never,
         lookups: NonProductionIdentifierLookupAdapter,
         otpCrypto: NonProductionOtpRecoveryCodeAdapter,
         approvalAuthorization: NonProductionApprovalAuthorizationAdapter,
@@ -412,6 +416,8 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
         new RecoveryRequestApplicationService(
           identities,
           recoveryRequests,
+          sessions,
+          challenges,
           lookups,
           otpCrypto,
           approvalAuthorization,

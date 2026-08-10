@@ -50,6 +50,13 @@ export interface IdentityAuthenticationSnapshot {
   readonly classificationAssignments: readonly AuthenticationSecurityClassificationAssignment[];
   readonly mfaEnrollments: readonly MfaEnrollment[];
   readonly mfaFactors: readonly MfaFactor[];
+  /**
+   * The identity's trusted devices. Loaded by findAuthenticationById for the
+   * approved recovery completion effects (M01-REC-006) so applicable devices
+   * can be invalidated; consumers that never invalidate devices may treat an
+   * absent collection as "no devices loaded".
+   */
+  readonly trustedDevices?: readonly TrustedDevice[];
 }
 
 export interface RecoveryCodeSetsSnapshot {

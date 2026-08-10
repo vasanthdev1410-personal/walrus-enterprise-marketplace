@@ -95,6 +95,25 @@ export class RecoveryApprovalRequestDto {
  * declared expiry that the server validates and bounds. Module 02
  * roles/permissions are absent from every field.
  */
+/**
+ * M01-REC-006 request. The caller confirms the permitted operation the
+ * recovery session is bound to and the authoritative approved policy version.
+ * The server derives execution eligibility entirely from authoritative
+ * recovery state; the client can never widen or reselect the operation or
+ * policy row. No recovery, evidence or credential material is accepted.
+ */
+export class RecoveryExecutionDto {
+  @ApiProperty({ enum: RECOVERY_OPERATION_CLASSES })
+  @IsEnum(RECOVERY_OPERATION_CLASSES)
+  public readonly permittedOperation!: (typeof RECOVERY_OPERATION_CLASSES)[number];
+
+  @ApiProperty({ minLength: 1, maxLength: 32 })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(32)
+  public readonly recoveryPolicyVersion!: string;
+}
+
 export class RecoveryApprovalDecisionDto {
   @ApiProperty({ enum: RECOVERY_APPROVAL_DECISIONS })
   @IsEnum(RECOVERY_APPROVAL_DECISIONS)

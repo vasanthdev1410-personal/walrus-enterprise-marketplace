@@ -42,6 +42,7 @@ describe('Module 01 recovery API (integration)', () => {
   const submitEvidence = jest.fn();
   const requestApproval = jest.fn();
   const recordApprovalDecision = jest.fn();
+  const executeRecovery = jest.fn();
 
   const recoveryRequests = {
     startRecovery,
@@ -49,6 +50,7 @@ describe('Module 01 recovery API (integration)', () => {
     submitEvidence,
     requestApproval,
     recordApprovalDecision,
+    executeRecovery,
   } as unknown as jest.Mocked<RecoveryRequestApplicationService>;
 
   const jwt = { verifyAccessToken: jest.fn() } as unknown as jest.Mocked<JwtCryptographicPort>;
@@ -773,6 +775,135 @@ describe('Module 01 recovery API (integration)', () => {
         .expect(400);
 
       expect(recordApprovalDecision).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('M01-REC-006 POST /api/v1/recovery-requests/:id/execution', () => {
+    const executionBody = {
+      permittedOperation: 'PASSWORD_RESET',
+      recoveryPolicyVersion: 'v1',
+    };
+
+    it('executes an approved recovery and returns the safe completion result (200)', async () => {
+      executeRecovery.mockResolvedValueOnce({
+        recoveryRequestId: recoveryRequestLocator,
+        safeState: 'COMPLETED',
+        reauthenticationRequired: true,
+        version: 5,
+      });
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/execution`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v4"`)
+        .send(executionBody)
+        .expect(200);
+
+      expect(readData(response.body)).toEqual({
+        recoveryRequestId: recoveryRequestLocator,
+        safeState: 'COMPLETED',
+        reauthenticationRequired: true,
+        version: 5,
+      });
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(executeRecovery).toHaveBeenCalledWith({
+        recoveryRequestId: new UuidV7(recoveryRequestLocator),
+        expectedRecoveryVersion: 4,
+        permittedOperation: 'PASSWORD_RESET',
+        recoveryPolicyVersion: 'v1',
+      });
+    });
+
+    it('maps RECOVERY_APPROVAL_REQUIRED to 409', async () => {
+      executeRecovery.mockRejectedValueOnce(new RecoveryError('RECOVERY_APPROVAL_REQUIRED'));
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/execution`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v2"`)
+        .send(executionBody)
+        .expect(409);
+
+      expect(response.body).toEqual({
+        statusCode: 409,
+        message: 'RECOVERY_APPROVAL_REQUIRED',
+        error: 'Conflict',
+      });
+    });
+
+    it('maps RECOVERY_STATE_CONFLICT to 412', async () => {
+      executeRecovery.mockRejectedValueOnce(new RecoveryError('RECOVERY_STATE_CONFLICT'));
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/execution`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v4"`)
+        .send(executionBody)
+        .expect(412);
+
+      expect(response.body).toEqual({
+        statusCode: 412,
+        message: 'RECOVERY_STATE_CONFLICT',
+        error: 'Precondition Failed',
+      });
+    });
+
+    it('answers a malformed locator uniformly with 412', async () => {
+      const response = await request(server)
+        .post('/recovery-requests/not-a-uuid/execution')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', '"recovery-request:not-a-uuid:v4"')
+        .send(executionBody)
+        .expect(412);
+
+      expect(response.body).toEqual({
+        statusCode: 412,
+        message: 'RECOVERY_STATE_CONFLICT',
+        error: 'Precondition Failed',
+      });
+      expect(executeRecovery).not.toHaveBeenCalled();
+    });
+
+    it('rejects a request without Idempotency-Key (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/execution`)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v4"`)
+        .send(executionBody)
+        .expect(400);
+
+      expect(executeRecovery).not.toHaveBeenCalled();
+    });
+
+    it('rejects a request without If-Match (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/execution`)
+        .set('Idempotency-Key', idempotencyKey)
+        .send(executionBody)
+        .expect(400);
+
+      expect(executeRecovery).not.toHaveBeenCalled();
+    });
+
+    it('rejects a disallowed permitted operation value (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/execution`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v4"`)
+        .send({ ...executionBody, permittedOperation: 'NOT_AN_OPERATION' })
+        .expect(400);
+
+      expect(executeRecovery).not.toHaveBeenCalled();
+    });
+
+    it('rejects unknown fields in an execution request (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/execution`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v4"`)
+        .send({ ...executionBody, recoveryCodes: ['secret'] })
+        .expect(400);
+
+      expect(executeRecovery).not.toHaveBeenCalled();
     });
   });
 });

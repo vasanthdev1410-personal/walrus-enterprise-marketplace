@@ -40,6 +40,16 @@ export interface RecoveryRequestRepository {
   submitRecoveryCodeEvidence(
     command: SubmitRecoveryCodeEvidencePersistenceCommand,
   ): Promise<void>;
+  /**
+   * M01-REC-006. Atomically completes a recovery: transitions the request to
+   * COMPLETED, appends the immutable EXECUTING and COMPLETED state transitions
+   * and creates the completion notification, all in one transaction. The
+   * version guard plus the executable-state guard make the transition
+   * single-winner, so a concurrent execution can never apply completion twice;
+   * a stale or already-completed request throws OptimisticConcurrencyError
+   * without mutating any state.
+   */
+  executeRecovery(command: ExecuteRecoveryPersistenceCommand): Promise<void>;
 }
 
 export interface SubmitRecoveryCodeEvidencePersistenceCommand {
@@ -58,6 +68,16 @@ export interface RecordApprovalDecisionPersistenceCommand {
   readonly updatedRecoveryRequest: RecoveryRequest;
   readonly approvalRecord: RecoveryApprovalRecord;
   readonly transitionsToAppend: readonly RecoveryStateTransition[];
+}
+
+export interface ExecuteRecoveryPersistenceCommand {
+  readonly recoveryRequestId: UuidV7;
+  readonly expectedRecoveryVersion: AggregateVersion;
+  /** The COMPLETED request carrying executionStartedAt, completedAt and the incremented versions. */
+  readonly updatedRecoveryRequest: RecoveryRequest;
+  readonly transitionsToAppend: readonly RecoveryStateTransition[];
+  /** Optional RECOVERY_COMPLETED notification written with the transition. */
+  readonly notification?: RecoveryNotificationRecord;
 }
 
 export interface RecoveryAggregateChangeSet {

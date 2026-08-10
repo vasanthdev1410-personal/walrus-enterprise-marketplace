@@ -4,6 +4,7 @@ export type RecoveryErrorCode =
   | 'RECOVERY_APPROVAL_NOT_REQUIRED'
   | 'AUTHORIZATION_DENIED'
   | 'RECOVERY_APPROVAL_INVALID'
+  | 'RECOVERY_APPROVAL_REQUIRED'
   | 'RECOVERY_STATE_CONFLICT';
 
 export class RecoveryError extends Error {

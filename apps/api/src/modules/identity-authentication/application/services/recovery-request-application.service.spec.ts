@@ -14,6 +14,8 @@ import { RecoveryApprovalRecord } from '../../domain/recovery/entities/recovery-
 import { RecoveryEvidenceRecord } from '../../domain/recovery/entities/recovery-evidence-record';
 import { RecoveryRequest } from '../../domain/recovery/entities/recovery-request';
 import type { RecoveryRequestRepository } from '../../domain/recovery/repositories/recovery-request-repository';
+import type { SessionRepository } from '../../domain/session/repositories/session-repository';
+import type { VerificationChallengeRepository } from '../../domain/verification/repositories/verification-challenge-repository';
 import { PermittedRecoveryOperation } from '../../domain/recovery/value-objects/permitted-recovery-operation';
 import { RecoveryPolicyVersion } from '../../domain/recovery/value-objects/recovery-policy-version';
 import type { RecoveryApprovalDecision } from '../../domain/recovery/value-objects/recovery-approval-decision';
@@ -83,6 +85,8 @@ interface RecoveryRequestFixture {
   readonly service: RecoveryRequestApplicationService;
   readonly identityRepository: jest.Mocked<IdentityRepository>;
   readonly recoveryRequests: jest.Mocked<RecoveryRequestRepository>;
+  readonly sessions: jest.Mocked<SessionRepository>;
+  readonly verificationChallenges: jest.Mocked<VerificationChallengeRepository>;
   readonly otpCrypto: jest.Mocked<OtpRecoveryCodeCryptographicPort>;
   readonly approvalAuthorization: jest.Mocked<ApprovalAuthorizationPort>;
 }
@@ -106,6 +110,31 @@ function createFixture(): RecoveryRequestFixture {
     save: jest.fn().mockResolvedValue(undefined),
     submitRecoveryCodeEvidence: jest.fn().mockResolvedValue(undefined),
     recordApprovalDecision: jest.fn().mockResolvedValue(undefined),
+    executeRecovery: jest.fn().mockResolvedValue(undefined),
+  };
+  const sessions: jest.Mocked<SessionRepository> = {
+    findById: jest.fn(),
+    findByRefreshTokenDigest: jest.fn(),
+    rotateRefreshToken: jest.fn(),
+    revokeRefreshTokenFamilyForReuse: jest.fn(),
+    revokeSession: jest.fn(),
+    revokeAllSessions: jest.fn(),
+    revokeAllSessionsForRecovery: jest.fn().mockResolvedValue(0),
+    insert: jest.fn(),
+    save: jest.fn(),
+  };
+  const verificationChallenges: jest.Mocked<VerificationChallengeRepository> = {
+    findById: jest.fn(),
+    findAggregateById: jest.fn(),
+    findActiveByBinding: jest.fn(),
+    expireActiveChallengesForIdentity: jest.fn().mockResolvedValue(0),
+    insert: jest.fn(),
+    save: jest.fn(),
+    completeTotpChallenge: jest.fn(),
+    completeMfaEnrollmentChallenge: jest.fn(),
+    rejectTotpChallenge: jest.fn(),
+    confirmOtpChallenge: jest.fn(),
+    rejectOtpChallenge: jest.fn(),
   };
   const identifierLookup: jest.Mocked<IdentifierLookupCryptographicPort> = {
     createActiveLookup: jest.fn(),
@@ -128,6 +157,8 @@ function createFixture(): RecoveryRequestFixture {
   const service = new RecoveryRequestApplicationService(
     identityRepository,
     recoveryRequests,
+    sessions,
+    verificationChallenges,
     identifierLookup,
     otpCrypto,
     approvalAuthorization,
@@ -144,6 +175,8 @@ function createFixture(): RecoveryRequestFixture {
     service,
     identityRepository,
     recoveryRequests,
+    sessions,
+    verificationChallenges,
     otpCrypto,
     approvalAuthorization,
   };
@@ -1246,6 +1279,251 @@ describe('RecoveryRequestApplicationService.recordApprovalDecision (M01-REC-005)
 
     await expect(service.recordApprovalDecision(command)).rejects.toMatchObject({
       code: 'RECOVERY_APPROVAL_INVALID',
+    });
+  });
+});
+
+describe('RecoveryRequestApplicationService.executeRecovery (M01-REC-006)', () => {
+  beforeEach(() => {
+    UUID_QUEUE.length = 0;
+  });
+
+  const command = {
+    recoveryRequestId: new UuidV7(RECOVERY_REQUEST_ID),
+    expectedRecoveryVersion: 4,
+    permittedOperation: 'PASSWORD_RESET' as const,
+    recoveryPolicyVersion: 'v1',
+  };
+
+  function privilegedSnapshot(): IdentityAuthenticationSnapshot {
+    return {
+      ...buildSnapshot(),
+      classificationAssignments: [buildClassificationAssignment('PRIVILEGED_ADMIN_AUTHENTICATION')],
+    };
+  }
+
+  function approvedRequest(): RecoveryRequest {
+    return buildRecoveryRequest({
+      recoveryState: 'APPROVED',
+      recoveryAssurance: 'RA2',
+      stateVersion: 4,
+      aggregateVersion: new AggregateVersion(4),
+      approvedAt: FIXED_NOW,
+    });
+  }
+
+  function standardVerifiedRequest(): RecoveryRequest {
+    return buildRecoveryRequest({
+      recoveryState: 'EVIDENCE_VERIFIED',
+      recoveryAssurance: 'RA1',
+      stateVersion: 3,
+      aggregateVersion: new AggregateVersion(4),
+    });
+  }
+
+  function activeCodeSetSnapshot(): NonNullable<
+    Awaited<ReturnType<IdentityRepository['findRecoveryCodeSets']>>
+  > {
+    return {
+      recoveryCodeSets: [
+        new RecoveryCodeSet({
+          recoveryCodeSetId: new UuidV7(RECOVERY_CODE_SET_ID),
+          identityId: new UuidV7(IDENTITY_ID),
+          setVersion: 1,
+          setState: 'ACTIVE',
+          createdAt: FIXED_NOW,
+        }),
+      ],
+      recoveryCodes: [
+        new RecoveryCodeRecord({
+          recoveryCodeId: new UuidV7(RECOVERY_CODE_ID),
+          recoveryCodeSetId: new UuidV7(RECOVERY_CODE_SET_ID),
+          codeDigest: new ProtectedValue('recovery-code-digest'),
+          codeState: 'ACTIVE',
+          createdAt: FIXED_NOW,
+        }),
+      ],
+    };
+  }
+
+  it('completes an APPROVED recovery with all mandatory completion effects', async () => {
+    const { service, identityRepository, recoveryRequests, sessions, verificationChallenges } =
+      createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    identityRepository.findRecoveryCodeSets.mockResolvedValue(activeCodeSetSnapshot());
+
+    const result = await service.executeRecovery(command);
+
+    expect(result).toEqual({
+      recoveryRequestId: RECOVERY_REQUEST_ID,
+      safeState: 'COMPLETED',
+      reauthenticationRequired: true,
+      version: 5,
+    });
+    // Completion effects: identity devices/codes invalidated BEFORE the request
+    // is reported COMPLETED, then recovery challenges expired and every
+    // session/refresh-token family revoked.
+    expect(identityRepository.save).toHaveBeenCalledTimes(1);
+    const identityChangeSet = identityRepository.save.mock.calls[0]?.[0];
+    expect(identityChangeSet?.trustedDevices).toEqual([]);
+    expect(identityChangeSet?.recoveryCodeSets[0]?.properties).toMatchObject({
+      setState: 'INVALIDATED',
+      invalidationReason: 'RECOVERY_EXECUTION',
+    });
+    expect(identityChangeSet?.recoveryCodes[0]?.properties).toMatchObject({
+      codeState: 'INVALIDATED',
+    });
+    const executed = recoveryRequests.executeRecovery.mock.calls[0]?.[0];
+    expect(executed?.updatedRecoveryRequest.properties).toMatchObject({
+      recoveryState: 'COMPLETED',
+      stateVersion: 6,
+      aggregateVersion: { value: 5 },
+    });
+    expect(
+      executed?.transitionsToAppend.map((t) => [t.properties.fromState, t.properties.toState]),
+    ).toEqual([
+      ['APPROVED', 'EXECUTING'],
+      ['EXECUTING', 'COMPLETED'],
+    ]);
+    expect(executed?.notification?.properties.notificationType).toBe('RECOVERY_COMPLETED');
+    expect(verificationChallenges.expireActiveChallengesForIdentity).toHaveBeenCalledWith(
+      new UuidV7(IDENTITY_ID),
+      'ACCOUNT_RECOVERY',
+    );
+    expect(sessions.revokeAllSessionsForRecovery).toHaveBeenCalledWith({
+      identityId: new UuidV7(IDENTITY_ID),
+      revokedAt: FIXED_NOW,
+      revocationReason: 'RECOVERY_EXECUTION',
+    });
+  });
+
+  it('completes an EVIDENCE_VERIFIED recovery when the policy row requires no approval', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(standardVerifiedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    identityRepository.findRecoveryCodeSets.mockResolvedValue(activeCodeSetSnapshot());
+
+    const result = await service.executeRecovery(command);
+
+    expect(result.safeState).toBe('COMPLETED');
+    const executed = recoveryRequests.executeRecovery.mock.calls[0]?.[0];
+    expect(
+      executed?.transitionsToAppend.map((t) => [t.properties.fromState, t.properties.toState]),
+    ).toEqual([
+      ['EVIDENCE_VERIFIED', 'EXECUTING'],
+      ['EXECUTING', 'COMPLETED'],
+    ]);
+  });
+
+  it('answers RECOVERY_APPROVAL_REQUIRED when an EVIDENCE_VERIFIED recovery still requires approval', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(standardVerifiedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(privilegedSnapshot());
+
+    await expect(service.executeRecovery(command)).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_REQUIRED',
+    });
+    expect(recoveryRequests.executeRecovery).not.toHaveBeenCalled();
+    expect(identityRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the request is not in an executable state', async () => {
+    for (const recoveryState of [
+      'REQUESTED',
+      'EVIDENCE_PENDING',
+      'APPROVAL_PENDING',
+      'REJECTED',
+      'CANCELLED',
+      'EXPIRED',
+      'FAILED_SECURELY',
+      'COMPLETED',
+    ] as const) {
+      const { service, recoveryRequests } = createFixture();
+      recoveryRequests.findById.mockResolvedValue(
+        buildRecoveryRequest({ recoveryState, stateVersion: 2, aggregateVersion: new AggregateVersion(2) }),
+      );
+
+      await expect(service.executeRecovery(command)).rejects.toMatchObject({
+        code: 'RECOVERY_STATE_CONFLICT',
+      });
+      expect(recoveryRequests.executeRecovery).not.toHaveBeenCalled();
+    }
+  });
+
+  it('fails closed when the confirmed permitted operation differs from the bound operation', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvedRequest());
+
+    await expect(
+      service.executeRecovery({ ...command, permittedOperation: 'MFA_FACTOR_REPLACEMENT' }),
+    ).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.executeRecovery).not.toHaveBeenCalled();
+  });
+
+  it('fails closed on a stale version, an expired request or an unknown locator', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvedRequest());
+
+    await expect(service.executeRecovery({ ...command, expectedRecoveryVersion: 3 })).rejects
+      .toMatchObject({ code: 'RECOVERY_STATE_CONFLICT' });
+
+    recoveryRequests.findById.mockResolvedValue(
+      buildRecoveryRequest({
+        recoveryState: 'APPROVED',
+        stateVersion: 4,
+        aggregateVersion: new AggregateVersion(4),
+        createdAt: new Date(FIXED_NOW.getTime() - 7_200_000),
+        updatedAt: new Date(FIXED_NOW.getTime() - 7_200_000),
+        expiresAt: new Date(FIXED_NOW.getTime() - 3_600_000),
+      }),
+    );
+    await expect(service.executeRecovery(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+
+    recoveryRequests.findById.mockResolvedValue(null);
+    await expect(service.executeRecovery(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+  });
+
+  it('rejects a non-authoritative policy version', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvedRequest());
+
+    await expect(
+      service.executeRecovery({ ...command, recoveryPolicyVersion: 'v0' }),
+    ).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.executeRecovery).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the bound identity is no longer eligible', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot('LOCKED', 'VERIFIED'));
+
+    await expect(service.executeRecovery(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.executeRecovery).not.toHaveBeenCalled();
+  });
+
+  it('maps a stale-version execution race to RECOVERY_STATE_CONFLICT', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    identityRepository.findRecoveryCodeSets.mockResolvedValue(activeCodeSetSnapshot());
+    recoveryRequests.executeRecovery.mockRejectedValue(
+      new OptimisticConcurrencyError('RecoveryRequest'),
+    );
+
+    await expect(service.executeRecovery(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
     });
   });
 });
