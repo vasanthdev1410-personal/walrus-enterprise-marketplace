@@ -71,3 +71,17 @@ export class RecoveryEvidenceDto {
   @MaxLength(32)
   public readonly recoveryPolicyVersion!: string;
 }
+
+/**
+ * M01-REC-004 request. The client confirms the authoritative approved policy
+ * version; the deterministic policy row (never client-selected) decides
+ * whether human approval is required for this recovery request. No approval,
+ * evidence or identity material is accepted or returned.
+ */
+export class RecoveryApprovalRequestDto {
+  @ApiProperty({ minLength: 1, maxLength: 32 })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(32)
+  public readonly recoveryPolicyVersion!: string;
+}

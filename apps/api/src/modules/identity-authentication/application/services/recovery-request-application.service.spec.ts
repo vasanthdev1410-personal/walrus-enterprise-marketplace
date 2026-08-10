@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import { AuthenticationSecurityClassificationAssignment } from '../../domain/identity/entities/authentication-security-classification-assignment';
 import { Identity } from '../../domain/identity/entities/identity';
 import { IdentityIdentifier } from '../../domain/identity/entities/identity-identifier';
 import { RecoveryCodeRecord } from '../../domain/identity/entities/recovery-code-record';
@@ -370,6 +371,24 @@ function buildRejectedEvidence(count: number): readonly RecoveryEvidenceRecord[]
   });
 }
 
+function buildClassificationAssignment(
+  classification:
+    | 'STANDARD_AUTHENTICATION'
+    | 'PRIVILEGED_ADMIN_AUTHENTICATION'
+    | 'SUPER_ADMIN_AUTHENTICATION',
+): AuthenticationSecurityClassificationAssignment {
+  return new AuthenticationSecurityClassificationAssignment({
+    classificationAssignmentId: new UuidV7('0191310f-789a-7123-8123-0000000000c1'),
+    identityId: new UuidV7(IDENTITY_ID),
+    classification,
+    effectiveAt: FIXED_NOW,
+    assignmentState: 'EFFECTIVE',
+    aggregateVersion: new AggregateVersion(1),
+    createdAt: FIXED_NOW,
+    updatedAt: FIXED_NOW,
+  });
+}
+
 describe('RecoveryRequestApplicationService.getStatus (M01-REC-003)', () => {
   beforeEach(() => {
     UUID_QUEUE.length = 0;
@@ -664,5 +683,223 @@ describe('RecoveryRequestApplicationService.submitEvidence (M01-REC-002)', () =>
       code: 'RECOVERY_STATE_CONFLICT',
     });
     expect(recoveryRequests.submitRecoveryCodeEvidence).not.toHaveBeenCalled();
+  });
+});
+
+describe('RecoveryRequestApplicationService.requestApproval (M01-REC-004)', () => {
+  beforeEach(() => {
+    UUID_QUEUE.length = 0;
+  });
+
+  const command = {
+    recoveryRequestId: new UuidV7(RECOVERY_REQUEST_ID),
+    expectedRecoveryVersion: 2,
+    recoveryPolicyVersion: 'v1',
+  };
+
+  function verifiedRequest(): RecoveryRequest {
+    return buildRecoveryRequest({
+      recoveryState: 'EVIDENCE_VERIFIED',
+      recoveryAssurance: 'RA1',
+      stateVersion: 2,
+      aggregateVersion: new AggregateVersion(2),
+    });
+  }
+
+  function classifiedSnapshot(
+    classification:
+      | 'STANDARD_AUTHENTICATION'
+      | 'PRIVILEGED_ADMIN_AUTHENTICATION'
+      | 'SUPER_ADMIN_AUTHENTICATION',
+  ): IdentityAuthenticationSnapshot {
+    return {
+      ...buildSnapshot(),
+      classificationAssignments: [buildClassificationAssignment(classification)],
+    };
+  }
+
+  it('moves a privileged recovery to APPROVAL_PENDING when dual control is required', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(verifiedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(
+      classifiedSnapshot('PRIVILEGED_ADMIN_AUTHENTICATION'),
+    );
+
+    const result = await service.requestApproval(command);
+
+    expect(result).toEqual({
+      safeState: 'APPROVAL_PENDING',
+      approvalRequired: true,
+      version: 3,
+    });
+    const changeSet = recoveryRequests.save.mock.calls[0]?.[0];
+    expect(changeSet?.recoveryRequest.properties).toMatchObject({
+      recoveryState: 'APPROVAL_PENDING',
+      stateVersion: 3,
+      aggregateVersion: { value: 3 },
+    });
+    expect(
+      changeSet?.transitionsToAppend.map((t) => [
+        t.properties.fromState,
+        t.properties.toState,
+      ]),
+    ).toEqual([['EVIDENCE_VERIFIED', 'APPROVAL_PENDING']]);
+    expect(changeSet?.approvalsToAppend).toEqual([]);
+    expect(changeSet?.attemptsToAppend).toEqual([]);
+    expect(recoveryRequests.save).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ value: 2 }),
+    );
+  });
+
+  it('requires approval for SUPER_ADMIN recovery (mandatory dual control)', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(verifiedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(
+      classifiedSnapshot('SUPER_ADMIN_AUTHENTICATION'),
+    );
+
+    const result = await service.requestApproval(command);
+
+    expect(result).toEqual({
+      safeState: 'APPROVAL_PENDING',
+      approvalRequired: true,
+      version: 3,
+    });
+    expect(recoveryRequests.save).toHaveBeenCalled();
+  });
+
+  it('answers RECOVERY_APPROVAL_NOT_REQUIRED for a STANDARD recovery without mutating', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(verifiedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+
+    await expect(service.requestApproval(command)).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_NOT_REQUIRED',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
+  it('answers RECOVERY_APPROVAL_NOT_REQUIRED for an explicit STANDARD_AUTHENTICATION assignment', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(verifiedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(
+      classifiedSnapshot('STANDARD_AUTHENTICATION'),
+    );
+
+    await expect(service.requestApproval(command)).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_NOT_REQUIRED',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale version precondition with RECOVERY_STATE_CONFLICT', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(verifiedRequest());
+
+    await expect(
+      service.requestApproval({ ...command, expectedRecoveryVersion: 3 }),
+    ).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a request that has not satisfied its evidence prerequisite', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(buildRecoveryRequest());
+
+    await expect(service.requestApproval(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a duplicate approval request once already pending', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(
+      buildRecoveryRequest({
+        recoveryState: 'APPROVAL_PENDING',
+        stateVersion: 3,
+        aggregateVersion: new AggregateVersion(3),
+      }),
+    );
+
+    await expect(service.requestApproval(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects an expired request with RECOVERY_STATE_CONFLICT', async () => {
+    const { service, recoveryRequests } = createFixture();
+    // The entity requires expiresAt > createdAt, so both move into the past
+    // together and the current time is past the expiry.
+    recoveryRequests.findById.mockResolvedValue(
+      buildRecoveryRequest({
+        recoveryState: 'EVIDENCE_VERIFIED',
+        stateVersion: 2,
+        aggregateVersion: new AggregateVersion(2),
+        createdAt: new Date(FIXED_NOW.getTime() - 7_200_000),
+        updatedAt: new Date(FIXED_NOW.getTime() - 7_200_000),
+        expiresAt: new Date(FIXED_NOW.getTime() - 3_600_000),
+      }),
+    );
+
+    await expect(service.requestApproval(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
+  it('answers an unknown locator uniformly with RECOVERY_STATE_CONFLICT', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(null);
+
+    await expect(service.requestApproval(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a recovery policy version mismatch', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(verifiedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(
+      classifiedSnapshot('SUPER_ADMIN_AUTHENTICATION'),
+    );
+
+    await expect(
+      service.requestApproval({ ...command, recoveryPolicyVersion: 'stale' }),
+    ).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects an ineligible bound identity with RECOVERY_STATE_CONFLICT', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(verifiedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot('LOCKED'));
+
+    await expect(service.requestApproval(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
+  it('maps a stale-version persistence race to RECOVERY_STATE_CONFLICT', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(verifiedRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(
+      classifiedSnapshot('SUPER_ADMIN_AUTHENTICATION'),
+    );
+    recoveryRequests.save.mockRejectedValue(
+      new OptimisticConcurrencyError('RecoveryRequest'),
+    );
+
+    await expect(service.requestApproval(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
   });
 });

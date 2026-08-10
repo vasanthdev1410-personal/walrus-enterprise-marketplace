@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   Headers,
@@ -24,7 +25,11 @@ import type { RecoveryRequestApplicationService } from '../application/services/
 import { UuidV7 } from '../domain/shared/value-objects/uuid-v7';
 import { API_IDEMPOTENCY } from '../identity-authentication.tokens';
 import { RECOVERY_REQUEST_APPLICATION_SERVICE } from './authentication.tokens';
-import { RecoveryEvidenceDto, RecoveryRequestDto } from './dto/recovery.dto';
+import {
+  RecoveryApprovalRequestDto,
+  RecoveryEvidenceDto,
+  RecoveryRequestDto,
+} from './dto/recovery.dto';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
 import {
   anonymousScope,
@@ -222,15 +227,93 @@ export class RecoveryController {
     }
   }
 
+  /**
+   * M01-REC-004. Requests human approval when the deterministic policy row
+   * requires it. The recovery-request locator in the path is the caller's
+   * Bound Recovery Session credential; Idempotency-Key and the version
+   * precondition (If-Match) are both required. A policy row that requires no
+   * human approval is answered with 409 RECOVERY_APPROVAL_NOT_REQUIRED and the
+   * recovery proceeds to execution (skipping APPROVAL_PENDING); any state,
+   * version or eligibility precondition failure is 412 RECOVERY_STATE_CONFLICT.
+   * No sensitive recovery material is ever returned.
+   */
+  @Post(':recoveryRequestId/approval-requests')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RateLimit({ limit: 5, windowSeconds: 900 })
+  @ApiOperation({
+    operationId: 'M01-REC-004',
+    summary: 'Request human approval for a recovery request when policy requires it',
+  })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiHeader({ name: 'If-Match', required: true })
+  public async requestApproval(
+    @Param('recoveryRequestId') recoveryRequestId: string,
+    @Body() body: RecoveryApprovalRequestDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Res() response: Response,
+  ): Promise<void> {
+    assertIdempotencyKey(idempotencyKey);
+    let requestIdValue: UuidV7;
+    try {
+      requestIdValue = new UuidV7(recoveryRequestId);
+    } catch {
+      // A malformed locator is indistinguishable from an unknown or terminal
+      // one, so the response stays uniform and recovery state is never
+      // enumerable.
+      throw new PreconditionFailedException('RECOVERY_STATE_CONFLICT');
+    }
+    const expectedRecoveryVersion = etagVersion(
+      ifMatch,
+      `recovery-request:${requestIdValue.value}`,
+    );
+    try {
+      const result = await this.idempotency.execute({
+        // The locator is the Bound Recovery Session credential: the idempotency
+        // scope is bound to that recovery request, not to an anonymous client.
+        scope: `recovery-request:${requestIdValue.value}`,
+        operationType: 'M01-REC-004',
+        idempotencyKey,
+        // The fingerprint carries only the version precondition and the
+        // confirmed policy version; no approval or recovery material is ever
+        // persisted with it.
+        request: {
+          ifMatch,
+          recoveryPolicyVersion: body.recoveryPolicyVersion,
+        },
+        execute: () =>
+          this.recoveryRequests.requestApproval({
+            recoveryRequestId: requestIdValue,
+            expectedRecoveryVersion,
+            recoveryPolicyVersion: body.recoveryPolicyVersion,
+          }),
+      });
+      noStore(response);
+      response.status(HttpStatus.ACCEPTED).json(
+        success({
+          safeState: result.safeState,
+          approvalRequired: result.approvalRequired,
+          version: result.version,
+        }),
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
   private handleError(error: unknown): never {
     if (error instanceof RecoveryError) {
-      // M01-REC-002 exposes only the approved stable errors: evidence failure
-      // is 400 RECOVERY_EVIDENCE_REJECTED and any state/version precondition
-      // failure is 412 RECOVERY_STATE_CONFLICT. M01-REC-003 answers an unknown
+      // The recovery surface exposes only the approved stable errors:
+      // M01-REC-002 evidence failure is 400 RECOVERY_EVIDENCE_REJECTED;
+      // M01-REC-004 answers 409 RECOVERY_APPROVAL_NOT_REQUIRED when the policy
+      // row requires no human approval; any state/version precondition
+      // failure is 412 RECOVERY_STATE_CONFLICT; M01-REC-003 answers an unknown
       // or malformed locator with 404 RESOURCE_NOT_AVAILABLE.
       switch (error.code) {
         case 'RECOVERY_EVIDENCE_REJECTED':
           throw new BadRequestException(error.code);
+        case 'RECOVERY_APPROVAL_NOT_REQUIRED':
+          throw new ConflictException(error.code);
         case 'RECOVERY_STATE_CONFLICT':
           throw new PreconditionFailedException(error.code);
         default:

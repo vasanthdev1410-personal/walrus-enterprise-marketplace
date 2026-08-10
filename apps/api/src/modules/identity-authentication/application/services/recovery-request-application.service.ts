@@ -90,6 +90,24 @@ export interface RecoveryEvidenceSubmissionResult {
   readonly version: number;
 }
 
+/**
+ * M01-REC-004. Requests human approval for a recovery request when the
+ * deterministic policy row requires it. The recovery-request locator is the
+ * caller's Bound Recovery Session credential; the version precondition
+ * (If-Match) guards the aggregate write.
+ */
+export interface RequestApprovalCommand {
+  readonly recoveryRequestId: UuidV7;
+  readonly expectedRecoveryVersion: number;
+  readonly recoveryPolicyVersion: string;
+}
+
+export interface RecoveryApprovalResult {
+  readonly safeState: RecoveryState;
+  readonly approvalRequired: boolean;
+  readonly version: number;
+}
+
 /** Non-sensitive failure reasons recorded on rejected evidence/attempt rows. */
 export type RejectedEvidenceReason =
   | 'UNSUPPORTED_EVIDENCE_TYPE'
@@ -140,6 +158,23 @@ type RecoverySecurityClassification =
   | 'STANDARD_AUTHENTICATION'
   | 'PRIVILEGED_ADMIN_AUTHENTICATION'
   | 'SUPER_ADMIN_AUTHENTICATION';
+
+/**
+ * Deterministic approval requirement (spec Section 22): SUPER_ADMIN recovery
+ * mandates dual control by two distinct Module 02-authorized approvers, and
+ * PRIVILEGED_ADMIN recovery requires dual control unless the approved strong
+ * self-service evidence set is fully satisfied — a condition that cannot be
+ * established by the evidence infrastructure approved so far, so privileged
+ * recovery fails closed to required approval. STANDARD recovery rows require
+ * no human approval unless risk policy escalates, and no escalation
+ * infrastructure exists in Module 01, so approval is not required.
+ */
+function approvalRequirement(classification: RecoverySecurityClassification): boolean {
+  return (
+    classification === 'PRIVILEGED_ADMIN_AUTHENTICATION' ||
+    classification === 'SUPER_ADMIN_AUTHENTICATION'
+  );
+}
 
 /**
  * The identity's effective authentication-security classification: the most
@@ -636,6 +671,113 @@ export class RecoveryRequestApplicationService {
       recoveryAssurance: properties.recoveryAssurance,
       nextAction: NEXT_ACTION[properties.recoveryState],
       version: properties.aggregateVersion.value,
+    };
+  }
+
+  /**
+   * M01-REC-004. Requests human approval when the deterministic policy row
+   * requires it.
+   *
+   * The recovery-request locator in the path is the caller's Bound Recovery
+   * Session credential; the version precondition (If-Match) guards the
+   * aggregate write. Only a request whose evidence prerequisite is fully
+   * satisfied (EVIDENCE_VERIFIED) may request approval; a second request for
+   * an already pending or approved request is answered uniformly with
+   * RECOVERY_STATE_CONFLICT, so duplicate approval requests are impossible.
+   * When the policy row requires no human approval the endpoint answers
+   * RECOVERY_APPROVAL_NOT_REQUIRED without mutating any state; the canonical
+   * machine skips APPROVAL_PENDING and the recovery is completed directly by
+   * the execution milestone.
+   */
+  public async requestApproval(command: RequestApprovalCommand): Promise<RecoveryApprovalResult> {
+    const request = await this.recoveryRequests.findById(command.recoveryRequestId);
+    const now = this.clock.now();
+    // Unknown and invalid locators are answered uniformly: the caller cannot
+    // distinguish a request that never existed from one in a terminal state,
+    // so recovery state is never enumerable through this endpoint.
+    if (request === null) throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    const properties = request.properties;
+    if (properties.aggregateVersion.value !== command.expectedRecoveryVersion) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+    if (properties.expiresAt <= now) throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    // Evidence must already be satisfied and approval must not already have
+    // been requested: REQUESTED/EVIDENCE_PENDING have not met the evidence
+    // prerequisite, and APPROVAL_PENDING/APPROVED (or any later state) mean an
+    // approval request already exists, so both fail closed.
+    if (properties.recoveryState !== 'EVIDENCE_VERIFIED') {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+    // The client can never select a weaker policy row (spec Part 5.5): the
+    // submitted policy version must equal the authoritative approved version.
+    if (command.recoveryPolicyVersion !== this.options.recoveryPolicyVersion) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+
+    // Defense-in-depth: the identity bound to the request must still be an
+    // eligible, VERIFIED, non-deleted identity.
+    const snapshot = await this.identityRepository.findAuthenticationById(properties.identityId);
+    if (
+      snapshot?.identity.properties.identityState !== 'ACTIVE' ||
+      snapshot.identity.properties.verificationState !== 'VERIFIED'
+    ) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+
+    const classification = effectiveClassification(snapshot.classificationAssignments);
+    if (!approvalRequirement(classification)) {
+      // The deterministic policy row requires no human approval; the canonical
+      // machine skips APPROVAL_PENDING (execution completes the recovery
+      // directly). Nothing is mutated and the caller is answered uniformly, so
+      // the response can never reveal the identity classification itself.
+      throw new RecoveryError('RECOVERY_APPROVAL_NOT_REQUIRED');
+    }
+
+    // Canonical machine (spec Section 23): EVIDENCE_VERIFIED →
+    // APPROVAL_PENDING when the policy row requires human approval. No
+    // RecoveryApprovalRecord is written here: those records are created by
+    // the approval-decision milestone (M01-REC-005) for each Module
+    // 02-authorized approver.
+    const stateVersion = properties.stateVersion + 1;
+    const transitionRecord = transition(
+      properties,
+      this.identifiers.next(),
+      'EVIDENCE_VERIFIED',
+      'APPROVAL_PENDING',
+      stateVersion,
+      now,
+    );
+    const updated = new RecoveryRequest({
+      ...properties,
+      recoveryState: 'APPROVAL_PENDING',
+      stateVersion,
+      aggregateVersion: new AggregateVersion(properties.aggregateVersion.value + 1),
+      updatedAt: now,
+    });
+    try {
+      await this.recoveryRequests.save(
+        {
+          recoveryRequest: updated,
+          evidence: [],
+          notifications: [],
+          approvalsToAppend: [],
+          attemptsToAppend: [],
+          transitionsToAppend: [transitionRecord],
+        },
+        properties.aggregateVersion,
+      );
+    } catch (error) {
+      // The version guard throws on a stale version and rolls the change set
+      // back, so no approval state is ever committed for a stale caller.
+      if (error instanceof OptimisticConcurrencyError) {
+        throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+      }
+      throw error;
+    }
+    return {
+      safeState: updated.properties.recoveryState,
+      approvalRequired: true,
+      version: updated.properties.aggregateVersion.value,
     };
   }
 

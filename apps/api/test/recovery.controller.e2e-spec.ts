@@ -26,11 +26,13 @@ describe('Module 01 recovery API (integration)', () => {
   const startRecovery = jest.fn();
   const getStatus = jest.fn();
   const submitEvidence = jest.fn();
+  const requestApproval = jest.fn();
 
   const recoveryRequests = {
     startRecovery,
     getStatus,
     submitEvidence,
+    requestApproval,
   } as unknown as jest.Mocked<RecoveryRequestApplicationService>;
 
   const idempotency = {
@@ -384,6 +386,133 @@ describe('Module 01 recovery API (integration)', () => {
         .expect(400);
 
       expect(submitEvidence).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('M01-REC-004 POST /api/v1/recovery-requests/:id/approval-requests', () => {
+    const approvalBody = { recoveryPolicyVersion: 'v1' };
+
+    it('requests approval and returns the safe approval state (202)', async () => {
+      requestApproval.mockResolvedValueOnce({
+        safeState: 'APPROVAL_PENDING',
+        approvalRequired: true,
+        version: 3,
+      });
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-requests`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v2"`)
+        .send(approvalBody)
+        .expect(202);
+
+      expect(readData(response.body)).toEqual({
+        safeState: 'APPROVAL_PENDING',
+        approvalRequired: true,
+        version: 3,
+      });
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(requestApproval).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recoveryRequestId: new UuidV7(recoveryRequestLocator),
+          expectedRecoveryVersion: 2,
+          recoveryPolicyVersion: 'v1',
+        }),
+      );
+    });
+
+    it('answers 409 RECOVERY_APPROVAL_NOT_REQUIRED when the policy row requires no approval', async () => {
+      requestApproval.mockRejectedValueOnce(
+        new RecoveryError('RECOVERY_APPROVAL_NOT_REQUIRED'),
+      );
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-requests`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v2"`)
+        .send(approvalBody)
+        .expect(409);
+
+      expect(response.body).toEqual({
+        statusCode: 409,
+        message: 'RECOVERY_APPROVAL_NOT_REQUIRED',
+        error: 'Conflict',
+      });
+    });
+
+    it('answers 412 RECOVERY_STATE_CONFLICT for a stale version precondition', async () => {
+      requestApproval.mockRejectedValueOnce(new RecoveryError('RECOVERY_STATE_CONFLICT'));
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-requests`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .send(approvalBody)
+        .expect(412);
+
+      expect(response.body).toEqual({
+        statusCode: 412,
+        message: 'RECOVERY_STATE_CONFLICT',
+        error: 'Precondition Failed',
+      });
+    });
+
+    it('rejects a request without Idempotency-Key (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-requests`)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v2"`)
+        .send(approvalBody)
+        .expect(400);
+
+      expect(requestApproval).not.toHaveBeenCalled();
+    });
+
+    it('rejects a request without If-Match (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-requests`)
+        .set('Idempotency-Key', idempotencyKey)
+        .send(approvalBody)
+        .expect(400);
+
+      expect(requestApproval).not.toHaveBeenCalled();
+    });
+
+    it('answers 412 RECOVERY_STATE_CONFLICT for a malformed locator without touching the service', async () => {
+      const response = await request(server)
+        .post('/recovery-requests/not-a-uuid/approval-requests')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', '"recovery-request:not-a-uuid:v2"')
+        .send(approvalBody)
+        .expect(412);
+
+      expect(response.body).toEqual({
+        statusCode: 412,
+        message: 'RECOVERY_STATE_CONFLICT',
+        error: 'Precondition Failed',
+      });
+      expect(requestApproval).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing recovery policy version (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-requests`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v2"`)
+        .send({})
+        .expect(400);
+
+      expect(requestApproval).not.toHaveBeenCalled();
+    });
+
+    it('rejects unknown fields in a recovery mutation (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-requests`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v2"`)
+        .send({ ...approvalBody, extraField: 'not-allowed' })
+        .expect(400);
+
+      expect(requestApproval).not.toHaveBeenCalled();
     });
   });
 });
