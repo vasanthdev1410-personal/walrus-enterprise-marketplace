@@ -126,6 +126,11 @@ export interface IdentityAuthenticationConfiguration {
     readonly activeKeyReference: string;
     readonly verificationKeyReferences: Readonly<Record<string, string>>;
   };
+  /** Recovery policy (M01-REC-001): approved policy version and request lifetime. */
+  readonly recovery: {
+    readonly policyVersion: 'v1';
+    readonly requestLifetimeSeconds: 3600;
+  };
   readonly session: {
     readonly standard: SessionPolicy;
     readonly privilegedAdmin: SessionPolicy;
@@ -239,6 +244,10 @@ export function createIdentityAuthenticationConfiguration(
       verificationKeyReferences: Object.freeze({
         ...environment.RECOVERY_CODE_HMAC_VERIFICATION_KEY_REFERENCES_JSON,
       }),
+    }),
+    recovery: Object.freeze({
+      policyVersion: 'v1',
+      requestLifetimeSeconds: 3600,
     }),
     session: Object.freeze({
       standard: Object.freeze({

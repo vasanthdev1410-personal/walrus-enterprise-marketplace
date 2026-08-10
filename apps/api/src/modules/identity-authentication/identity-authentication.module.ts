@@ -6,6 +6,7 @@ import { IdentityManagementApplicationService } from './application/services/ide
 import { MfaEnrollmentApplicationService } from './application/services/mfa-enrollment-application.service';
 import { PasswordResetApplicationService } from './application/services/password-reset-application.service';
 import { RecoveryCodeSetApplicationService } from './application/services/recovery-code-set-application.service';
+import { RecoveryRequestApplicationService } from './application/services/recovery-request-application.service';
 import { RegistrationApplicationService } from './application/services/registration-application.service';
 import { TotpMfaAuthenticationAdapter } from './application/services/totp-mfa-authentication.adapter';
 import { VerificationApplicationService } from './application/services/verification-application.service';
@@ -25,6 +26,7 @@ import {
   IDENTITY_REPOSITORY,
   NON_PRODUCTION_RATE_LIMIT_REPOSITORY,
   PrismaModule,
+  RECOVERY_REQUEST_REPOSITORY,
   SESSION_REPOSITORY,
   VERIFICATION_CHALLENGE_REPOSITORY,
 } from './infrastructure/persistence/prisma/prisma.module';
@@ -36,6 +38,7 @@ import { AuthenticationController } from './presentation/authentication.controll
 import { CredentialsController } from './presentation/credentials.controller';
 import { IdentityController } from './presentation/identity.controller';
 import { MfaController } from './presentation/mfa.controller';
+import { RecoveryController } from './presentation/recovery.controller';
 import { RegistrationController } from './presentation/registration.controller';
 import { VerificationController } from './presentation/verification.controller';
 import {
@@ -47,6 +50,7 @@ import {
   PASSWORD_RESET_APPLICATION_SERVICE,
   RATE_LIMITER,
   RECOVERY_CODE_SET_APPLICATION_SERVICE,
+  RECOVERY_REQUEST_APPLICATION_SERVICE,
   REGISTRATION_APPLICATION_SERVICE,
   VERIFICATION_APPLICATION_SERVICE,
 } from './presentation/authentication.tokens';
@@ -78,6 +82,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     CredentialsController,
     IdentityController,
     MfaController,
+    RecoveryController,
     RegistrationController,
     VerificationController,
   ],
@@ -373,6 +378,39 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
         new RecoveryCodeSetApplicationService(identities, otpCrypto, clock, identifiers, {
           environment: application.values.APP_ENV,
         }),
+    },
+    {
+      provide: RECOVERY_REQUEST_APPLICATION_SERVICE,
+      inject: [
+        IDENTITY_REPOSITORY,
+        RECOVERY_REQUEST_REPOSITORY,
+        IDENTIFIER_LOOKUP,
+        CLOCK,
+        UUID_V7_GENERATOR,
+        MODULE_CONFIGURATION,
+        ConfigurationService,
+      ],
+      useFactory: (
+        identities: never,
+        recoveryRequests: never,
+        lookups: NonProductionIdentifierLookupAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) =>
+        new RecoveryRequestApplicationService(
+          identities,
+          recoveryRequests,
+          lookups,
+          clock,
+          identifiers,
+          {
+            environment: application.values.APP_ENV,
+            recoveryPolicyVersion: configuration.recovery.policyVersion,
+            requestLifetimeSeconds: configuration.recovery.requestLifetimeSeconds,
+          },
+        ),
     },
     {
       provide: PASSWORD_RESET_APPLICATION_SERVICE,

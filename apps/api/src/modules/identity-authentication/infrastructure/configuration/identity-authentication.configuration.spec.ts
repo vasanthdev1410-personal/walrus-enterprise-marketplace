@@ -73,6 +73,10 @@ describe('Identity Authentication configuration', () => {
         maximumConcurrentSessions: 2,
       },
     });
+    expect(configuration.recovery).toEqual({
+      policyVersion: 'v1',
+      requestLifetimeSeconds: 3600,
+    });
   });
 
   it('rejects missing environment-specific cryptographic references', () => {
