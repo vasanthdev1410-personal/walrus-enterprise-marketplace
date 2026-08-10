@@ -127,6 +127,8 @@ describe('AuthenticationApplicationService', () => {
 
     expect(result.authenticationAssurance).toBe('AAL2');
     const insertCall = fixture.sessionRepository.insert.mock.calls[0]?.[0];
+    expect(insertCall?.session.properties.authenticationAssurance).toBe('AAL2');
+    expect(insertCall?.session.properties.mfaVerifiedAt).toBeDefined();
     expect(insertCall?.session.properties.authenticationMethods).toEqual([
       'PASSWORD',
       'TOTP_AUTHENTICATOR',

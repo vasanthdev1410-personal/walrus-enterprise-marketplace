@@ -45,6 +45,12 @@ export class Session {
     if (properties.sessionClass !== 'RECOVERY' && properties.authenticationAssurance === 'AAL0') {
       throw new Error('Ordinary authenticated Session cannot have AAL0');
     }
+    // AAL2 is established only after an approved MFA factor is successfully
+    // verified for the current authentication event (approved Module 01
+    // assurance model); mfaVerifiedAt records that event.
+    if (properties.authenticationAssurance === 'AAL2' && properties.mfaVerifiedAt === undefined) {
+      throw new Error('AAL2 Session requires mfaVerifiedAt');
+    }
     this.properties = Object.freeze({
       ...properties,
       authenticationMethods: Object.freeze([...properties.authenticationMethods]),

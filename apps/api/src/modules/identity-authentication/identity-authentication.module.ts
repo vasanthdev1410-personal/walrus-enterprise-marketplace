@@ -48,6 +48,7 @@ import {
   REGISTRATION_APPLICATION_SERVICE,
   VERIFICATION_APPLICATION_SERVICE,
 } from './presentation/authentication.tokens';
+import { Aal2SessionGuard } from './presentation/guards/aal2-session.guard';
 import { AuthoritativeSessionGuard } from './presentation/guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from './presentation/guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from './presentation/interceptors/basic-audit.interceptor';
@@ -450,6 +451,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
         ),
     },
     AuthoritativeSessionGuard,
+    Aal2SessionGuard,
     NonProductionRateLimiterGuard,
     BasicAuditInterceptor,
   ],

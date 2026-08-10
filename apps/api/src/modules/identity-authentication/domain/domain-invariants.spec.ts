@@ -60,6 +60,49 @@ describe('Module 01 domain persistence invariants', () => {
     ).toThrow('Ordinary authenticated Session cannot have AAL0');
   });
 
+  it('requires a recorded MFA verification for an AAL2 Session', () => {
+    expect(
+      () =>
+        new Session({
+          sessionId: uuid('000000000004'),
+          identityId: uuid('000000000002'),
+          sessionClass: 'INTERACTIVE_WEB',
+          sessionState: 'ACTIVE',
+          sessionVersion: new SessionVersion(1),
+          authenticationAssurance: 'AAL2',
+          authenticationSecurityClassificationReference: 'STANDARD_AUTHENTICATION',
+          authenticationMethods: ['PASSWORD', 'TOTP_AUTHENTICATOR'],
+          createdAt,
+          lastActivityAt: createdAt,
+          idleExpiresAt: new Date('2026-08-05T00:30:00.000Z'),
+          absoluteExpiresAt: new Date('2026-08-05T08:00:00.000Z'),
+          aggregateVersion: new AggregateVersion(1),
+        }),
+    ).toThrow('AAL2 Session requires mfaVerifiedAt');
+  });
+
+  it('accepts an AAL2 Session that records the MFA verification', () => {
+    expect(
+      () =>
+        new Session({
+          sessionId: uuid('000000000004'),
+          identityId: uuid('000000000002'),
+          sessionClass: 'INTERACTIVE_WEB',
+          sessionState: 'ACTIVE',
+          sessionVersion: new SessionVersion(1),
+          authenticationAssurance: 'AAL2',
+          authenticationSecurityClassificationReference: 'STANDARD_AUTHENTICATION',
+          authenticationMethods: ['PASSWORD', 'TOTP_AUTHENTICATOR'],
+          createdAt,
+          lastActivityAt: createdAt,
+          idleExpiresAt: new Date('2026-08-05T00:30:00.000Z'),
+          absoluteExpiresAt: new Date('2026-08-05T08:00:00.000Z'),
+          aggregateVersion: new AggregateVersion(1),
+          mfaVerifiedAt: new Date('2026-08-04T23:59:30.000Z'),
+        }),
+    ).not.toThrow();
+  });
+
   it('requires consumed evidence for a used Refresh Token', () => {
     expect(
       () =>
