@@ -6,9 +6,12 @@ import type { RecoveryRequestRepository } from '../../domain/recovery/repositori
 import { PermittedRecoveryOperation } from '../../domain/recovery/value-objects/permitted-recovery-operation';
 import type { RecoveryOperationClass } from '../../domain/recovery/value-objects/recovery-operation-class';
 import { RecoveryPolicyVersion } from '../../domain/recovery/value-objects/recovery-policy-version';
+import type { RecoveryState } from '../../domain/recovery/value-objects/recovery-state';
 import { AggregateVersion } from '../../domain/shared/value-objects/aggregate-version';
 import { CorrelationIdentifier } from '../../domain/shared/value-objects/correlation-identifier';
 import { ProtectedValue } from '../../domain/shared/value-objects/protected-value';
+import type { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
+import { RecoveryError } from '../errors/recovery.error';
 import type { ClockPort, UuidV7GenerationPort } from '../ports/application-runtime.port';
 import type { IdentifierLookupCryptographicPort } from '../ports/identifier-lookup-cryptographic.port';
 
@@ -46,6 +49,56 @@ export interface RecoveryRequestStartedResult {
   /** The next approved step in the canonical recovery workflow. */
   readonly nextAction: 'SUBMIT_EVIDENCE';
 }
+
+export type RecoveryNextAction =
+  | 'SUBMIT_EVIDENCE'
+  | 'REQUEST_APPROVAL'
+  | 'AWAIT_APPROVAL'
+  | 'EXECUTE'
+  | 'NONE';
+
+/**
+ * M01-REC-003 result. Only the safe status vocabulary is exposed: the
+ * canonical safe state, the deterministic next action, the expiry where it
+ * remains relevant, and the resource version. Approval internals, evidence
+ * details and identity material are never returned.
+ */
+export interface RecoveryStatusResult {
+  readonly recoveryRequestId: string;
+  readonly safeState: RecoveryState;
+  readonly nextAction: RecoveryNextAction;
+  readonly expiresAt?: string;
+  readonly version: number;
+}
+
+/** Terminal canonical states never report a further action or expiry. */
+const TERMINAL_RECOVERY_STATES: readonly RecoveryState[] = [
+  'COMPLETED',
+  'REJECTED',
+  'CANCELLED',
+  'EXPIRED',
+  'FAILED_SECURELY',
+];
+
+/**
+ * Deterministic next action derived from the canonical recovery state machine
+ * (spec Section 23). Policy-dependent skips (e.g. approval not required) are
+ * evaluated by the evidence milestone; until then the conservative approval
+ * step is reported.
+ */
+const NEXT_ACTION: Readonly<Record<RecoveryState, RecoveryNextAction>> = {
+  REQUESTED: 'SUBMIT_EVIDENCE',
+  EVIDENCE_PENDING: 'SUBMIT_EVIDENCE',
+  EVIDENCE_VERIFIED: 'REQUEST_APPROVAL',
+  APPROVAL_PENDING: 'AWAIT_APPROVAL',
+  APPROVED: 'EXECUTE',
+  EXECUTING: 'EXECUTE',
+  COMPLETED: 'NONE',
+  REJECTED: 'NONE',
+  CANCELLED: 'NONE',
+  EXPIRED: 'NONE',
+  FAILED_SECURELY: 'NONE',
+};
 
 export class RecoveryRequestApplicationService {
   public constructor(
@@ -151,5 +204,36 @@ export class RecoveryRequestApplicationService {
       recoveryRequestLocator: this.identifiers.next().value,
       nextAction: 'SUBMIT_EVIDENCE',
     };
+  }
+
+  /**
+   * M01-REC-003. Read-only recovery status.
+   *
+   * The safe recovery locator in the path is the caller's credential; an
+   * unknown locator is answered with RESOURCE_NOT_AVAILABLE and never reveals
+   * whether a request exists. The GET derives an expired effective state at
+   * read time without mutating the stored request, and returns only the safe
+   * status vocabulary.
+   */
+  public async getStatus(recoveryRequestId: UuidV7): Promise<RecoveryStatusResult> {
+    const request = await this.recoveryRequests.findById(recoveryRequestId);
+    if (request === null) throw new RecoveryError('RESOURCE_NOT_AVAILABLE');
+
+    const properties = request.properties;
+    const stored = properties.recoveryState;
+    const expired = this.clock.now() > properties.expiresAt;
+    const safeState: RecoveryState =
+      !TERMINAL_RECOVERY_STATES.includes(stored) && expired ? 'EXPIRED' : stored;
+    const nextAction = NEXT_ACTION[safeState];
+    const result: RecoveryStatusResult = {
+      recoveryRequestId: recoveryRequestId.value,
+      safeState,
+      nextAction,
+      version: properties.aggregateVersion.value,
+      ...(TERMINAL_RECOVERY_STATES.includes(safeState)
+        ? {}
+        : { expiresAt: properties.expiresAt.toISOString() }),
+    };
+    return result;
   }
 }

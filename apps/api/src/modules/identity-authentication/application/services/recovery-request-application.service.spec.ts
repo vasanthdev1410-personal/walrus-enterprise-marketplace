@@ -6,7 +6,10 @@ import type {
   IdentityRepository,
 } from '../../domain/identity/repositories/identity-repository';
 import type { IdentityState } from '../../domain/identity/value-objects/identity-state';
+import { RecoveryRequest } from '../../domain/recovery/entities/recovery-request';
 import type { RecoveryRequestRepository } from '../../domain/recovery/repositories/recovery-request-repository';
+import { PermittedRecoveryOperation } from '../../domain/recovery/value-objects/permitted-recovery-operation';
+import { RecoveryPolicyVersion } from '../../domain/recovery/value-objects/recovery-policy-version';
 import { AggregateVersion } from '../../domain/shared/value-objects/aggregate-version';
 import { ProtectedValue } from '../../domain/shared/value-objects/protected-value';
 import { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
@@ -103,6 +106,27 @@ function createFixture(): RecoveryRequestFixture {
     },
   );
   return { service, identityRepository, recoveryRequests };
+}
+
+function buildRecoveryRequest(
+  overrides: Partial<RecoveryRequest['properties']> = {},
+): RecoveryRequest {
+  const now = FIXED_NOW;
+  return new RecoveryRequest({
+    recoveryRequestId: new UuidV7(RECOVERY_REQUEST_ID),
+    identityId: new UuidV7(IDENTITY_ID),
+    operationClass: 'PASSWORD_RESET',
+    recoveryState: 'REQUESTED',
+    recoveryAssurance: 'RA0',
+    recoveryPolicyVersion: new RecoveryPolicyVersion('v1'),
+    permittedOperation: new PermittedRecoveryOperation('PASSWORD_RESET'),
+    stateVersion: 1,
+    expiresAt: new Date(now.getTime() + 3_600_000),
+    aggregateVersion: new AggregateVersion(1),
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  });
 }
 
 describe('RecoveryRequestApplicationService (M01-REC-001)', () => {
@@ -287,5 +311,71 @@ describe('RecoveryRequestApplicationService (M01-REC-001)', () => {
     expect(result.accepted).toBe(true);
     expect(result.recoveryRequestLocator).toBe(CONCEALED_ID);
     expect(recoveryRequests.insert).not.toHaveBeenCalled();
+  });
+});
+
+describe('RecoveryRequestApplicationService.getStatus (M01-REC-003)', () => {
+  beforeEach(() => {
+    UUID_QUEUE.length = 0;
+  });
+
+  it('returns the safe status of a REQUESTED recovery request', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(buildRecoveryRequest());
+
+    const result = await service.getStatus(new UuidV7(RECOVERY_REQUEST_ID));
+
+    expect(result).toEqual({
+      recoveryRequestId: RECOVERY_REQUEST_ID,
+      safeState: 'REQUESTED',
+      nextAction: 'SUBMIT_EVIDENCE',
+      expiresAt: new Date(FIXED_NOW.getTime() + 3_600_000).toISOString(),
+      version: 1,
+    });
+    expect(recoveryRequests.findById).toHaveBeenCalledWith(new UuidV7(RECOVERY_REQUEST_ID));
+  });
+
+  it('reports an effective EXPIRED state when the request is past expiry without mutating', async () => {
+    const { service, recoveryRequests } = createFixture();
+    // The request itself was created an hour ago with a 1h lifetime that has
+    // since elapsed; the entity requires expiresAt > createdAt, so both move
+    // into the past together.
+    recoveryRequests.findById.mockResolvedValue(
+      buildRecoveryRequest({
+        createdAt: new Date(FIXED_NOW.getTime() - 7_200_000),
+        updatedAt: new Date(FIXED_NOW.getTime() - 7_200_000),
+        expiresAt: new Date(FIXED_NOW.getTime() - 3_600_000),
+      }),
+    );
+
+    const result = await service.getStatus(new UuidV7(RECOVERY_REQUEST_ID));
+
+    expect(result.safeState).toBe('EXPIRED');
+    expect(result.nextAction).toBe('NONE');
+    expect(result.expiresAt).toBeUndefined();
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+    expect(recoveryRequests.insert).not.toHaveBeenCalled();
+  });
+
+  it('keeps a terminal stored state as-is', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(
+      buildRecoveryRequest({ recoveryState: 'COMPLETED' }),
+    );
+
+    const result = await service.getStatus(new UuidV7(RECOVERY_REQUEST_ID));
+
+    expect(result.safeState).toBe('COMPLETED');
+    expect(result.nextAction).toBe('NONE');
+    expect(result.expiresAt).toBeUndefined();
+  });
+
+  it('throws RESOURCE_NOT_AVAILABLE for an unknown locator', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(null);
+
+    await expect(service.getStatus(new UuidV7(CONCEALED_ID))).rejects.toMatchObject({
+      code: 'RESOURCE_NOT_AVAILABLE',
+    });
   });
 });

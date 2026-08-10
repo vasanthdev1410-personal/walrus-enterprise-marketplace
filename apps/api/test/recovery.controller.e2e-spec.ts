@@ -2,6 +2,7 @@ import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Server } from 'node:http';
 import request from 'supertest';
+import { RecoveryError } from '../src/modules/identity-authentication/application/errors/recovery.error';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
 import type { RecoveryRequestApplicationService } from '../src/modules/identity-authentication/application/services/recovery-request-application.service';
 import { API_IDEMPOTENCY } from '../src/modules/identity-authentication/identity-authentication.tokens';
@@ -22,9 +23,11 @@ describe('Module 01 recovery API (integration)', () => {
   let server: Server;
 
   const startRecovery = jest.fn();
+  const getStatus = jest.fn();
 
   const recoveryRequests = {
     startRecovery,
+    getStatus,
   } as unknown as jest.Mocked<RecoveryRequestApplicationService>;
 
   const idempotency = {
@@ -188,6 +191,58 @@ describe('Module 01 recovery API (integration)', () => {
       expect(data.accepted).toBe(true);
       expect(data.recoveryRequestLocator).toBe('0191310f-789a-7123-8123-000000000099');
       expect(data.nextAction).toBe('SUBMIT_EVIDENCE');
+    });
+  });
+
+  describe('M01-REC-003 GET /api/v1/recovery-requests/:id/status', () => {
+    it('returns the safe status of a recovery request (200)', async () => {
+      getStatus.mockResolvedValueOnce({
+        recoveryRequestId: recoveryRequestLocator,
+        safeState: 'REQUESTED',
+        nextAction: 'SUBMIT_EVIDENCE',
+        expiresAt: '2026-08-10T13:00:00.000Z',
+        version: 1,
+      });
+
+      const response = await request(server)
+        .get(`/recovery-requests/${recoveryRequestLocator}/status`)
+        .expect(200);
+
+      expect(readData(response.body)).toEqual({
+        recoveryRequestId: recoveryRequestLocator,
+        safeState: 'REQUESTED',
+        nextAction: 'SUBMIT_EVIDENCE',
+        expiresAt: '2026-08-10T13:00:00.000Z',
+        version: 1,
+      });
+      expect(response.headers['cache-control']).toBe('no-store');
+    });
+
+    it('answers 404 RESOURCE_NOT_AVAILABLE for an unknown locator', async () => {
+      getStatus.mockRejectedValueOnce(new RecoveryError('RESOURCE_NOT_AVAILABLE'));
+
+      const response = await request(server)
+        .get(`/recovery-requests/${recoveryRequestLocator}/status`)
+        .expect(404);
+
+      expect(response.body).toEqual({
+        statusCode: 404,
+        message: 'RESOURCE_NOT_AVAILABLE',
+        error: 'Not Found',
+      });
+    });
+
+    it('answers 404 RESOURCE_NOT_AVAILABLE for a malformed locator', async () => {
+      const response = await request(server)
+        .get('/recovery-requests/not-a-uuid/status')
+        .expect(404);
+
+      expect(response.body).toEqual({
+        statusCode: 404,
+        message: 'RESOURCE_NOT_AVAILABLE',
+        error: 'Not Found',
+      });
+      expect(getStatus).not.toHaveBeenCalled();
     });
   });
 });

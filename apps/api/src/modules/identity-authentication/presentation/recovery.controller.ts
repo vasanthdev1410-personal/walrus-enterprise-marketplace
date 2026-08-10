@@ -1,10 +1,13 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   HttpCode,
   HttpStatus,
   Inject,
+  NotFoundException,
+  Param,
   Post,
   Req,
   Res,
@@ -13,8 +16,10 @@ import {
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
+import { RecoveryError } from '../application/errors/recovery.error';
 import type { ApiIdempotencyService } from '../application/services/api-idempotency.service';
 import type { RecoveryRequestApplicationService } from '../application/services/recovery-request-application.service';
+import { UuidV7 } from '../domain/shared/value-objects/uuid-v7';
 import { API_IDEMPOTENCY } from '../identity-authentication.tokens';
 import { RECOVERY_REQUEST_APPLICATION_SERVICE } from './authentication.tokens';
 import { RecoveryRequestDto } from './dto/recovery.dto';
@@ -94,5 +99,48 @@ export class RecoveryController {
         nextAction: result.nextAction,
       }),
     );
+  }
+
+  /**
+   * M01-REC-003. Read-only recovery status. The safe recovery locator in the
+   * path is the caller's credential; an unknown locator is answered with 404
+   * RESOURCE_NOT_AVAILABLE and never reveals whether a request exists. The
+   * response carries only the safe status vocabulary and never mutates state.
+   */
+  @Get(':recoveryRequestId/status')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 30, windowSeconds: 300 })
+  @ApiOperation({
+    operationId: 'M01-REC-003',
+    summary: 'Read the enumeration-safe status of a recovery request',
+  })
+  public async getStatus(
+    @Param('recoveryRequestId') recoveryRequestId: string,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<Readonly<Record<string, unknown>>> {
+    let requestIdValue: UuidV7;
+    try {
+      requestIdValue = new UuidV7(recoveryRequestId);
+    } catch {
+      // A malformed locator is indistinguishable from an unknown one so the
+      // response stays uniform and account existence is never revealed.
+      throw new NotFoundException('RESOURCE_NOT_AVAILABLE');
+    }
+    try {
+      const result = await this.recoveryRequests.getStatus(requestIdValue);
+      noStore(response);
+      return success({ ...result });
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  private handleError(error: unknown): never {
+    if (error instanceof RecoveryError) {
+      // M01-REC-003 exposes a single stable error: an unknown or malformed
+      // locator is answered uniformly with 404 RESOURCE_NOT_AVAILABLE.
+      throw new NotFoundException(error.code);
+    }
+    throw error;
   }
 }
