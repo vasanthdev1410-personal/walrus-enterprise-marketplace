@@ -19,6 +19,17 @@ export interface VerificationChallengeRepository {
     purpose: VerificationPurpose,
     channelType: VerificationChannel,
   ): Promise<VerificationChallenge | null>;
+  /**
+   * Expires every outstanding (created/pending/issued) challenge bound to an
+   * identity and purpose. Used as a mandatory Recovery completion effect
+   * (M01-CRED-003): after a successful password reset no other outstanding
+   * PASSWORD_RECOVERY challenge may remain usable. Returns the number of
+   * challenges transitioned to EXPIRED.
+   */
+  expireActiveChallengesForIdentity(
+    identityId: UuidV7,
+    purpose: VerificationPurpose,
+  ): Promise<number>;
   insert(changeSet: VerificationAggregateChangeSet): Promise<void>;
   save(changeSet: VerificationAggregateChangeSet, expectedVersion: AggregateVersion): Promise<void>;
   completeTotpChallenge(command: CompleteTotpChallengePersistenceCommand): Promise<boolean>;

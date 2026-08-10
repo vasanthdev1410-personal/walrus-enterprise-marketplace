@@ -8,6 +8,7 @@ import type {
   ChangePasswordCommand,
   IdentityManagementApplicationService,
 } from '../src/modules/identity-authentication/application/services/identity-management-application.service';
+import type { PasswordResetApplicationService } from '../src/modules/identity-authentication/application/services/password-reset-application.service';
 import { UuidV7 } from '../src/modules/identity-authentication/domain/shared/value-objects/uuid-v7';
 import type { JwtCryptographicPort } from '../src/modules/identity-authentication/application/ports/jwt-cryptographic.port';
 import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
@@ -17,6 +18,7 @@ import { CredentialsController } from '../src/modules/identity-authentication/pr
 import {
   BASIC_AUDIT_LOGGER,
   IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
+  PASSWORD_RESET_APPLICATION_SERVICE,
   RATE_LIMITER,
 } from '../src/modules/identity-authentication/presentation/authentication.tokens';
 import { AuthoritativeSessionGuard } from '../src/modules/identity-authentication/presentation/guards/authoritative-session.guard';
@@ -40,6 +42,11 @@ describe('Module 01 credential mutation API (integration)', () => {
   const identityManagement = {
     changePassword,
   } as unknown as jest.Mocked<IdentityManagementApplicationService>;
+
+  const passwordReset = {
+    requestReset: jest.fn(),
+    confirmReset: jest.fn(),
+  } as unknown as jest.Mocked<PasswordResetApplicationService>;
 
   const idempotency = {
     execute: jest.fn(async (execution: { execute: () => Promise<unknown> }) => execution.execute()),
@@ -67,6 +74,7 @@ describe('Module 01 credential mutation API (integration)', () => {
       controllers: [CredentialsController],
       providers: [
         { provide: IDENTITY_MANAGEMENT_APPLICATION_SERVICE, useValue: identityManagement },
+        { provide: PASSWORD_RESET_APPLICATION_SERVICE, useValue: passwordReset },
         { provide: API_IDEMPOTENCY, useValue: idempotency },
         { provide: RATE_LIMITER, useValue: rateLimiter },
         { provide: BASIC_AUDIT_LOGGER, useValue: auditLogger },

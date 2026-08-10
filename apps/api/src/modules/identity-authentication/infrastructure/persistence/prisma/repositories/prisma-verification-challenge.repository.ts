@@ -48,6 +48,25 @@ export class PrismaVerificationChallengeRepository implements VerificationChalle
     });
   }
 
+  public async expireActiveChallengesForIdentity(
+    identityId: UuidV7,
+    purpose: VerificationPurpose,
+  ): Promise<number> {
+    const result = await this.prisma.verificationChallenge.updateMany({
+      where: {
+        identityId: identityId.value,
+        purpose,
+        challengeState: { in: ['CREATED', 'PENDING', 'CHALLENGE_ISSUED'] },
+      },
+      data: {
+        challengeState: 'EXPIRED',
+        aggregateVersion: { increment: 1 },
+        updatedAt: new Date(),
+      },
+    });
+    return result.count;
+  }
+
   public async findActiveByBinding(
     identityId: UuidV7,
     purpose: VerificationPurpose,

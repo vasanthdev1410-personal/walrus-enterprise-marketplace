@@ -12,6 +12,7 @@ export interface SessionRepository {
   revokeRefreshTokenFamilyForReuse(reuse: RefreshTokenReuse): Promise<void>;
   revokeSession(revocation: SessionRevocation): Promise<void>;
   revokeAllSessions(revocation: AllSessionsRevocation): Promise<number>;
+  revokeAllSessionsForRecovery(revocation: RecoverySessionsRevocation): Promise<number>;
   insert(changeSet: SessionAggregateChangeSet): Promise<void>;
   save(changeSet: SessionAggregateChangeSet, expectedVersion: AggregateVersion): Promise<void>;
 }
@@ -48,6 +49,20 @@ export interface AllSessionsRevocation {
   readonly identityId: UuidV7;
   readonly authorizingSessionId: UuidV7;
   readonly expectedAuthorizingSessionVersion: number;
+  readonly revokedAt: Date;
+  readonly revocationReason: string;
+}
+
+/**
+ * Recovery-triggered revocation (M01-CRED-003, future M01-REC-006).
+ *
+ * Password Reset is an approved revocation trigger but the caller is not an
+ * ordinary authenticated identity, so there is no authorizing Session to
+ * validate. Every ACTIVE Session and Refresh Token Family of the Identity is
+ * revoked; fresh ordinary authentication is required afterwards.
+ */
+export interface RecoverySessionsRevocation {
+  readonly identityId: UuidV7;
   readonly revokedAt: Date;
   readonly revocationReason: string;
 }

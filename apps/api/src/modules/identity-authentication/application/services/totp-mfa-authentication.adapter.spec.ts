@@ -117,6 +117,7 @@ function createFixture(challenge: VerificationChallenge | null = null): Fixture 
     rejectTotpChallenge: rejectChallenge,
     confirmOtpChallenge: jest.fn(),
     rejectOtpChallenge: jest.fn(),
+    expireActiveChallengesForIdentity: jest.fn(),
   } as jest.Mocked<VerificationChallengeRepository>;
   const verifyTotp: jest.MockedFunction<TotpCryptographicPort['verify']> = jest.fn();
   const totp: jest.Mocked<TotpCryptographicPort> = {

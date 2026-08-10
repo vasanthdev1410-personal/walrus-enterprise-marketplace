@@ -56,6 +56,7 @@ describe('IdentityManagementApplicationService', () => {
     revokeRefreshTokenFamilyForReuse: jest.fn(),
     revokeSession: jest.fn(),
     revokeAllSessions: jest.fn(),
+    revokeAllSessionsForRecovery: jest.fn(),
     insert: jest.fn(),
     save: jest.fn(),
   };

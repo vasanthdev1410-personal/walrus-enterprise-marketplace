@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Session } from '../../../../domain/session/entities/session';
 import type {
   AllSessionsRevocation,
+  RecoverySessionsRevocation,
   RefreshTokenReuse,
   RefreshTokenRotation,
   RefreshTokenSnapshot,
@@ -173,6 +174,49 @@ export class PrismaSessionRepository implements SessionRepository {
         if (authorizingSession === null) {
           throw new OptimisticConcurrencyError('Authorizing Session logout-all');
         }
+        const activeSessions = await transaction.session.findMany({
+          where: { identityId: revocation.identityId.value, sessionState: 'ACTIVE' },
+          select: { sessionId: true },
+        });
+        const sessionIds = activeSessions.map((session) => session.sessionId);
+        if (sessionIds.length === 0) return 0;
+        await transaction.refreshTokenFamily.updateMany({
+          where: { sessionId: { in: sessionIds }, familyState: 'ACTIVE' },
+          data: {
+            familyState: 'REVOKED',
+            aggregateVersion: { increment: 1 },
+            revokedAt: revocation.revokedAt,
+            revocationReason: revocation.revocationReason,
+          },
+        });
+        const result = await transaction.session.updateMany({
+          where: { sessionId: { in: sessionIds }, sessionState: 'ACTIVE' },
+          data: {
+            sessionState: 'REVOKED',
+            sessionVersion: { increment: 1 },
+            aggregateVersion: { increment: 1 },
+            revokedAt: revocation.revokedAt,
+            revocationReason: revocation.revocationReason,
+          },
+        });
+        return result.count;
+      },
+      { isolationLevel: 'Serializable' },
+    );
+  }
+
+  /**
+   * Recovery-triggered revocation (M01-CRED-003). The caller is not an ordinary
+   * authenticated Identity, so there is no authorizing Session to validate:
+   * every ACTIVE Session and Refresh Token Family of the Identity is revoked
+   * atomically and its Session Version is incremented so already-issued Access
+   * Tokens are rejected immediately after commit.
+   */
+  public async revokeAllSessionsForRecovery(
+    revocation: RecoverySessionsRevocation,
+  ): Promise<number> {
+    return this.prisma.$transaction(
+      async (transaction) => {
         const activeSessions = await transaction.session.findMany({
           where: { identityId: revocation.identityId.value, sessionState: 'ACTIVE' },
           select: { sessionId: true },
