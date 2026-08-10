@@ -5,6 +5,7 @@ import request from 'supertest';
 import { RecoveryError } from '../src/modules/identity-authentication/application/errors/recovery.error';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
 import type { RecoveryRequestApplicationService } from '../src/modules/identity-authentication/application/services/recovery-request-application.service';
+import { UuidV7 } from '../src/modules/identity-authentication/domain/shared/value-objects/uuid-v7';
 import { API_IDEMPOTENCY } from '../src/modules/identity-authentication/identity-authentication.tokens';
 import { RecoveryController } from '../src/modules/identity-authentication/presentation/recovery.controller';
 import {
@@ -24,10 +25,12 @@ describe('Module 01 recovery API (integration)', () => {
 
   const startRecovery = jest.fn();
   const getStatus = jest.fn();
+  const submitEvidence = jest.fn();
 
   const recoveryRequests = {
     startRecovery,
     getStatus,
+    submitEvidence,
   } as unknown as jest.Mocked<RecoveryRequestApplicationService>;
 
   const idempotency = {
@@ -243,6 +246,144 @@ describe('Module 01 recovery API (integration)', () => {
         error: 'Not Found',
       });
       expect(getStatus).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('M01-REC-002 POST /api/v1/recovery-requests/:id/evidence', () => {
+    const evidenceBody = {
+      evidenceType: 'RECOVERY_CODE',
+      evidenceValue: 'ABCD-EFGH-IJKL-MNOP-QRST-UVWX',
+      recoveryPolicyVersion: 'v1',
+    };
+
+    it('submits evidence and returns the safe recovery state (200)', async () => {
+      submitEvidence.mockResolvedValueOnce({
+        recoveryRequestId: recoveryRequestLocator,
+        safeState: 'EVIDENCE_VERIFIED',
+        recoveryAssurance: 'RA1',
+        nextAction: 'REQUEST_APPROVAL',
+        version: 2,
+      });
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/evidence`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v1"`)
+        .send(evidenceBody)
+        .expect(200);
+
+      expect(readData(response.body)).toEqual({
+        recoveryRequestId: recoveryRequestLocator,
+        safeState: 'EVIDENCE_VERIFIED',
+        recoveryAssurance: 'RA1',
+        nextAction: 'REQUEST_APPROVAL',
+        version: 2,
+      });
+      expect(response.headers['cache-control']).toBe('no-store');
+      // Raw evidence must never reach the idempotency fingerprint.
+      const fingerprintRequest = idempotency.execute.mock.calls[0]?.[0]?.request;
+      expect(JSON.stringify(fingerprintRequest)).not.toContain('ABCD-EFGH-IJKL-MNOP-QRST-UVWX');
+      expect(submitEvidence).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recoveryRequestId: new UuidV7(recoveryRequestLocator),
+          expectedRecoveryVersion: 1,
+          evidenceType: 'RECOVERY_CODE',
+          evidenceValue: 'ABCD-EFGH-IJKL-MNOP-QRST-UVWX',
+          recoveryPolicyVersion: 'v1',
+        }),
+      );
+    });
+
+    it('rejects a request without Idempotency-Key (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/evidence`)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v1"`)
+        .send(evidenceBody)
+        .expect(400);
+
+      expect(submitEvidence).not.toHaveBeenCalled();
+    });
+
+    it('rejects a request without If-Match (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/evidence`)
+        .set('Idempotency-Key', idempotencyKey)
+        .send(evidenceBody)
+        .expect(400);
+
+      expect(submitEvidence).not.toHaveBeenCalled();
+    });
+
+    it('answers 400 RECOVERY_EVIDENCE_REJECTED when evidence is rejected', async () => {
+      submitEvidence.mockRejectedValueOnce(new RecoveryError('RECOVERY_EVIDENCE_REJECTED'));
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/evidence`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v1"`)
+        .send({ ...evidenceBody, evidenceValue: 'XXXX-XXXX-XXXX-XXXX-XXXX-XXXX' })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        statusCode: 400,
+        message: 'RECOVERY_EVIDENCE_REJECTED',
+        error: 'Bad Request',
+      });
+    });
+
+    it('answers 412 RECOVERY_STATE_CONFLICT for a stale version precondition', async () => {
+      submitEvidence.mockRejectedValueOnce(new RecoveryError('RECOVERY_STATE_CONFLICT'));
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/evidence`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v2"`)
+        .send(evidenceBody)
+        .expect(412);
+
+      expect(response.body).toEqual({
+        statusCode: 412,
+        message: 'RECOVERY_STATE_CONFLICT',
+        error: 'Precondition Failed',
+      });
+    });
+
+    it('answers 412 RECOVERY_STATE_CONFLICT for a malformed locator without touching the service', async () => {
+      const response = await request(server)
+        .post('/recovery-requests/not-a-uuid/evidence')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', '"recovery-request:not-a-uuid:v1"')
+        .send(evidenceBody)
+        .expect(412);
+
+      expect(response.body).toEqual({
+        statusCode: 412,
+        message: 'RECOVERY_STATE_CONFLICT',
+        error: 'Precondition Failed',
+      });
+      expect(submitEvidence).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unapproved evidence type (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/evidence`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v1"`)
+        .send({ ...evidenceBody, evidenceType: 'UNKNOWN_TYPE' })
+        .expect(400);
+
+      expect(submitEvidence).not.toHaveBeenCalled();
+    });
+
+    it('rejects unknown fields in a recovery mutation (400)', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/evidence`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v1"`)
+        .send({ ...evidenceBody, extraField: 'not-allowed' })
+        .expect(400);
+
+      expect(submitEvidence).not.toHaveBeenCalled();
     });
   });
 });

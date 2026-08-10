@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import type { RecoveryEvidenceRecord } from '../../../../domain/recovery/entities/recovery-evidence-record';
 import type { RecoveryRequest } from '../../../../domain/recovery/entities/recovery-request';
 import type {
   RecoveryAggregateChangeSet,
   RecoveryRequestRepository,
+  SubmitRecoveryCodeEvidencePersistenceCommand,
 } from '../../../../domain/recovery/repositories/recovery-request-repository';
+import { OptimisticConcurrencyError } from '../../../../domain/shared/errors/optimistic-concurrency.error';
 import type { AggregateVersion } from '../../../../domain/shared/value-objects/aggregate-version';
 import type { UuidV7 } from '../../../../domain/shared/value-objects/uuid-v7';
 import {
@@ -26,6 +29,15 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
       where: { recoveryRequestId: recoveryRequestId.value },
     });
     return record === null ? null : recoveryRequestMapper.toDomain(record);
+  }
+
+  public async findEvidence(
+    recoveryRequestId: UuidV7,
+  ): Promise<readonly RecoveryEvidenceRecord[]> {
+    const records = await this.prisma.recoveryEvidenceRecord.findMany({
+      where: { recoveryRequestId: recoveryRequestId.value },
+    });
+    return records.map((record) => recoveryEvidenceMapper.toDomain(record));
   }
 
   public async insert(changeSet: RecoveryAggregateChangeSet): Promise<void> {
@@ -51,6 +63,52 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
       });
       assertVersionUpdated(result.count, 'RecoveryRequest');
       await this.persistOwnedRecords(transaction, changeSet, true);
+    });
+  }
+
+  public async submitRecoveryCodeEvidence(
+    command: SubmitRecoveryCodeEvidencePersistenceCommand,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      // Single-use gate: the recovery code must still be ACTIVE. Consuming it
+      // and committing the verified evidence share one transaction, so a
+      // concurrent submission of the same code cannot record duplicate
+      // evidence and a consumed code can never be replayed. A failed guard
+      // throws so the transaction rolls back: a stale version can never burn a
+      // valid recovery code, and a consumed code can never be double-spent.
+      const consumed = await transaction.recoveryCodeRecord.updateMany({
+        where: {
+          recoveryCodeId: command.consumedRecoveryCodeId.value,
+          codeState: 'ACTIVE',
+        },
+        data: { codeState: 'CONSUMED', consumedAt: command.attempt.properties.attemptedAt },
+      });
+      if (consumed.count !== 1) {
+        throw new OptimisticConcurrencyError('RecoveryCode');
+      }
+
+      const updated = await transaction.recoveryRequest.updateMany({
+        where: {
+          recoveryRequestId: command.recoveryRequestId.value,
+          aggregateVersion: command.expectedRecoveryVersion.value,
+        },
+        data: recoveryRequestMapper.toPersistence(command.updatedRecoveryRequest),
+      });
+      if (updated.count !== 1) {
+        throw new OptimisticConcurrencyError('RecoveryRequest');
+      }
+
+      await transaction.recoveryEvidenceRecord.create({
+        data: recoveryEvidenceMapper.toPersistence(command.evidence),
+      });
+      await transaction.recoveryAttempt.create({
+        data: recoveryAttemptMapper.toPersistence(command.attempt),
+      });
+      for (const transition of command.transitionsToAppend) {
+        await transaction.recoveryStateTransition.create({
+          data: recoveryStateTransitionMapper.toPersistence(transition),
+        });
+      }
     });
   }
 

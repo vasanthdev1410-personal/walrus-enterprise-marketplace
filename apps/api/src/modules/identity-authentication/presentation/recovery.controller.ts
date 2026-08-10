@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -9,6 +10,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  PreconditionFailedException,
   Req,
   Res,
   UseGuards,
@@ -22,12 +24,13 @@ import type { RecoveryRequestApplicationService } from '../application/services/
 import { UuidV7 } from '../domain/shared/value-objects/uuid-v7';
 import { API_IDEMPOTENCY } from '../identity-authentication.tokens';
 import { RECOVERY_REQUEST_APPLICATION_SERVICE } from './authentication.tokens';
-import { RecoveryRequestDto } from './dto/recovery.dto';
+import { RecoveryEvidenceDto, RecoveryRequestDto } from './dto/recovery.dto';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
 import {
   anonymousScope,
   assertIdempotencyKey,
   currentCorrelationId,
+  etagVersion,
   noStore,
   success,
 } from './http-contract';
@@ -135,11 +138,104 @@ export class RecoveryController {
     }
   }
 
+  /**
+   * M01-REC-002. Submits recovery evidence bound to the recovery request. The
+   * recovery-request locator in the path is the caller's Bound Recovery
+   * Session credential; Idempotency-Key and the version precondition (If-Match)
+   * are both required. Raw evidence is never included in the idempotency
+   * fingerprint so a credential can never be persisted in any form. Approved
+   * stable errors: RECOVERY_EVIDENCE_REJECTED (400) and RECOVERY_STATE_CONFLICT
+   * (412); an unknown or malformed locator is answered uniformly.
+   */
+  @Post(':recoveryRequestId/evidence')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 5, windowSeconds: 900 })
+  @ApiOperation({
+    operationId: 'M01-REC-002',
+    summary: 'Submit recovery evidence for a recovery request',
+  })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiHeader({ name: 'If-Match', required: true })
+  public async submitEvidence(
+    @Param('recoveryRequestId') recoveryRequestId: string,
+    @Body() body: RecoveryEvidenceDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Res() response: Response,
+  ): Promise<void> {
+    assertIdempotencyKey(idempotencyKey);
+    let requestIdValue: UuidV7;
+    try {
+      requestIdValue = new UuidV7(recoveryRequestId);
+    } catch {
+      // A malformed locator is indistinguishable from an unknown or terminal
+      // one, so the response stays uniform and recovery state is never
+      // enumerable.
+      throw new PreconditionFailedException('RECOVERY_STATE_CONFLICT');
+    }
+    const expectedRecoveryVersion = etagVersion(
+      ifMatch,
+      `recovery-request:${requestIdValue.value}`,
+    );
+    try {
+      const result = await this.idempotency.execute({
+        // The locator is the Bound Recovery Session credential: the idempotency
+        // scope is bound to that recovery request, not to an anonymous client.
+        scope: `recovery-request:${requestIdValue.value}`,
+        operationType: 'M01-REC-002',
+        idempotencyKey,
+        // Raw evidence is intentionally excluded so the stored fingerprint
+        // never embeds a credential (mirrors M01-MFA-005). Consequence: a key
+        // reused with a different evidence value produces the same fingerprint
+        // and returns the cached first result rather than IDEMPOTENCY_KEY_REUSED.
+        // Clients must use a fresh key per submission attempt.
+        request: {
+          ifMatch,
+          evidenceType: body.evidenceType,
+          recoveryPolicyVersion: body.recoveryPolicyVersion,
+          protectedEvidenceReference: body.protectedEvidenceReference ?? null,
+        },
+        execute: () =>
+          this.recoveryRequests.submitEvidence({
+            recoveryRequestId: requestIdValue,
+            expectedRecoveryVersion,
+            evidenceType: body.evidenceType,
+            recoveryPolicyVersion: body.recoveryPolicyVersion,
+            ...(body.evidenceValue === undefined ? {} : { evidenceValue: body.evidenceValue }),
+            ...(body.protectedEvidenceReference === undefined
+              ? {}
+              : { protectedEvidenceReference: body.protectedEvidenceReference }),
+          }),
+      });
+      noStore(response);
+      response.status(HttpStatus.OK).json(
+        success({
+          recoveryRequestId: result.recoveryRequestId,
+          safeState: result.safeState,
+          recoveryAssurance: result.recoveryAssurance,
+          nextAction: result.nextAction,
+          version: result.version,
+        }),
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
   private handleError(error: unknown): never {
     if (error instanceof RecoveryError) {
-      // M01-REC-003 exposes a single stable error: an unknown or malformed
-      // locator is answered uniformly with 404 RESOURCE_NOT_AVAILABLE.
-      throw new NotFoundException(error.code);
+      // M01-REC-002 exposes only the approved stable errors: evidence failure
+      // is 400 RECOVERY_EVIDENCE_REJECTED and any state/version precondition
+      // failure is 412 RECOVERY_STATE_CONFLICT. M01-REC-003 answers an unknown
+      // or malformed locator with 404 RESOURCE_NOT_AVAILABLE.
+      switch (error.code) {
+        case 'RECOVERY_EVIDENCE_REJECTED':
+          throw new BadRequestException(error.code);
+        case 'RECOVERY_STATE_CONFLICT':
+          throw new PreconditionFailedException(error.code);
+        default:
+          throw new NotFoundException(error.code);
+      }
     }
     throw error;
   }

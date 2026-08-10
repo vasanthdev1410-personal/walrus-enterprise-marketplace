@@ -9,8 +9,31 @@ import type { RecoveryStateTransition } from '../entities/recovery-state-transit
 
 export interface RecoveryRequestRepository {
   findById(recoveryRequestId: UuidV7): Promise<RecoveryRequest | null>;
+  /** Loads every evidence record of a recovery request for policy evaluation. */
+  findEvidence(recoveryRequestId: UuidV7): Promise<readonly RecoveryEvidenceRecord[]>;
   insert(changeSet: RecoveryAggregateChangeSet): Promise<void>;
   save(changeSet: RecoveryAggregateChangeSet, expectedVersion: AggregateVersion): Promise<void>;
+  /**
+   * M01-REC-002. Atomically verifies recovery-code evidence: consumes the
+   * matching single-use recovery code and commits the verified evidence,
+   * success attempt and state transition with the recovery-request version
+   * guard, all in one transaction. Throws OptimisticConcurrencyError without
+   * mutating any state when the code was already consumed or the request
+   * version is stale, so a failed guard rolls the whole change set back.
+   */
+  submitRecoveryCodeEvidence(
+    command: SubmitRecoveryCodeEvidencePersistenceCommand,
+  ): Promise<void>;
+}
+
+export interface SubmitRecoveryCodeEvidencePersistenceCommand {
+  readonly recoveryRequestId: UuidV7;
+  readonly expectedRecoveryVersion: AggregateVersion;
+  readonly updatedRecoveryRequest: RecoveryRequest;
+  readonly evidence: RecoveryEvidenceRecord;
+  readonly attempt: RecoveryAttempt;
+  readonly transitionsToAppend: readonly RecoveryStateTransition[];
+  readonly consumedRecoveryCodeId: UuidV7;
 }
 
 export interface RecoveryAggregateChangeSet {

@@ -130,6 +130,8 @@ export interface IdentityAuthenticationConfiguration {
   readonly recovery: {
     readonly policyVersion: 'v1';
     readonly requestLifetimeSeconds: 3600;
+    /** M01-REC-002 evidence-attempt limit before the request fails securely. */
+    readonly maximumEvidenceAttempts: 5;
   };
   readonly session: {
     readonly standard: SessionPolicy;
@@ -248,6 +250,7 @@ export function createIdentityAuthenticationConfiguration(
     recovery: Object.freeze({
       policyVersion: 'v1',
       requestLifetimeSeconds: 3600,
+      maximumEvidenceAttempts: 5,
     }),
     session: Object.freeze({
       standard: Object.freeze({

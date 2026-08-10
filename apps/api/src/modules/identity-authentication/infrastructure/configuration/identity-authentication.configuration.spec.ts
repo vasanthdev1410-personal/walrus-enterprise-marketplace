@@ -76,6 +76,7 @@ describe('Identity Authentication configuration', () => {
     expect(configuration.recovery).toEqual({
       policyVersion: 'v1',
       requestLifetimeSeconds: 3600,
+      maximumEvidenceAttempts: 5,
     });
   });
 
