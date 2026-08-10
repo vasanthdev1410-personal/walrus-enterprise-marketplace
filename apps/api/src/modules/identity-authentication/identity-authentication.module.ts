@@ -19,6 +19,7 @@ import { NonProductionOtpRecoveryCodeAdapter } from './infrastructure/cryptograp
 import { NonProductionRefreshTokenAdapter } from './infrastructure/cryptography/non-production-refresh-token.adapter';
 import { NonProductionTotpAdapter } from './infrastructure/cryptography/non-production-totp.adapter';
 import { NonProductionOtpDeliveryAdapter } from './infrastructure/delivery/non-production-otp-delivery.adapter';
+import { NonProductionApprovalAuthorizationAdapter } from './infrastructure/authorization/non-production-approval-authorization.adapter';
 import { createIdentityAuthenticationConfiguration } from './infrastructure/configuration/identity-authentication.configuration';
 import {
   API_IDEMPOTENCY_REPOSITORY,
@@ -60,6 +61,7 @@ import { NonProductionRateLimiterGuard } from './presentation/guards/non-product
 import { BasicAuditInterceptor } from './presentation/interceptors/basic-audit.interceptor';
 import {
   API_IDEMPOTENCY,
+  APPROVAL_AUTHORIZATION,
   CLOCK,
   ENVELOPE_ENCRYPTION,
   JWT_CRYPTOGRAPHY,
@@ -216,6 +218,10 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     },
     { provide: RATE_LIMITER, useExisting: NON_PRODUCTION_RATE_LIMIT_REPOSITORY },
     { provide: BASIC_AUDIT_LOGGER, useExisting: BASIC_AUDIT_REPOSITORY },
+    // M01-REC-005 Module 02 authorization boundary. Module 02 is not
+    // implemented yet, so the adapter fails closed: every approval decision is
+    // denied until the approved Module 02 contract is integrated.
+    { provide: APPROVAL_AUTHORIZATION, useClass: NonProductionApprovalAuthorizationAdapter },
     {
       provide: IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
       inject: [
@@ -386,6 +392,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
         RECOVERY_REQUEST_REPOSITORY,
         IDENTIFIER_LOOKUP,
         OTP_CRYPTOGRAPHY,
+        APPROVAL_AUTHORIZATION,
         CLOCK,
         UUID_V7_GENERATOR,
         MODULE_CONFIGURATION,
@@ -396,6 +403,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
         recoveryRequests: never,
         lookups: NonProductionIdentifierLookupAdapter,
         otpCrypto: NonProductionOtpRecoveryCodeAdapter,
+        approvalAuthorization: NonProductionApprovalAuthorizationAdapter,
         clock: SystemClockAdapter,
         identifiers: SystemUuidV7Generator,
         configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
@@ -406,6 +414,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
           recoveryRequests,
           lookups,
           otpCrypto,
+          approvalAuthorization,
           clock,
           identifiers,
           {

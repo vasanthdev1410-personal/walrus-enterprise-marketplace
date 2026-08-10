@@ -3,3 +3,4 @@ export const ENVELOPE_ENCRYPTION = Symbol('ENVELOPE_ENCRYPTION');
 export const API_IDEMPOTENCY = Symbol('API_IDEMPOTENCY');
 export const CLOCK = Symbol('CLOCK');
 export const UUID_V7_GENERATOR = Symbol('UUID_V7_GENERATOR');
+export const APPROVAL_AUTHORIZATION = Symbol('APPROVAL_AUTHORIZATION');

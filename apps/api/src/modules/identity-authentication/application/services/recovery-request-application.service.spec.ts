@@ -10,14 +10,17 @@ import type {
 } from '../../domain/identity/repositories/identity-repository';
 import type { IdentityState } from '../../domain/identity/value-objects/identity-state';
 import { OptimisticConcurrencyError } from '../../domain/shared/errors/optimistic-concurrency.error';
+import { RecoveryApprovalRecord } from '../../domain/recovery/entities/recovery-approval-record';
 import { RecoveryEvidenceRecord } from '../../domain/recovery/entities/recovery-evidence-record';
 import { RecoveryRequest } from '../../domain/recovery/entities/recovery-request';
 import type { RecoveryRequestRepository } from '../../domain/recovery/repositories/recovery-request-repository';
 import { PermittedRecoveryOperation } from '../../domain/recovery/value-objects/permitted-recovery-operation';
 import { RecoveryPolicyVersion } from '../../domain/recovery/value-objects/recovery-policy-version';
+import type { RecoveryApprovalDecision } from '../../domain/recovery/value-objects/recovery-approval-decision';
 import { AggregateVersion } from '../../domain/shared/value-objects/aggregate-version';
 import { ProtectedValue } from '../../domain/shared/value-objects/protected-value';
 import { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
+import type { ApprovalAuthorizationPort } from '../ports/approval-authorization.port';
 import type { IdentifierLookupCryptographicPort } from '../ports/identifier-lookup-cryptographic.port';
 import type { OtpRecoveryCodeCryptographicPort } from '../ports/otp-recovery-code-cryptographic.port';
 import { RecoveryRequestApplicationService } from './recovery-request-application.service';
@@ -27,6 +30,8 @@ const RECOVERY_REQUEST_ID = '0191310f-789a-7123-8123-000000000002';
 const CONCEALED_ID = '0191310f-789a-7123-8123-000000000099';
 const RECOVERY_CODE_SET_ID = '0191310f-789a-7123-8123-0000000000a1';
 const RECOVERY_CODE_ID = '0191310f-789a-7123-8123-0000000000a2';
+const APPROVER_ID = '0191310f-789a-7123-8123-0000000000d1';
+const SECOND_APPROVER_ID = '0191310f-789a-7123-8123-0000000000d2';
 const FIXED_NOW = new Date('2026-08-10T12:00:00.000Z');
 const VERIFIED_DESTINATION = 'user@example.com';
 const IDEMPOTENCY_KEY = 'recovery-key-1234567890abcdef';
@@ -79,6 +84,7 @@ interface RecoveryRequestFixture {
   readonly identityRepository: jest.Mocked<IdentityRepository>;
   readonly recoveryRequests: jest.Mocked<RecoveryRequestRepository>;
   readonly otpCrypto: jest.Mocked<OtpRecoveryCodeCryptographicPort>;
+  readonly approvalAuthorization: jest.Mocked<ApprovalAuthorizationPort>;
 }
 
 function createFixture(): RecoveryRequestFixture {
@@ -95,9 +101,11 @@ function createFixture(): RecoveryRequestFixture {
   const recoveryRequests: jest.Mocked<RecoveryRequestRepository> = {
     findById: jest.fn(),
     findEvidence: jest.fn().mockResolvedValue([]),
+    findApprovalRecords: jest.fn().mockResolvedValue([]),
     insert: jest.fn().mockResolvedValue(undefined),
     save: jest.fn().mockResolvedValue(undefined),
     submitRecoveryCodeEvidence: jest.fn().mockResolvedValue(undefined),
+    recordApprovalDecision: jest.fn().mockResolvedValue(undefined),
   };
   const identifierLookup: jest.Mocked<IdentifierLookupCryptographicPort> = {
     createActiveLookup: jest.fn(),
@@ -109,6 +117,12 @@ function createFixture(): RecoveryRequestFixture {
     issueRecoveryCodeSet: jest.fn(),
     matchesRecoveryCode: jest.fn().mockReturnValue(false),
   };
+  const approvalAuthorization: jest.Mocked<ApprovalAuthorizationPort> = {
+    authorizeApprover: jest.fn().mockResolvedValue({
+      authorized: false,
+      authorizationReference: undefined,
+    }),
+  };
   const clock = { now: jest.fn().mockReturnValue(FIXED_NOW) };
   const identifiers = { next: nextUuid };
   const service = new RecoveryRequestApplicationService(
@@ -116,6 +130,7 @@ function createFixture(): RecoveryRequestFixture {
     recoveryRequests,
     identifierLookup,
     otpCrypto,
+    approvalAuthorization,
     clock,
     identifiers,
     {
@@ -125,7 +140,13 @@ function createFixture(): RecoveryRequestFixture {
       maximumEvidenceAttempts: 5,
     },
   );
-  return { service, identityRepository, recoveryRequests, otpCrypto };
+  return {
+    service,
+    identityRepository,
+    recoveryRequests,
+    otpCrypto,
+    approvalAuthorization,
+  };
 }
 
 function buildRecoveryRequest(
@@ -900,6 +921,331 @@ describe('RecoveryRequestApplicationService.requestApproval (M01-REC-004)', () =
 
     await expect(service.requestApproval(command)).rejects.toMatchObject({
       code: 'RECOVERY_STATE_CONFLICT',
+    });
+  });
+});
+
+function approvalPendingRequest(): RecoveryRequest {
+  return buildRecoveryRequest({
+    recoveryState: 'APPROVAL_PENDING',
+    stateVersion: 3,
+    aggregateVersion: new AggregateVersion(3),
+  });
+}
+
+function buildApprovalRecord(
+  approverId: string,
+  decision: RecoveryApprovalDecision = 'APPROVED',
+): RecoveryApprovalRecord {
+  return new RecoveryApprovalRecord({
+    recoveryApprovalId: new UuidV7('0191310f-789a-7123-8123-0000000000e1'),
+    recoveryRequestId: new UuidV7(RECOVERY_REQUEST_ID),
+    recoveredIdentityId: new UuidV7(IDENTITY_ID),
+    operation: new PermittedRecoveryOperation('PASSWORD_RESET'),
+    approverIdentityId: new UuidV7(approverId),
+    approverAuthenticationEvidenceReference: new ProtectedValue('module-02:authorization'),
+    decision,
+    decidedAt: FIXED_NOW,
+    expiresAt: new Date(FIXED_NOW.getTime() + 1_800_000),
+    createdAt: FIXED_NOW,
+  });
+}
+
+describe('RecoveryRequestApplicationService.recordApprovalDecision (M01-REC-005)', () => {
+  beforeEach(() => {
+    UUID_QUEUE.length = 0;
+  });
+
+  const command = {
+    recoveryRequestId: new UuidV7(RECOVERY_REQUEST_ID),
+    approverIdentityId: new UuidV7(APPROVER_ID),
+    expectedRecoveryVersion: 3,
+    decision: 'APPROVED' as const,
+    recoveryOperationClass: 'PASSWORD_RESET' as const,
+    approvalReasonCode: 'DUAL_CONTROL_APPROVED',
+    approvalExpiresAt: new Date(FIXED_NOW.getTime() + 1_800_000).toISOString(),
+  };
+
+  function useAuthorizedApprover(
+    approvalAuthorization: jest.Mocked<ApprovalAuthorizationPort>,
+  ): void {
+    approvalAuthorization.authorizeApprover.mockResolvedValue({
+      authorized: true,
+      authorizationReference: 'module-02:decision:ref',
+    });
+  }
+
+  it('keeps APPROVAL_PENDING after the first APPROVED decision (dual control not yet satisfied)', async () => {
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    useAuthorizedApprover(approvalAuthorization);
+
+    const result = await service.recordApprovalDecision(command);
+
+    expect(result).toEqual({
+      recoveryRequestId: RECOVERY_REQUEST_ID,
+      recordedDecision: 'APPROVED',
+      version: 4,
+    });
+    expect(approvalAuthorization.authorizeApprover).toHaveBeenCalledWith(
+      expect.objectContaining({
+        approverIdentityId: new UuidV7(APPROVER_ID),
+        recoveryRequestId: new UuidV7(RECOVERY_REQUEST_ID),
+        recoveredIdentityId: new UuidV7(IDENTITY_ID),
+        operationClass: 'PASSWORD_RESET',
+      }),
+    );
+    const recorded = recoveryRequests.recordApprovalDecision.mock.calls[0]?.[0];
+    expect(recorded?.updatedRecoveryRequest.properties).toMatchObject({
+      recoveryState: 'APPROVAL_PENDING',
+      stateVersion: 3,
+      aggregateVersion: { value: 4 },
+    });
+    // One distinct APPROVED record does not satisfy dual control: no state
+    // transition is written yet.
+    expect(recorded?.transitionsToAppend).toEqual([]);
+    expect(recorded?.approvalRecord.properties).toMatchObject({
+      decision: 'APPROVED',
+      approverIdentityId: { value: APPROVER_ID },
+      approverAuthenticationEvidenceReference: { value: 'module-02:decision:ref' },
+    });
+  });
+
+  it('reaches APPROVED after the second distinct APPROVED decision', async () => {
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    useAuthorizedApprover(approvalAuthorization);
+    // A different approver already approved; this second distinct approver
+    // satisfies the two-approver dual control requirement.
+    recoveryRequests.findApprovalRecords.mockResolvedValue([
+      buildApprovalRecord(SECOND_APPROVER_ID, 'APPROVED'),
+    ]);
+
+    const result = await service.recordApprovalDecision(command);
+
+    expect(result).toEqual({
+      recoveryRequestId: RECOVERY_REQUEST_ID,
+      recordedDecision: 'APPROVED',
+      version: 4,
+    });
+    const recorded = recoveryRequests.recordApprovalDecision.mock.calls[0]?.[0];
+    expect(recorded?.updatedRecoveryRequest.properties).toMatchObject({
+      recoveryState: 'APPROVED',
+      stateVersion: 4,
+      aggregateVersion: { value: 4 },
+      approvedAt: FIXED_NOW,
+    });
+    expect(
+      recorded?.transitionsToAppend.map((t) => [
+        t.properties.fromState,
+        t.properties.toState,
+      ]),
+    ).toEqual([['APPROVAL_PENDING', 'APPROVED']]);
+    // The approver's reason code is preserved on the immutable transition.
+    expect(recorded?.transitionsToAppend[0]?.properties.reasonCode).toBe('DUAL_CONTROL_APPROVED');
+  });
+
+  it('fails the recovery securely to REJECTED on a rejection decision', async () => {
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    useAuthorizedApprover(approvalAuthorization);
+
+    const result = await service.recordApprovalDecision({
+      ...command,
+      decision: 'REJECTED',
+      approvalReasonCode: 'DUAL_CONTROL_REJECTED',
+    });
+
+    expect(result).toEqual({
+      recoveryRequestId: RECOVERY_REQUEST_ID,
+      recordedDecision: 'REJECTED',
+      version: 4,
+    });
+    const recorded = recoveryRequests.recordApprovalDecision.mock.calls[0]?.[0];
+    expect(recorded?.updatedRecoveryRequest.properties).toMatchObject({
+      recoveryState: 'REJECTED',
+      stateVersion: 4,
+      aggregateVersion: { value: 4 },
+      terminalReason: 'APPROVAL_REJECTED',
+    });
+    expect(
+      recorded?.transitionsToAppend.map((t) => [
+        t.properties.fromState,
+        t.properties.toState,
+      ]),
+    ).toEqual([['APPROVAL_PENDING', 'REJECTED']]);
+    expect(recorded?.transitionsToAppend[0]?.properties.reasonCode).toBe('DUAL_CONTROL_REJECTED');
+    expect(recorded?.approvalRecord.properties.decision).toBe('REJECTED');
+  });
+
+  it('rejects the requester self-approving their own recovery', async () => {
+    const { service, recoveryRequests, approvalAuthorization } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+
+    await expect(
+      service.recordApprovalDecision({
+        ...command,
+        approverIdentityId: new UuidV7(IDENTITY_ID),
+      }),
+    ).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(approvalAuthorization.authorizeApprover).not.toHaveBeenCalled();
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('rejects a duplicate decision from the same approver', async () => {
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    useAuthorizedApprover(approvalAuthorization);
+    recoveryRequests.findApprovalRecords.mockResolvedValue([
+      buildApprovalRecord(APPROVER_ID, 'APPROVED'),
+    ]);
+
+    await expect(service.recordApprovalDecision(command)).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('answers AUTHORIZATION_DENIED when Module 02 denies the approver', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    // Default fixture mock denies; the decision is never persisted.
+
+    await expect(service.recordApprovalDecision(command)).rejects.toMatchObject({
+      code: 'AUTHORIZATION_DENIED',
+    });
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('rejects an ineligible bound identity with RECOVERY_APPROVAL_INVALID', async () => {
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot('LOCKED'));
+
+    await expect(service.recordApprovalDecision(command)).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(approvalAuthorization.authorizeApprover).not.toHaveBeenCalled();
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('answers RECOVERY_APPROVAL_INVALID for an unknown locator', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(null);
+
+    await expect(service.recordApprovalDecision(command)).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale version precondition', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+
+    await expect(
+      service.recordApprovalDecision({ ...command, expectedRecoveryVersion: 2 }),
+    ).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('rejects a request that is not APPROVAL_PENDING', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(buildRecoveryRequest());
+
+    await expect(service.recordApprovalDecision(command)).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('rejects an operation-class mismatch', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+
+    await expect(
+      service.recordApprovalDecision({
+        ...command,
+        recoveryOperationClass: 'MFA_FACTOR_REPLACEMENT',
+      }),
+    ).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('rejects an approval expiry in the past', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+
+    await expect(
+      service.recordApprovalDecision({
+        ...command,
+        approvalExpiresAt: new Date(FIXED_NOW.getTime() - 3_600_000).toISOString(),
+      }),
+    ).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('rejects an approval expiry beyond the recovery request expiry', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+
+    await expect(
+      service.recordApprovalDecision({
+        ...command,
+        // Request expires in 1h; an approval valid for 2h would outlive it.
+        approvalExpiresAt: new Date(FIXED_NOW.getTime() + 7_200_000).toISOString(),
+      }),
+    ).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('rejects an expired recovery request', async () => {
+    const { service, recoveryRequests } = createFixture();
+    // The entity requires expiresAt > createdAt, so both move into the past
+    // together and the current time is past the expiry.
+    recoveryRequests.findById.mockResolvedValue(
+      buildRecoveryRequest({
+        recoveryState: 'APPROVAL_PENDING',
+        stateVersion: 3,
+        aggregateVersion: new AggregateVersion(3),
+        createdAt: new Date(FIXED_NOW.getTime() - 7_200_000),
+        updatedAt: new Date(FIXED_NOW.getTime() - 7_200_000),
+        expiresAt: new Date(FIXED_NOW.getTime() - 3_600_000),
+      }),
+    );
+
+    await expect(service.recordApprovalDecision(command)).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('maps a stale-version or duplicate persistence race to RECOVERY_APPROVAL_INVALID', async () => {
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    useAuthorizedApprover(approvalAuthorization);
+    recoveryRequests.recordApprovalDecision.mockRejectedValue(
+      new OptimisticConcurrencyError('RecoveryApprovalRecord'),
+    );
+
+    await expect(service.recordApprovalDecision(command)).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
     });
   });
 });

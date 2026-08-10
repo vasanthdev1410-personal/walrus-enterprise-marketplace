@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import type { RecoveryApprovalRecord } from '../../../../domain/recovery/entities/recovery-approval-record';
 import type { RecoveryEvidenceRecord } from '../../../../domain/recovery/entities/recovery-evidence-record';
 import type { RecoveryRequest } from '../../../../domain/recovery/entities/recovery-request';
 import type {
   RecoveryAggregateChangeSet,
+  RecordApprovalDecisionPersistenceCommand,
   RecoveryRequestRepository,
   SubmitRecoveryCodeEvidencePersistenceCommand,
 } from '../../../../domain/recovery/repositories/recovery-request-repository';
@@ -40,6 +42,15 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
     return records.map((record) => recoveryEvidenceMapper.toDomain(record));
   }
 
+  public async findApprovalRecords(
+    recoveryRequestId: UuidV7,
+  ): Promise<readonly RecoveryApprovalRecord[]> {
+    const records = await this.prisma.recoveryApprovalRecord.findMany({
+      where: { recoveryRequestId: recoveryRequestId.value },
+    });
+    return records.map((record) => recoveryApprovalMapper.toDomain(record));
+  }
+
   public async insert(changeSet: RecoveryAggregateChangeSet): Promise<void> {
     await this.prisma.$transaction(async (transaction) => {
       await transaction.recoveryRequest.create({
@@ -63,6 +74,42 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
       });
       assertVersionUpdated(result.count, 'RecoveryRequest');
       await this.persistOwnedRecords(transaction, changeSet, true);
+    });
+  }
+
+  public async recordApprovalDecision(
+    command: RecordApprovalDecisionPersistenceCommand,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      const updated = await transaction.recoveryRequest.updateMany({
+        where: {
+          recoveryRequestId: command.recoveryRequestId.value,
+          aggregateVersion: command.expectedRecoveryVersion.value,
+        },
+        data: recoveryRequestMapper.toPersistence(command.updatedRecoveryRequest),
+      });
+      if (updated.count !== 1) {
+        throw new OptimisticConcurrencyError('RecoveryRequest');
+      }
+      try {
+        await transaction.recoveryApprovalRecord.create({
+          data: recoveryApprovalMapper.toPersistence(command.approvalRecord),
+        });
+      } catch (error) {
+        // The unique (recoveryRequestId, approverIdentityId) constraint is the
+        // atomic duplicate guard: a concurrent second decision from the same
+        // approver cannot commit and the whole change set rolls back, so a
+        // duplicate approval can never be recorded.
+        if (isPrismaUniqueViolation(error)) {
+          throw new OptimisticConcurrencyError('RecoveryApprovalRecord');
+        }
+        throw error;
+      }
+      for (const transition of command.transitionsToAppend) {
+        await transaction.recoveryStateTransition.create({
+          data: recoveryStateTransitionMapper.toPersistence(transition),
+        });
+      }
     });
   }
 
@@ -140,8 +187,7 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
     for (const entity of changeSet.approvalsToAppend)
       await transaction.recoveryApprovalRecord.create({
         data: recoveryApprovalMapper.toPersistence(entity),
-      });
-    for (const entity of changeSet.attemptsToAppend)
+      });      for (const entity of changeSet.attemptsToAppend)
       await transaction.recoveryAttempt.create({
         data: recoveryAttemptMapper.toPersistence(entity),
       });
@@ -150,4 +196,13 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
         data: recoveryStateTransitionMapper.toPersistence(entity),
       });
   }
+}
+
+function isPrismaUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { readonly code?: unknown }).code === 'P2002'
+  );
 }

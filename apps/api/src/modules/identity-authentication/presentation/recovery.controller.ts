@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   Headers,
   HttpCode,
@@ -25,11 +26,14 @@ import type { RecoveryRequestApplicationService } from '../application/services/
 import { UuidV7 } from '../domain/shared/value-objects/uuid-v7';
 import { API_IDEMPOTENCY } from '../identity-authentication.tokens';
 import { RECOVERY_REQUEST_APPLICATION_SERVICE } from './authentication.tokens';
+import type { AuthenticatedRequest } from './authentication-context';
 import {
+  RecoveryApprovalDecisionDto,
   RecoveryApprovalRequestDto,
   RecoveryEvidenceDto,
   RecoveryRequestDto,
 } from './dto/recovery.dto';
+import { Aal2SessionGuard } from './guards/aal2-session.guard';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
 import {
   anonymousScope,
@@ -301,19 +305,110 @@ export class RecoveryController {
     }
   }
 
+  /**
+   * M01-REC-005. Records an approver decision on an APPROVAL_PENDING recovery
+   * request. The endpoint is MODULE_02_AUTHORIZED: the approver must hold an
+   * ordinary AAL2 session (guard) and a current Module 02 authorization
+   * decision is obtained through the approved boundary at decision time. The
+   * recovery-request locator in the path identifies the request; the version
+   * precondition (If-Match) guards the aggregate write and Idempotency-Key is
+   * required. Stable errors: AUTHORIZATION_DENIED (403) when Module 02 denies
+   * the approver, RECOVERY_APPROVAL_INVALID (403) for any invalid, expired,
+   * duplicate, self-approved or unauthorized approval attempt.
+   */
+  @Post(':recoveryRequestId/approval-decisions')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 5, windowSeconds: 900 })
+  @UseGuards(Aal2SessionGuard)
+  @ApiOperation({
+    operationId: 'M01-REC-005',
+    summary: 'Record an approver decision for a recovery request',
+  })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiHeader({ name: 'If-Match', required: true })
+  public async recordApprovalDecision(
+    @Param('recoveryRequestId') recoveryRequestId: string,
+    @Body() body: RecoveryApprovalDecisionDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Req() request: AuthenticatedRequest,
+    @Res() response: Response,
+  ): Promise<void> {
+    assertIdempotencyKey(idempotencyKey);
+    let requestIdValue: UuidV7;
+    try {
+      requestIdValue = new UuidV7(recoveryRequestId);
+    } catch {
+      // A malformed locator is indistinguishable from an unknown or invalid
+      // one, so the response stays uniform and recovery state is never
+      // enumerable.
+      throw new ForbiddenException('RECOVERY_APPROVAL_INVALID');
+    }
+    const expectedRecoveryVersion = etagVersion(
+      ifMatch,
+      `recovery-request:${requestIdValue.value}`,
+    );
+    try {
+      const result = await this.idempotency.execute({
+        // The recovery request is the approval subject; the idempotency scope
+        // is bound to it so a key cannot be replayed across requests. The
+        // fingerprint carries only the decision metadata and the version
+        // precondition; no authorization or recovery material is stored.
+        scope: `recovery-request:${requestIdValue.value}`,
+        operationType: 'M01-REC-005',
+        idempotencyKey,
+        request: {
+          ifMatch,
+          decision: body.decision,
+          recoveryOperationClass: body.recoveryOperationClass,
+          approvalReasonCode: body.approvalReasonCode,
+          approvalExpiresAt: body.approvalExpiresAt,
+        },
+        execute: () =>
+          this.recoveryRequests.recordApprovalDecision({
+            recoveryRequestId: requestIdValue,
+            // The authenticated ordinary AAL2 session subject is the approver;
+            // the client can never claim another identity.
+            approverIdentityId: new UuidV7(request.authentication.subject),
+            expectedRecoveryVersion,
+            decision: body.decision,
+            recoveryOperationClass: body.recoveryOperationClass,
+            approvalReasonCode: body.approvalReasonCode,
+            approvalExpiresAt: body.approvalExpiresAt,
+          }),
+      });
+      noStore(response);
+      response.status(HttpStatus.OK).json(
+        success({
+          recoveryRequestId: result.recoveryRequestId,
+          recordedDecision: result.recordedDecision,
+          version: result.version,
+        }),
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
   private handleError(error: unknown): never {
     if (error instanceof RecoveryError) {
       // The recovery surface exposes only the approved stable errors:
       // M01-REC-002 evidence failure is 400 RECOVERY_EVIDENCE_REJECTED;
       // M01-REC-004 answers 409 RECOVERY_APPROVAL_NOT_REQUIRED when the policy
-      // row requires no human approval; any state/version precondition
-      // failure is 412 RECOVERY_STATE_CONFLICT; M01-REC-003 answers an unknown
-      // or malformed locator with 404 RESOURCE_NOT_AVAILABLE.
+      // row requires no human approval; M01-REC-005 answers 403
+      // AUTHORIZATION_DENIED (Module 02 denied) or 403 RECOVERY_APPROVAL_INVALID
+      // (invalid, expired, duplicate, self-approved or unauthorized approval);
+      // any state/version precondition failure is 412 RECOVERY_STATE_CONFLICT;
+      // M01-REC-003 answers an unknown or malformed locator with 404
+      // RESOURCE_NOT_AVAILABLE.
       switch (error.code) {
         case 'RECOVERY_EVIDENCE_REJECTED':
           throw new BadRequestException(error.code);
         case 'RECOVERY_APPROVAL_NOT_REQUIRED':
           throw new ConflictException(error.code);
+        case 'AUTHORIZATION_DENIED':
+        case 'RECOVERY_APPROVAL_INVALID':
+          throw new ForbiddenException(error.code);
         case 'RECOVERY_STATE_CONFLICT':
           throw new PreconditionFailedException(error.code);
         default:

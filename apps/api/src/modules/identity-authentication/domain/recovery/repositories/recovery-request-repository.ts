@@ -11,8 +11,24 @@ export interface RecoveryRequestRepository {
   findById(recoveryRequestId: UuidV7): Promise<RecoveryRequest | null>;
   /** Loads every evidence record of a recovery request for policy evaluation. */
   findEvidence(recoveryRequestId: UuidV7): Promise<readonly RecoveryEvidenceRecord[]>;
+  /**
+   * Loads every approval-decision record of a recovery request for dual
+   * control evaluation (M01-REC-005).
+   */
+  findApprovalRecords(
+    recoveryRequestId: UuidV7,
+  ): Promise<readonly RecoveryApprovalRecord[]>;
   insert(changeSet: RecoveryAggregateChangeSet): Promise<void>;
   save(changeSet: RecoveryAggregateChangeSet, expectedVersion: AggregateVersion): Promise<void>;
+  /**
+   * M01-REC-005. Atomically records one approver decision: appends the
+   * approval record and state transitions with the recovery-request version
+   * guard, all in one transaction. Throws OptimisticConcurrencyError without
+   * mutating any state when the version is stale or the unique
+   * (recoveryRequestId, approverIdentityId) constraint is violated, so a
+   * stale caller or a concurrent duplicate decision rolls the change set back.
+   */
+  recordApprovalDecision(command: RecordApprovalDecisionPersistenceCommand): Promise<void>;
   /**
    * M01-REC-002. Atomically verifies recovery-code evidence: consumes the
    * matching single-use recovery code and commits the verified evidence,
@@ -34,6 +50,14 @@ export interface SubmitRecoveryCodeEvidencePersistenceCommand {
   readonly attempt: RecoveryAttempt;
   readonly transitionsToAppend: readonly RecoveryStateTransition[];
   readonly consumedRecoveryCodeId: UuidV7;
+}
+
+export interface RecordApprovalDecisionPersistenceCommand {
+  readonly recoveryRequestId: UuidV7;
+  readonly expectedRecoveryVersion: AggregateVersion;
+  readonly updatedRecoveryRequest: RecoveryRequest;
+  readonly approvalRecord: RecoveryApprovalRecord;
+  readonly transitionsToAppend: readonly RecoveryStateTransition[];
 }
 
 export interface RecoveryAggregateChangeSet {

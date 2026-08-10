@@ -3,21 +3,35 @@ import { Test } from '@nestjs/testing';
 import type { Server } from 'node:http';
 import request from 'supertest';
 import { RecoveryError } from '../src/modules/identity-authentication/application/errors/recovery.error';
+import type { JwtCryptographicPort } from '../src/modules/identity-authentication/application/ports/jwt-cryptographic.port';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
 import type { RecoveryRequestApplicationService } from '../src/modules/identity-authentication/application/services/recovery-request-application.service';
+import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
+import type { SessionRepository } from '../src/modules/identity-authentication/domain/session/repositories/session-repository';
 import { UuidV7 } from '../src/modules/identity-authentication/domain/shared/value-objects/uuid-v7';
-import { API_IDEMPOTENCY } from '../src/modules/identity-authentication/identity-authentication.tokens';
+import {
+  API_IDEMPOTENCY,
+  JWT_CRYPTOGRAPHY,
+} from '../src/modules/identity-authentication/identity-authentication.tokens';
 import { RecoveryController } from '../src/modules/identity-authentication/presentation/recovery.controller';
 import {
   BASIC_AUDIT_LOGGER,
   RATE_LIMITER,
   RECOVERY_REQUEST_APPLICATION_SERVICE,
 } from '../src/modules/identity-authentication/presentation/authentication.tokens';
+import { Aal2SessionGuard } from '../src/modules/identity-authentication/presentation/guards/aal2-session.guard';
+import { AuthoritativeSessionGuard } from '../src/modules/identity-authentication/presentation/guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from '../src/modules/identity-authentication/presentation/guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from '../src/modules/identity-authentication/presentation/interceptors/basic-audit.interceptor';
+import {
+  IDENTITY_REPOSITORY,
+  SESSION_REPOSITORY,
+} from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
 
 const recoveryRequestLocator = '0191310f-789a-7123-8123-000000000001';
 const idempotencyKey = 'recovery-key-1234567890abcdef';
+const approverIdentityId = '0191310f-789a-7123-8123-00000000000d';
+const approverSessionId = '0191310f-789a-7123-8123-00000000000e';
 
 describe('Module 01 recovery API (integration)', () => {
   let application: INestApplication;
@@ -27,13 +41,19 @@ describe('Module 01 recovery API (integration)', () => {
   const getStatus = jest.fn();
   const submitEvidence = jest.fn();
   const requestApproval = jest.fn();
+  const recordApprovalDecision = jest.fn();
 
   const recoveryRequests = {
     startRecovery,
     getStatus,
     submitEvidence,
     requestApproval,
+    recordApprovalDecision,
   } as unknown as jest.Mocked<RecoveryRequestApplicationService>;
+
+  const jwt = { verifyAccessToken: jest.fn() } as unknown as jest.Mocked<JwtCryptographicPort>;
+  const sessions = { findById: jest.fn() } as unknown as jest.Mocked<SessionRepository>;
+  const identities = { findById: jest.fn() } as unknown as jest.Mocked<IdentityRepository>;
 
   const idempotency = {
     execute: jest.fn(async (execution: { execute: () => Promise<unknown> }) => execution.execute()),
@@ -60,6 +80,11 @@ describe('Module 01 recovery API (integration)', () => {
         { provide: API_IDEMPOTENCY, useValue: idempotency },
         { provide: RATE_LIMITER, useValue: rateLimiter },
         { provide: BASIC_AUDIT_LOGGER, useValue: auditLogger },
+        { provide: JWT_CRYPTOGRAPHY, useValue: jwt },
+        { provide: SESSION_REPOSITORY, useValue: sessions },
+        { provide: IDENTITY_REPOSITORY, useValue: identities },
+        AuthoritativeSessionGuard,
+        Aal2SessionGuard,
         NonProductionRateLimiterGuard,
         BasicAuditInterceptor,
       ],
@@ -83,7 +108,64 @@ describe('Module 01 recovery API (integration)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jwt.verifyAccessToken.mockResolvedValue({
+      subject: approverIdentityId,
+      sessionId: approverSessionId,
+      jwtId: 'jwt',
+      issuer: 'issuer',
+      audience: 'audience',
+      issuedAt: new Date(),
+      expiresAt: new Date(Date.now() + 60_000),
+      authenticationMethods: ['PASSWORD'],
+      authenticationAssurance: 'AAL1',
+      sessionVersion: 1,
+    });
+    sessions.findById.mockResolvedValue({
+      properties: {
+        identityId: { value: approverIdentityId },
+        sessionState: 'ACTIVE',
+        sessionClass: 'INTERACTIVE_WEB',
+        sessionVersion: { value: 1 },
+        idleExpiresAt: new Date(Date.now() + 60_000),
+        absoluteExpiresAt: new Date(Date.now() + 120_000),
+      },
+    } as never);
+    identities.findById.mockResolvedValue({
+      properties: {
+        identityId: { value: approverIdentityId },
+        identityState: 'ACTIVE',
+        verificationState: 'VERIFIED',
+        lockedUntil: undefined,
+      },
+    } as never);
   });
+
+  function useAal2Session(): void {
+    jwt.verifyAccessToken.mockResolvedValue({
+      subject: approverIdentityId,
+      sessionId: approverSessionId,
+      jwtId: 'jwt',
+      issuer: 'issuer',
+      audience: 'audience',
+      issuedAt: new Date(),
+      expiresAt: new Date(Date.now() + 60_000),
+      authenticationMethods: ['PASSWORD', 'TOTP_AUTHENTICATOR'],
+      authenticationAssurance: 'AAL2',
+      sessionVersion: 1,
+    });
+    sessions.findById.mockResolvedValue({
+      properties: {
+        identityId: { value: approverIdentityId },
+        sessionState: 'ACTIVE',
+        sessionClass: 'INTERACTIVE_WEB',
+        sessionVersion: { value: 1 },
+        authenticationAssurance: 'AAL2',
+        mfaVerifiedAt: new Date(Date.now() - 60_000),
+        idleExpiresAt: new Date(Date.now() + 60_000),
+        absoluteExpiresAt: new Date(Date.now() + 120_000),
+      },
+    } as never);
+  }
 
   describe('M01-REC-001 POST /api/v1/recovery-requests', () => {
     it('starts an enumeration-safe recovery request (202 Accepted)', async () => {
@@ -513,6 +595,184 @@ describe('Module 01 recovery API (integration)', () => {
         .expect(400);
 
       expect(requestApproval).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('M01-REC-005 POST /api/v1/recovery-requests/:id/approval-decisions', () => {
+    const decisionBody = {
+      decision: 'APPROVED',
+      recoveryOperationClass: 'PASSWORD_RESET',
+      approvalReasonCode: 'DUAL_CONTROL_APPROVED',
+      approvalExpiresAt: '2026-08-10T13:30:00.000Z',
+    };
+
+    it('records an approved decision and returns the safe result (200)', async () => {
+      useAal2Session();
+      recordApprovalDecision.mockResolvedValueOnce({
+        recoveryRequestId: recoveryRequestLocator,
+        recordedDecision: 'APPROVED',
+        version: 4,
+      });
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-decisions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .send(decisionBody)
+        .expect(200);
+
+      expect(readData(response.body)).toEqual({
+        recoveryRequestId: recoveryRequestLocator,
+        recordedDecision: 'APPROVED',
+        version: 4,
+      });
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(recordApprovalDecision).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recoveryRequestId: new UuidV7(recoveryRequestLocator),
+          // The approver is the authenticated AAL2 session subject, never a
+          // client-supplied identity.
+          approverIdentityId: new UuidV7(approverIdentityId),
+          expectedRecoveryVersion: 3,
+          decision: 'APPROVED',
+          recoveryOperationClass: 'PASSWORD_RESET',
+          approvalReasonCode: 'DUAL_CONTROL_APPROVED',
+          approvalExpiresAt: '2026-08-10T13:30:00.000Z',
+        }),
+      );
+    });
+
+    it('returns 401 AUTHENTICATION_ASSURANCE_INSUFFICIENT for an AAL1 session', async () => {
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-decisions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .send(decisionBody)
+        .expect(401);
+    });
+
+    it('returns 401 Unauthorized when the access token is missing', async () => {
+      useAal2Session();
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-decisions`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .send(decisionBody)
+        .expect(401);
+    });
+
+    it('returns 403 AUTHORIZATION_DENIED when Module 02 denies the approver', async () => {
+      useAal2Session();
+      recordApprovalDecision.mockRejectedValueOnce(new RecoveryError('AUTHORIZATION_DENIED'));
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-decisions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .send(decisionBody)
+        .expect(403);
+
+      expect(response.body).toEqual({
+        statusCode: 403,
+        message: 'AUTHORIZATION_DENIED',
+        error: 'Forbidden',
+      });
+    });
+
+    it('returns 403 RECOVERY_APPROVAL_INVALID for an invalid approval attempt', async () => {
+      useAal2Session();
+      recordApprovalDecision.mockRejectedValueOnce(
+        new RecoveryError('RECOVERY_APPROVAL_INVALID'),
+      );
+
+      const response = await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-decisions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .send(decisionBody)
+        .expect(403);
+
+      expect(response.body).toEqual({
+        statusCode: 403,
+        message: 'RECOVERY_APPROVAL_INVALID',
+        error: 'Forbidden',
+      });
+    });
+
+    it('returns 403 RECOVERY_APPROVAL_INVALID for a malformed locator without touching the service', async () => {
+      useAal2Session();
+      const response = await request(server)
+        .post('/recovery-requests/not-a-uuid/approval-decisions')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', '"recovery-request:not-a-uuid:v3"')
+        .send(decisionBody)
+        .expect(403);
+
+      expect(response.body).toEqual({
+        statusCode: 403,
+        message: 'RECOVERY_APPROVAL_INVALID',
+        error: 'Forbidden',
+      });
+      expect(recordApprovalDecision).not.toHaveBeenCalled();
+    });
+
+    it('rejects a request without Idempotency-Key (400)', async () => {
+      useAal2Session();
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-decisions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .send(decisionBody)
+        .expect(400);
+
+      expect(recordApprovalDecision).not.toHaveBeenCalled();
+    });
+
+    it('rejects a request without If-Match (400)', async () => {
+      useAal2Session();
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-decisions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .send(decisionBody)
+        .expect(400);
+
+      expect(recordApprovalDecision).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing decision field (400)', async () => {
+      useAal2Session();
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-decisions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .send({
+          recoveryOperationClass: 'PASSWORD_RESET',
+          approvalReasonCode: 'DUAL_CONTROL_APPROVED',
+          approvalExpiresAt: '2026-08-10T13:30:00.000Z',
+        })
+        .expect(400);
+
+      expect(recordApprovalDecision).not.toHaveBeenCalled();
+    });
+
+    it('rejects unknown fields in a recovery mutation (400)', async () => {
+      useAal2Session();
+      await request(server)
+        .post(`/recovery-requests/${recoveryRequestLocator}/approval-decisions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .send({ ...decisionBody, approverRole: 'not-allowed' })
+        .expect(400);
+
+      expect(recordApprovalDecision).not.toHaveBeenCalled();
     });
   });
 });

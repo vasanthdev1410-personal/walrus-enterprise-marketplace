@@ -1,11 +1,13 @@
 import { canonicalizeIdentifier } from '../../domain/identity/value-objects/canonicalize-identifier';
 import type { IdentifierType } from '../../domain/identity/value-objects/identifier-type';
 import type { IdentityRepository } from '../../domain/identity/repositories/identity-repository';
+import { RecoveryApprovalRecord } from '../../domain/recovery/entities/recovery-approval-record';
 import { RecoveryAttempt } from '../../domain/recovery/entities/recovery-attempt';
 import { RecoveryEvidenceRecord } from '../../domain/recovery/entities/recovery-evidence-record';
 import { RecoveryRequest } from '../../domain/recovery/entities/recovery-request';
 import { RecoveryStateTransition } from '../../domain/recovery/entities/recovery-state-transition';
 import type { RecoveryRequestRepository } from '../../domain/recovery/repositories/recovery-request-repository';
+import type { RecoveryApprovalDecision } from '../../domain/recovery/value-objects/recovery-approval-decision';
 import {
   type RecoveryEvidenceBoundary,
   type RecoveryEvidenceType,
@@ -21,6 +23,7 @@ import { ProtectedValue } from '../../domain/shared/value-objects/protected-valu
 import type { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
 import { OptimisticConcurrencyError } from '../../domain/shared/errors/optimistic-concurrency.error';
 import { RecoveryError } from '../errors/recovery.error';
+import type { ApprovalAuthorizationPort } from '../ports/approval-authorization.port';
 import type { ClockPort, UuidV7GenerationPort } from '../ports/application-runtime.port';
 import type { IdentifierLookupCryptographicPort } from '../ports/identifier-lookup-cryptographic.port';
 import type { OtpRecoveryCodeCryptographicPort } from '../ports/otp-recovery-code-cryptographic.port';
@@ -105,6 +108,28 @@ export interface RequestApprovalCommand {
 export interface RecoveryApprovalResult {
   readonly safeState: RecoveryState;
   readonly approvalRequired: boolean;
+  readonly version: number;
+}
+
+/**
+ * M01-REC-005. Records one approver decision on an APPROVAL_PENDING recovery
+ * request. The approver identity is the authenticated ordinary AAL2 session
+ * subject; the version precondition (If-Match) guards the aggregate write.
+ */
+export interface RecordApprovalDecisionCommand {
+  readonly recoveryRequestId: UuidV7;
+  readonly approverIdentityId: UuidV7;
+  readonly expectedRecoveryVersion: number;
+  readonly decision: RecoveryApprovalDecision;
+  readonly recoveryOperationClass: RecoveryOperationClass;
+  readonly approvalReasonCode: string;
+  /** Approver-declared UTC ISO-8601 expiry, validated and bounded by policy. */
+  readonly approvalExpiresAt: string;
+}
+
+export interface RecoveryApprovalDecisionResult {
+  readonly recoveryRequestId: string;
+  readonly recordedDecision: RecoveryApprovalDecision;
   readonly version: number;
 }
 
@@ -198,6 +223,16 @@ function effectiveClassification(
   return current?.properties.classification ?? 'STANDARD_AUTHENTICATION';
 }
 
+/**
+ * Deterministic required-approver count (spec Section 24 dual control). Both
+ * classifications that can reach APPROVAL_PENDING — PRIVILEGED_ADMIN, which
+ * fails closed to dual control because the approved strong self-service
+ * evidence set cannot be established, and SUPER_ADMIN, where dual control is
+ * mandatory — require two distinct Module 02-authorized approvers. One
+ * approver can never satisfy both approvals.
+ */
+const REQUIRED_APPROVAL_RECORDS = 2;
+
 function transition(
   properties: RecoveryRequest['properties'],
   recoveryStateTransitionId: UuidV7,
@@ -205,6 +240,7 @@ function transition(
   toState: RecoveryState,
   stateVersion: number,
   now: Date,
+  reasonCodeOverride?: string,
 ): RecoveryStateTransition {
   return new RecoveryStateTransition({
     recoveryStateTransitionId,
@@ -214,7 +250,10 @@ function transition(
     stateVersion,
     transitionedAt: now,
     createdAt: now,
-    reasonCode: `RECOVERY_${toState}`,
+    // M01-REC-005 approval transitions carry the approver's reason code so the
+    // reason is preserved in the immutable transition audit trail; every other
+    // transition keeps the deterministic machine-derived reason.
+    reasonCode: reasonCodeOverride ?? `RECOVERY_${toState}`,
   });
 }
 
@@ -269,6 +308,7 @@ export class RecoveryRequestApplicationService {
     private readonly recoveryRequests: RecoveryRequestRepository,
     private readonly identifierLookup: IdentifierLookupCryptographicPort,
     private readonly otpCrypto: OtpRecoveryCodeCryptographicPort,
+    private readonly approvalAuthorization: ApprovalAuthorizationPort,
     private readonly clock: ClockPort,
     private readonly identifiers: UuidV7GenerationPort,
     private readonly options: RecoveryRequestApplicationOptions,
@@ -777,6 +817,195 @@ export class RecoveryRequestApplicationService {
     return {
       safeState: updated.properties.recoveryState,
       approvalRequired: true,
+      version: updated.properties.aggregateVersion.value,
+    };
+  }
+
+  /**
+   * M01-REC-005. Records one approver decision on an APPROVAL_PENDING
+   * recovery request.
+   *
+   * The endpoint is MODULE_02_AUTHORIZED: the approver's ordinary AAL2
+   * session is enforced by the guard, and a current Module 02 authorization
+   * decision is obtained through the approved boundary at decision time
+   * (AUTHORIZATION_DENIED otherwise). The requester can never self-approve,
+   * one approver satisfies at most one decision (a duplicate pre-check plus
+   * the unique approver persistence constraint), decisions are bound to the
+   * request, identity, operation class, reason, decision and an expiry that
+   * can never exceed the recovery request's own expiry. When the required two
+   * distinct APPROVED records are reached the request moves APPROVAL_PENDING
+   * → APPROVED; a REJECTED decision fails the recovery securely into the
+   * terminal REJECTED state. Approval never authenticates the recovered
+   * identity.
+   */
+  public async recordApprovalDecision(
+    command: RecordApprovalDecisionCommand,
+  ): Promise<RecoveryApprovalDecisionResult> {
+    const request = await this.recoveryRequests.findById(command.recoveryRequestId);
+    const now = this.clock.now();
+    // Unknown and invalid locators are answered uniformly: the caller cannot
+    // distinguish a request that never existed from one in a terminal state.
+    if (request === null) throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+    const properties = request.properties;
+    if (properties.aggregateVersion.value !== command.expectedRecoveryVersion) {
+      throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+    }
+    if (properties.expiresAt <= now) throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+    // Only an APPROVAL_PENDING request can accept a decision: premature,
+    // already-approved, rejected, cancelled, expired or failed requests all
+    // fail closed, and an already-approved request can never receive further
+    // decisions.
+    if (properties.recoveryState !== 'APPROVAL_PENDING') {
+      throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+    }
+    // Decisions are bound to the operation class of the recovery request; the
+    // client can never widen or reselect it (spec Section 24).
+    if (command.recoveryOperationClass !== properties.operationClass) {
+      throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+    }
+    // The approver-declared expiry is bounded: it must be a valid future
+    // timestamp and can never outlive the recovery request itself, so an
+    // approval cannot be kept valid beyond the recovery window.
+    const approvalExpiresAt = new Date(command.approvalExpiresAt);
+    if (
+      Number.isNaN(approvalExpiresAt.getTime()) ||
+      approvalExpiresAt <= now ||
+      approvalExpiresAt > properties.expiresAt
+    ) {
+      throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+    }
+    // The requester shall never approve their own recovery (spec Section 24).
+    if (command.approverIdentityId.value === properties.identityId.value) {
+      throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+    }
+
+    // Defense-in-depth: the identity bound to the request must still be an
+    // eligible, VERIFIED, non-deleted identity (mirrors M01-REC-002/004).
+    const snapshot = await this.identityRepository.findAuthenticationById(properties.identityId);
+    if (
+      snapshot?.identity.properties.identityState !== 'ACTIVE' ||
+      snapshot.identity.properties.verificationState !== 'VERIFIED'
+    ) {
+      throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+    }
+
+    // A current Module 02 authorization decision is obtained at decision time
+    // through the approved boundary; the approver's session alone is never
+    // sufficient to approve a recovery.
+    const authorization = await this.approvalAuthorization.authorizeApprover({
+      approverIdentityId: command.approverIdentityId,
+      recoveryRequestId: command.recoveryRequestId,
+      recoveredIdentityId: properties.identityId,
+      operationClass: properties.operationClass,
+    });
+    if (!authorization.authorized) {
+      throw new RecoveryError('AUTHORIZATION_DENIED');
+    }
+
+    // One approver satisfies at most one decision per recovery request. The
+    // unique (request, approver) persistence constraint is the atomic
+    // backstop for a concurrent duplicate; the pre-check keeps the response
+    // deterministic.
+    const existingApprovals = await this.recoveryRequests.findApprovalRecords(
+      command.recoveryRequestId,
+    );
+    if (
+      existingApprovals.some(
+        (record) =>
+          record.properties.approverIdentityId.value === command.approverIdentityId.value,
+      )
+    ) {
+      throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+    }
+
+    const approvalRecord = new RecoveryApprovalRecord({
+      recoveryApprovalId: this.identifiers.next(),
+      recoveryRequestId: command.recoveryRequestId,
+      recoveredIdentityId: properties.identityId,
+      operation: properties.permittedOperation,
+      approverIdentityId: command.approverIdentityId,
+      // Only a non-sensitive reference to the current Module 02 decision is
+      // retained; no authorization material is ever stored.
+      approverAuthenticationEvidenceReference: new ProtectedValue(
+        authorization.authorizationReference ?? 'module-02:authorization',
+      ),
+      decision: command.decision,
+      decidedAt: now,
+      expiresAt: approvalExpiresAt,
+      createdAt: now,
+    });
+
+    // Canonical machine (spec Section 23): APPROVAL_PENDING → APPROVED once
+    // dual control is satisfied; a rejection fails the recovery securely into
+    // the terminal REJECTED state and no further decisions are accepted.
+    const transitions: RecoveryStateTransition[] = [];
+    let nextState: RecoveryState = properties.recoveryState;
+    let stateVersion = properties.stateVersion;
+    let approvedAt: Date | undefined = properties.approvedAt;
+    let terminalReason: string | undefined = properties.terminalReason;
+    if (command.decision === 'REJECTED') {
+      transitions.push(
+        transition(
+          properties,
+          this.identifiers.next(),
+          'APPROVAL_PENDING',
+          'REJECTED',
+          ++stateVersion,
+          now,
+          command.approvalReasonCode,
+        ),
+      );
+      nextState = 'REJECTED';
+      terminalReason = 'APPROVAL_REJECTED';
+    } else {
+      const approvedCount =
+        existingApprovals.filter((record) => record.properties.decision === 'APPROVED').length +
+        1;
+      if (approvedCount >= REQUIRED_APPROVAL_RECORDS) {
+        transitions.push(
+          transition(
+            properties,
+            this.identifiers.next(),
+            'APPROVAL_PENDING',
+            'APPROVED',
+            ++stateVersion,
+            now,
+            command.approvalReasonCode,
+          ),
+        );
+        nextState = 'APPROVED';
+        approvedAt = now;
+      }
+    }
+
+    const updated = new RecoveryRequest({
+      ...properties,
+      recoveryState: nextState,
+      stateVersion,
+      aggregateVersion: new AggregateVersion(properties.aggregateVersion.value + 1),
+      updatedAt: now,
+      ...(approvedAt === undefined ? {} : { approvedAt }),
+      ...(terminalReason === undefined ? {} : { terminalReason }),
+    });
+    try {
+      await this.recoveryRequests.recordApprovalDecision({
+        recoveryRequestId: command.recoveryRequestId,
+        expectedRecoveryVersion: properties.aggregateVersion,
+        updatedRecoveryRequest: updated,
+        approvalRecord,
+        transitionsToAppend: transitions,
+      });
+    } catch (error) {
+      // A stale version or a concurrent duplicate decision rolls the change
+      // set back; the caller is answered uniformly without revealing why.
+      if (error instanceof OptimisticConcurrencyError) {
+        throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+      }
+      throw error;
+    }
+    return {
+      recoveryRequestId: command.recoveryRequestId.value,
+      recordedDecision: command.decision,
       version: updated.properties.aggregateVersion.value,
     };
   }

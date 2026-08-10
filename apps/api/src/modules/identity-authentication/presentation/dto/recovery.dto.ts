@@ -1,12 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,
+  IsISO8601,
   IsOptional,
   IsString,
   IsObject,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { RECOVERY_APPROVAL_DECISIONS } from '../../domain/recovery/value-objects/recovery-approval-decision';
 import { RECOVERY_EVIDENCE_TYPES } from '../../domain/recovery/value-objects/recovery-evidence';
 import { RECOVERY_OPERATION_CLASSES } from '../../domain/recovery/value-objects/recovery-operation-class';
 
@@ -84,4 +86,31 @@ export class RecoveryApprovalRequestDto {
   @MinLength(1)
   @MaxLength(32)
   public readonly recoveryPolicyVersion!: string;
+}
+
+/**
+ * M01-REC-005 request. A Module 02-authorized approver records one decision
+ * bound to the recovery request: the decision, the operation class being
+ * approved (must match the request), a non-sensitive reason code, and a
+ * declared expiry that the server validates and bounds. Module 02
+ * roles/permissions are absent from every field.
+ */
+export class RecoveryApprovalDecisionDto {
+  @ApiProperty({ enum: RECOVERY_APPROVAL_DECISIONS })
+  @IsEnum(RECOVERY_APPROVAL_DECISIONS)
+  public readonly decision!: (typeof RECOVERY_APPROVAL_DECISIONS)[number];
+
+  @ApiProperty({ enum: RECOVERY_OPERATION_CLASSES })
+  @IsEnum(RECOVERY_OPERATION_CLASSES)
+  public readonly recoveryOperationClass!: (typeof RECOVERY_OPERATION_CLASSES)[number];
+
+  @ApiProperty({ minLength: 1, maxLength: 64 })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(64)
+  public readonly approvalReasonCode!: string;
+
+  @ApiProperty()
+  @IsISO8601()
+  public readonly approvalExpiresAt!: string;
 }
