@@ -18,6 +18,7 @@ import type { SessionRepository } from '../../domain/session/repositories/sessio
 import type { VerificationChallengeRepository } from '../../domain/verification/repositories/verification-challenge-repository';
 import { PermittedRecoveryOperation } from '../../domain/recovery/value-objects/permitted-recovery-operation';
 import { RecoveryPolicyVersion } from '../../domain/recovery/value-objects/recovery-policy-version';
+import type { RecoveryState } from '../../domain/recovery/value-objects/recovery-state';
 import type { RecoveryApprovalDecision } from '../../domain/recovery/value-objects/recovery-approval-decision';
 import { AggregateVersion } from '../../domain/shared/value-objects/aggregate-version';
 import { ProtectedValue } from '../../domain/shared/value-objects/protected-value';
@@ -1523,6 +1524,123 @@ describe('RecoveryRequestApplicationService.executeRecovery (M01-REC-006)', () =
     );
 
     await expect(service.executeRecovery(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+  });
+});
+
+describe('RecoveryRequestApplicationService.cancelRecovery (M01-REC-007)', () => {
+  beforeEach(() => {
+    UUID_QUEUE.length = 0;
+  });
+
+  const command = {
+    recoveryRequestId: new UuidV7(RECOVERY_REQUEST_ID),
+    expectedRecoveryVersion: 3,
+  };
+
+  function inProgressRequest(
+    recoveryState: RecoveryState,
+    version = 3,
+  ): RecoveryRequest {
+    return buildRecoveryRequest({
+      recoveryState,
+      stateVersion: version,
+      aggregateVersion: new AggregateVersion(version),
+    });
+  }
+
+  it('cancels every policy-approved in-progress state to CANCELLED with the immutable transition', async () => {
+    for (const recoveryState of [
+      'REQUESTED',
+      'EVIDENCE_PENDING',
+      'EVIDENCE_VERIFIED',
+      'APPROVAL_PENDING',
+      'APPROVED',
+    ] as const) {
+      const { service, recoveryRequests } = createFixture();
+      recoveryRequests.findById.mockResolvedValue(inProgressRequest(recoveryState));
+
+      const result = await service.cancelRecovery(command);
+
+      expect(result).toEqual({
+        recoveryRequestId: RECOVERY_REQUEST_ID,
+        safeState: 'CANCELLED',
+        version: 4,
+      });
+      const changeSet = recoveryRequests.save.mock.calls[0]?.[0];
+      expect(changeSet?.recoveryRequest.properties).toMatchObject({
+        recoveryState: 'CANCELLED',
+        stateVersion: 4,
+        aggregateVersion: { value: 4 },
+        terminalReason: 'RECOVERY_CANCELLED',
+      });
+      expect(changeSet?.transitionsToAppend).toHaveLength(1);
+      expect(changeSet?.transitionsToAppend[0]?.properties).toMatchObject({
+        fromState: recoveryState,
+        toState: 'CANCELLED',
+        stateVersion: 4,
+        reasonCode: 'RECOVERY_CANCELLED',
+      });
+      expect(recoveryRequests.save).toHaveBeenCalledWith(expect.anything(), {
+        value: 3,
+      });
+    }
+  });
+
+  it('fails closed for terminal, expired and executing states without mutating state', async () => {
+    for (const recoveryState of [
+      'EXECUTING',
+      'COMPLETED',
+      'REJECTED',
+      'CANCELLED',
+      'EXPIRED',
+      'FAILED_SECURELY',
+    ] as const) {
+      const { service, recoveryRequests } = createFixture();
+      recoveryRequests.findById.mockResolvedValue(inProgressRequest(recoveryState));
+
+      await expect(service.cancelRecovery(command)).rejects.toMatchObject({
+        code: 'RECOVERY_STATE_CONFLICT',
+      });
+      expect(recoveryRequests.save).not.toHaveBeenCalled();
+    }
+  });
+
+  it('fails closed on a stale version, an expired request or an unknown locator', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(inProgressRequest('EVIDENCE_PENDING'));
+
+    await expect(service.cancelRecovery({ ...command, expectedRecoveryVersion: 2 })).rejects
+      .toMatchObject({ code: 'RECOVERY_STATE_CONFLICT' });
+
+    recoveryRequests.findById.mockResolvedValue(
+      buildRecoveryRequest({
+        recoveryState: 'EVIDENCE_PENDING',
+        stateVersion: 3,
+        aggregateVersion: new AggregateVersion(3),
+        createdAt: new Date(FIXED_NOW.getTime() - 7_200_000),
+        updatedAt: new Date(FIXED_NOW.getTime() - 7_200_000),
+        expiresAt: new Date(FIXED_NOW.getTime() - 3_600_000),
+      }),
+    );
+    await expect(service.cancelRecovery(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+
+    recoveryRequests.findById.mockResolvedValue(null);
+    await expect(service.cancelRecovery(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
+  it('maps a stale-version cancellation race to RECOVERY_STATE_CONFLICT', async () => {
+    const { service, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(inProgressRequest('EVIDENCE_VERIFIED'));
+    recoveryRequests.save.mockRejectedValue(new OptimisticConcurrencyError('RecoveryRequest'));
+
+    await expect(service.cancelRecovery(command)).rejects.toMatchObject({
       code: 'RECOVERY_STATE_CONFLICT',
     });
   });

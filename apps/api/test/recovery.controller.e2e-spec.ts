@@ -43,6 +43,7 @@ describe('Module 01 recovery API (integration)', () => {
   const requestApproval = jest.fn();
   const recordApprovalDecision = jest.fn();
   const executeRecovery = jest.fn();
+  const cancelRecovery = jest.fn();
 
   const recoveryRequests = {
     startRecovery,
@@ -51,6 +52,7 @@ describe('Module 01 recovery API (integration)', () => {
     requestApproval,
     recordApprovalDecision,
     executeRecovery,
+    cancelRecovery,
   } as unknown as jest.Mocked<RecoveryRequestApplicationService>;
 
   const jwt = { verifyAccessToken: jest.fn() } as unknown as jest.Mocked<JwtCryptographicPort>;
@@ -904,6 +906,78 @@ describe('Module 01 recovery API (integration)', () => {
         .expect(400);
 
       expect(executeRecovery).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('M01-REC-007 DELETE /api/v1/recovery-requests/:id', () => {
+    it('cancels an in-progress recovery and returns 204 with an empty response', async () => {
+      cancelRecovery.mockResolvedValueOnce({
+        recoveryRequestId: recoveryRequestLocator,
+        safeState: 'CANCELLED',
+        version: 4,
+      });
+
+      const response = await request(server)
+        .delete(`/recovery-requests/${recoveryRequestLocator}`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .expect(204);
+
+      expect(response.body).toEqual({});
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(cancelRecovery).toHaveBeenCalledWith({
+        recoveryRequestId: new UuidV7(recoveryRequestLocator),
+        expectedRecoveryVersion: 3,
+      });
+    });
+
+    it('maps RECOVERY_STATE_CONFLICT to 412', async () => {
+      cancelRecovery.mockRejectedValueOnce(new RecoveryError('RECOVERY_STATE_CONFLICT'));
+
+      const response = await request(server)
+        .delete(`/recovery-requests/${recoveryRequestLocator}`)
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .expect(412);
+
+      expect(response.body).toEqual({
+        statusCode: 412,
+        message: 'RECOVERY_STATE_CONFLICT',
+        error: 'Precondition Failed',
+      });
+    });
+
+    it('answers a malformed locator uniformly with 412', async () => {
+      const response = await request(server)
+        .delete('/recovery-requests/not-a-uuid')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', '"recovery-request:not-a-uuid:v3"')
+        .expect(412);
+
+      expect(response.body).toEqual({
+        statusCode: 412,
+        message: 'RECOVERY_STATE_CONFLICT',
+        error: 'Precondition Failed',
+      });
+      expect(cancelRecovery).not.toHaveBeenCalled();
+    });
+
+    it('rejects a request without Idempotency-Key (400)', async () => {
+      await request(server)
+        .delete(`/recovery-requests/${recoveryRequestLocator}`)
+        .set('If-Match', `"recovery-request:${recoveryRequestLocator}:v3"`)
+        .expect(400);
+
+      expect(cancelRecovery).not.toHaveBeenCalled();
+    });
+
+    it('rejects a request without If-Match (400)', async () => {
+      await request(server)
+        .delete(`/recovery-requests/${recoveryRequestLocator}`)
+        .set('Idempotency-Key', idempotencyKey)
+        .expect(400);
+
+      expect(cancelRecovery).not.toHaveBeenCalled();
     });
   });
 });

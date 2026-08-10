@@ -162,6 +162,25 @@ export interface RecoveryExecutionResult {
   readonly version: number;
 }
 
+/**
+ * M01-REC-007. Cancels an in-progress recovery request. The recovery-request
+ * locator is the caller's Bound Recovery Session credential; the version
+ * precondition (If-Match) guards the aggregate write. Cancellation is only
+ * permitted from the approved non-terminal states (REQUESTED, EVIDENCE_PENDING,
+ * EVIDENCE_VERIFIED, APPROVAL_PENDING, APPROVED); terminal, expired and
+ * executing states fail closed.
+ */
+export interface CancelRecoveryCommand {
+  readonly recoveryRequestId: UuidV7;
+  readonly expectedRecoveryVersion: number;
+}
+
+export interface RecoveryCancellationResult {
+  readonly recoveryRequestId: string;
+  readonly safeState: 'CANCELLED';
+  readonly version: number;
+}
+
 /** Non-sensitive failure reasons recorded on rejected evidence/attempt rows. */
 export type RejectedEvidenceReason =
   | 'UNSUPPORTED_EVIDENCE_TYPE'
@@ -307,6 +326,21 @@ const TERMINAL_RECOVERY_STATES: readonly RecoveryState[] = [
   'CANCELLED',
   'EXPIRED',
   'FAILED_SECURELY',
+];
+
+/**
+ * The policy-approved non-terminal states a recovery request may be cancelled
+ * from (spec Section 23 / M01-REC-007): every in-progress state before
+ * execution. EXECUTING is execution-owned and never observable in practice
+ * (M01-REC-006 completes atomically in one write), so it is not cancellable;
+ * terminal states and expiry fail closed.
+ */
+const CANCELLABLE_RECOVERY_STATES: readonly RecoveryState[] = [
+  'REQUESTED',
+  'EVIDENCE_PENDING',
+  'EVIDENCE_VERIFIED',
+  'APPROVAL_PENDING',
+  'APPROVED',
 ];
 
 /**
@@ -1258,6 +1292,81 @@ export class RecoveryRequestApplicationService {
       recoveryRequestId: command.recoveryRequestId.value,
       safeState: 'COMPLETED',
       reauthenticationRequired: true,
+      version: updated.properties.aggregateVersion.value,
+    };
+  }
+
+  /**
+   * M01-REC-007. Cancels an in-progress recovery request.
+   *
+   * The recovery-request locator in the path is the caller's Bound Recovery
+   * Session credential; the version precondition (If-Match) guards the
+   * aggregate write. Cancellation is only permitted from the approved
+   * non-terminal states (REQUESTED, EVIDENCE_PENDING, EVIDENCE_VERIFIED,
+   * APPROVAL_PENDING, APPROVED); a completed, rejected, expired,
+   * already-cancelled, failed or executing request fails closed with
+   * RECOVERY_STATE_CONFLICT and no state is mutated. The immutable
+   * CANCELLED transition is recorded with the version guard in one atomic
+   * write, so a stale or concurrent caller can never cancel twice or cancel a
+   * request another caller has already completed.
+   */
+  public async cancelRecovery(command: CancelRecoveryCommand): Promise<RecoveryCancellationResult> {
+    const request = await this.recoveryRequests.findById(command.recoveryRequestId);
+    const now = this.clock.now();
+    // Unknown and invalid locators are answered uniformly so recovery state is
+    // never enumerable through this endpoint.
+    if (request === null) throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    const properties = request.properties;
+    if (properties.aggregateVersion.value !== command.expectedRecoveryVersion) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+    if (properties.expiresAt <= now) throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    // Only the policy-approved in-progress states may be cancelled; every
+    // terminal state and EXECUTING fail closed (spec Section 23).
+    if (!CANCELLABLE_RECOVERY_STATES.includes(properties.recoveryState)) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
+
+    const stateVersion = properties.stateVersion + 1;
+    const transitionRecord = transition(
+      properties,
+      this.identifiers.next(),
+      properties.recoveryState,
+      'CANCELLED',
+      stateVersion,
+      now,
+    );
+    const updated = new RecoveryRequest({
+      ...properties,
+      recoveryState: 'CANCELLED',
+      stateVersion,
+      aggregateVersion: new AggregateVersion(properties.aggregateVersion.value + 1),
+      terminalReason: 'RECOVERY_CANCELLED',
+      updatedAt: now,
+    });
+    try {
+      await this.recoveryRequests.save(
+        {
+          recoveryRequest: updated,
+          evidence: [],
+          notifications: [],
+          approvalsToAppend: [],
+          attemptsToAppend: [],
+          transitionsToAppend: [transitionRecord],
+        },
+        properties.aggregateVersion,
+      );
+    } catch (error) {
+      // The version guard throws on a stale version and rolls the change set
+      // back, so a concurrent execution or cancellation can never win twice.
+      if (error instanceof OptimisticConcurrencyError) {
+        throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+      }
+      throw error;
+    }
+    return {
+      recoveryRequestId: command.recoveryRequestId.value,
+      safeState: 'CANCELLED',
       version: updated.properties.aggregateVersion.value,
     };
   }

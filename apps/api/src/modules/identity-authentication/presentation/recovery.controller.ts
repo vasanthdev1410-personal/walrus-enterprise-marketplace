@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Headers,
@@ -465,6 +466,70 @@ export class RecoveryController {
           version: result.version,
         }),
       );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  /**
+   * M01-REC-007. Cancels an in-progress recovery request.
+   *
+   * The recovery-request locator in the path is the caller's Bound Recovery
+   * Session credential; the version precondition (If-Match) guards the
+   * aggregate write and Idempotency-Key is required. The request has no body;
+   * a successful cancellation returns 204 with an empty response. Only the
+   * approved non-terminal states are cancellable; terminal, expired and
+   * executing requests fail closed with RECOVERY_STATE_CONFLICT (412).
+   */
+  @Delete(':recoveryRequestId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @RateLimit({ limit: 5, windowSeconds: 900 })
+  @ApiOperation({
+    operationId: 'M01-REC-007',
+    summary: 'Cancel an in-progress recovery request',
+  })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiHeader({ name: 'If-Match', required: true })
+  public async cancelRecovery(
+    @Param('recoveryRequestId') recoveryRequestId: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Res() response: Response,
+  ): Promise<void> {
+    assertIdempotencyKey(idempotencyKey);
+    let requestIdValue: UuidV7;
+    try {
+      requestIdValue = new UuidV7(recoveryRequestId);
+    } catch {
+      // A malformed locator is indistinguishable from an unknown or invalid
+      // one, so the response stays uniform and recovery state is never
+      // enumerable.
+      throw new PreconditionFailedException('RECOVERY_STATE_CONFLICT');
+    }
+    const expectedRecoveryVersion = etagVersion(
+      ifMatch,
+      `recovery-request:${requestIdValue.value}`,
+    );
+    try {
+      await this.idempotency.execute({
+        // The recovery request is the cancellation subject; the idempotency
+        // scope is bound to it so a key cannot be replayed across requests.
+        // The fingerprint carries only the version precondition; no recovery
+        // or identity material is stored.
+        scope: `recovery-request:${requestIdValue.value}`,
+        operationType: 'M01-REC-007',
+        idempotencyKey,
+        request: {
+          ifMatch,
+        },
+        execute: () =>
+          this.recoveryRequests.cancelRecovery({
+            recoveryRequestId: requestIdValue,
+            expectedRecoveryVersion,
+          }),
+      });
+      noStore(response);
+      response.status(HttpStatus.NO_CONTENT).send();
     } catch (error) {
       this.handleError(error);
     }
