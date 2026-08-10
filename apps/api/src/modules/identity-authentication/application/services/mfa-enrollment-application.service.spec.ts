@@ -3,10 +3,13 @@
 import { Identity } from '../../domain/identity/entities/identity';
 import { MfaEnrollment } from '../../domain/identity/entities/mfa-enrollment';
 import { MfaFactor } from '../../domain/identity/entities/mfa-factor';
+import { RecoveryCodeRecord } from '../../domain/identity/entities/recovery-code-record';
+import { RecoveryCodeSet } from '../../domain/identity/entities/recovery-code-set';
 import type {
   IdentityAggregateChangeSet,
   IdentityAuthenticationSnapshot,
   IdentityRepository,
+  RecoveryCodeSetsSnapshot,
 } from '../../domain/identity/repositories/identity-repository';
 import { OptimisticConcurrencyError } from '../../domain/shared/errors/optimistic-concurrency.error';
 import { AggregateVersion } from '../../domain/shared/value-objects/aggregate-version';
@@ -390,6 +393,76 @@ describe('MfaEnrollmentApplicationService', () => {
       version: 2,
     });
   });
+
+  it('M01-MFA-003 reports ACTIVE recovery codes in the current ACTIVE set', async () => {
+    const setVersion = new RecoveryCodeSet({
+      recoveryCodeSetId: new UuidV7('01890f3e-7b5a-7cc0-8c9d-1234567890c1'),
+      identityId,
+      setVersion: 2,
+      setState: 'ACTIVE',
+      createdAt: now,
+    });
+    const activeCodes = Array.from({ length: 8 }, (_, index) => {
+      const suffix = (index + 1).toString().padStart(12, '0');
+      return new RecoveryCodeRecord({
+        recoveryCodeId: new UuidV7(`01890f3e-7b5a-7cc0-8c9d-${suffix}`),
+        recoveryCodeSetId: setVersion.properties.recoveryCodeSetId,
+        codeDigest: new ProtectedValue(`digest-${String(index + 1)}`),
+        codeState: 'ACTIVE',
+        createdAt: now,
+      });
+    });
+    const consumed = new RecoveryCodeRecord({
+      recoveryCodeId: new UuidV7('01890f3e-7b5a-7cc0-8c9d-000000000099'),
+      recoveryCodeSetId: setVersion.properties.recoveryCodeSetId,
+      codeDigest: new ProtectedValue('digest-consumed'),
+      codeState: 'CONSUMED',
+      createdAt: now,
+      consumedAt: now,
+    });
+    const fixture = createFixture({
+      snapshot: buildSnapshot(
+        [buildEnrollment('ACTIVE', { activatedAt: now })],
+        [buildFactor('ACTIVE', factorId, enrollmentId, { verifiedAt: now })],
+      ),
+      recoverySets: {
+        recoveryCodeSets: [setVersion],
+        recoveryCodes: [...activeCodes, consumed],
+      },
+    });
+
+    await expect(fixture.service.readStatus(identityId)).resolves.toMatchObject({
+      enrollmentState: 'ACTIVE',
+      recoveryCodeCount: 8,
+    });
+  });
+
+  it('M01-MFA-003 reports zero recovery codes when only a superseded set exists', async () => {
+    const fixture = createFixture({
+      snapshot: buildSnapshot(
+        [buildEnrollment('ACTIVE', { activatedAt: now })],
+        [buildFactor('ACTIVE', factorId, enrollmentId, { verifiedAt: now })],
+      ),
+      recoverySets: {
+        recoveryCodeSets: [
+          new RecoveryCodeSet({
+            recoveryCodeSetId: new UuidV7('01890f3e-7b5a-7cc0-8c9d-1234567890c2'),
+            identityId,
+            setVersion: 1,
+            setState: 'SUPERSEDED',
+            createdAt: now,
+            invalidatedAt: now,
+            invalidationReason: 'REGENERATED',
+          }),
+        ],
+        recoveryCodes: [],
+      },
+    });
+
+    await expect(fixture.service.readStatus(identityId)).resolves.toMatchObject({
+      recoveryCodeCount: 0,
+    });
+  });
 });
 
 interface Fixture {
@@ -412,11 +485,18 @@ interface Fixture {
 interface FixtureOptions {
   readonly snapshot: IdentityAuthenticationSnapshot;
   readonly activeChallenge?: VerificationChallenge | null;
+  readonly recoverySets?: RecoveryCodeSetsSnapshot | null;
 }
 
 function createFixture(options: FixtureOptions): Fixture {
+  const findRecoveryCodeSets = jest
+    .fn()
+    .mockResolvedValue(
+      options.recoverySets ?? { recoveryCodeSets: [], recoveryCodes: [] },
+    );
   const identities = {
     findAuthenticationById: jest.fn().mockResolvedValue(options.snapshot),
+    findRecoveryCodeSets,
     save: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<IdentityRepository>;
   const insertChallenge: jest.MockedFunction<VerificationChallengeRepository['insert']> =

@@ -127,6 +127,7 @@ describe('RegistrationApplicationService', () => {
 
   const identityRepository: jest.Mocked<IdentityRepository> = {
     findPasswordHistory: jest.fn(),
+    findRecoveryCodeSets: jest.fn(),
     findById: jest.fn(),
     findAuthenticationById: jest.fn(),
     findByIdentifierLookups: jest.fn(),

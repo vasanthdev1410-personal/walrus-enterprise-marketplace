@@ -135,6 +135,7 @@ function createFixture(): PasswordResetFixture {
   const identityRepository: jest.Mocked<IdentityRepository> = {
     findById: jest.fn(),
     findPasswordHistory: jest.fn().mockResolvedValue([]),
+    findRecoveryCodeSets: jest.fn(),
     findAuthenticationById: jest.fn(),
     findByIdentifierLookups: jest.fn(),
     insert: jest.fn(),

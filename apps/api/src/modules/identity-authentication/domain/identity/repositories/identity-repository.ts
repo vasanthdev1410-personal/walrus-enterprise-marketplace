@@ -28,6 +28,12 @@ export interface IdentityRepository {
    * password-reuse policy (M01-CRED-001).
    */
   findPasswordHistory(identityId: UuidV7, limit: number): Promise<readonly PasswordHistoryRecord[]>;
+  /**
+   * Returns the identity's recovery-code sets and their codes, newest set
+   * first. Used by the approved recovery-code lifecycle (M01-MFA-005).
+   * Returns null when the identity does not exist.
+   */
+  findRecoveryCodeSets(identityId: UuidV7): Promise<RecoveryCodeSetsSnapshot | null>;
   insert(changeSet: IdentityAggregateChangeSet): Promise<void>;
   save(changeSet: IdentityAggregateChangeSet, expectedVersion: AggregateVersion): Promise<void>;
   advanceTotpReplayState(
@@ -44,6 +50,12 @@ export interface IdentityAuthenticationSnapshot {
   readonly classificationAssignments: readonly AuthenticationSecurityClassificationAssignment[];
   readonly mfaEnrollments: readonly MfaEnrollment[];
   readonly mfaFactors: readonly MfaFactor[];
+}
+
+export interface RecoveryCodeSetsSnapshot {
+  /** Sets ordered by setVersion descending (newest first). */
+  readonly recoveryCodeSets: readonly RecoveryCodeSet[];
+  readonly recoveryCodes: readonly RecoveryCodeRecord[];
 }
 
 export interface IdentityAggregateChangeSet {

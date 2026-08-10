@@ -6,6 +6,7 @@ import type {
   IdentityAuthenticationSnapshot,
   IdentityAggregateChangeSet,
   IdentityRepository,
+  RecoveryCodeSetsSnapshot,
 } from '../../../../domain/identity/repositories/identity-repository';
 import type { IdentifierType } from '../../../../domain/identity/value-objects/identifier-type';
 import type { AggregateVersion } from '../../../../domain/shared/value-objects/aggregate-version';
@@ -46,6 +47,31 @@ export class PrismaIdentityRepository implements IdentityRepository {
       where: { identityId: identityId.value },
     });
     return record === null ? null : identityMapper.toDomain(record);
+  }
+
+  public async findRecoveryCodeSets(
+    identityId: UuidV7,
+  ): Promise<RecoveryCodeSetsSnapshot | null> {
+    const record = await this.prisma.identity.findUnique({
+      where: { identityId: identityId.value },
+      include: {
+        recoveryCodeSets: {
+          orderBy: { setVersion: 'desc' },
+          include: { codes: true },
+        },
+      },
+    });
+    if (record === null) return null;
+    return Object.freeze({
+      recoveryCodeSets: Object.freeze(
+        record.recoveryCodeSets.map((set) => recoveryCodeSetMapper.toDomain(set)),
+      ),
+      recoveryCodes: Object.freeze(
+        record.recoveryCodeSets.flatMap((set) =>
+          set.codes.map((code) => recoveryCodeMapper.toDomain(code)),
+        ),
+      ),
+    });
   }
 
   public async findPasswordHistory(

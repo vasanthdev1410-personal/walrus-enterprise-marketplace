@@ -195,6 +195,7 @@ function createFixture(
   let nextIdentifier = 200;
   const identityRepository: jest.Mocked<IdentityRepository> = {
     findPasswordHistory: jest.fn(),
+    findRecoveryCodeSets: jest.fn(),
     findById: jest.fn(),
     findAuthenticationById: jest.fn(),
     findByIdentifierLookups: jest.fn().mockResolvedValue(authenticationSnapshot),

@@ -5,6 +5,7 @@ import { AuthenticationApplicationService } from './application/services/authent
 import { IdentityManagementApplicationService } from './application/services/identity-management-application.service';
 import { MfaEnrollmentApplicationService } from './application/services/mfa-enrollment-application.service';
 import { PasswordResetApplicationService } from './application/services/password-reset-application.service';
+import { RecoveryCodeSetApplicationService } from './application/services/recovery-code-set-application.service';
 import { RegistrationApplicationService } from './application/services/registration-application.service';
 import { TotpMfaAuthenticationAdapter } from './application/services/totp-mfa-authentication.adapter';
 import { VerificationApplicationService } from './application/services/verification-application.service';
@@ -45,6 +46,7 @@ import {
   MFA_ENROLLMENT_APPLICATION_SERVICE,
   PASSWORD_RESET_APPLICATION_SERVICE,
   RATE_LIMITER,
+  RECOVERY_CODE_SET_APPLICATION_SERVICE,
   REGISTRATION_APPLICATION_SERVICE,
   VERIFICATION_APPLICATION_SERVICE,
 } from './presentation/authentication.tokens';
@@ -348,6 +350,28 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
           environment: application.values.APP_ENV,
           challengeLifetimeSeconds: configuration.totp.challengeLifetimeSeconds,
           maximumVerificationAttempts: configuration.totp.maximumVerificationAttempts,
+        }),
+    },
+    {
+      provide: RECOVERY_CODE_SET_APPLICATION_SERVICE,
+      inject: [
+        IDENTITY_REPOSITORY,
+        OTP_CRYPTOGRAPHY,
+        CLOCK,
+        UUID_V7_GENERATOR,
+        MODULE_CONFIGURATION,
+        ConfigurationService,
+      ],
+      useFactory: (
+        identities: never,
+        otpCrypto: NonProductionOtpRecoveryCodeAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+        application: ConfigurationService,
+      ) =>
+        new RecoveryCodeSetApplicationService(identities, otpCrypto, clock, identifiers, {
+          environment: application.values.APP_ENV,
         }),
     },
     {

@@ -393,15 +393,27 @@ export class MfaEnrollmentApplicationService {
 
   /**
    * M01-MFA-003. Status read. Never exposes MFA secrets, digests or setup
-   * material. The recovery-code count is owned by the recovery-code milestone
-   * (M01-MFA-005 / M01-REC-006) and is reported as zero here because no
-   * recovery-code set has been implemented yet.
+   * material. The recovery-code count reflects ACTIVE codes in the current
+   * ACTIVE recovery-code set (issued by M01-MFA-005); no set means zero.
    */
   public async readStatus(identityId: UuidV7): Promise<MfaStatusResult> {
     const snapshot = await this.identities.findAuthenticationById(identityId);
     if (snapshot === null) {
       throw new Error('Identity snapshot unavailable for MFA status');
     }
+    const recovery = await this.identities.findRecoveryCodeSets(identityId);
+    const activeSet = recovery?.recoveryCodeSets.find(
+      (set) => set.properties.setState === 'ACTIVE',
+    );
+    const recoveryCodeCount =
+      activeSet === undefined || recovery === null
+        ? 0
+        : recovery.recoveryCodes.filter(
+            (code) =>
+              code.properties.recoveryCodeSetId.value ===
+                activeSet.properties.recoveryCodeSetId.value &&
+              code.properties.codeState === 'ACTIVE',
+          ).length;
     const enrollment =
       snapshot.mfaEnrollments.find((candidate) => candidate.properties.enrollmentState === 'ACTIVE') ??
       snapshot.mfaEnrollments.find(
@@ -445,7 +457,7 @@ export class MfaEnrollmentApplicationService {
       enrollmentState,
       activeFactorTypes,
       replacementRequired,
-      recoveryCodeCount: 0,
+      recoveryCodeCount,
       version,
     };
   }

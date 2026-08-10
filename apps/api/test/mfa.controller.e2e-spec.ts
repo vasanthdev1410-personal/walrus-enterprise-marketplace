@@ -5,6 +5,7 @@ import request from 'supertest';
 import { MfaError } from '../src/modules/identity-authentication/application/errors/mfa.error';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
 import type { MfaEnrollmentApplicationService } from '../src/modules/identity-authentication/application/services/mfa-enrollment-application.service';
+import type { RecoveryCodeSetApplicationService } from '../src/modules/identity-authentication/application/services/recovery-code-set-application.service';
 import type { JwtCryptographicPort } from '../src/modules/identity-authentication/application/ports/jwt-cryptographic.port';
 import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
 import type { SessionRepository } from '../src/modules/identity-authentication/domain/session/repositories/session-repository';
@@ -14,7 +15,9 @@ import {
   BASIC_AUDIT_LOGGER,
   MFA_ENROLLMENT_APPLICATION_SERVICE,
   RATE_LIMITER,
+  RECOVERY_CODE_SET_APPLICATION_SERVICE,
 } from '../src/modules/identity-authentication/presentation/authentication.tokens';
+import { Aal2SessionGuard } from '../src/modules/identity-authentication/presentation/guards/aal2-session.guard';
 import { AuthoritativeSessionGuard } from '../src/modules/identity-authentication/presentation/guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from '../src/modules/identity-authentication/presentation/guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from '../src/modules/identity-authentication/presentation/interceptors/basic-audit.interceptor';
@@ -42,6 +45,11 @@ describe('Module 01 MFA enrollment API (integration)', () => {
     readStatus,
   } as unknown as jest.Mocked<MfaEnrollmentApplicationService>;
 
+  const regenerateRecoveryCodes = jest.fn();
+  const recoveryCodeSets = {
+    regenerate: regenerateRecoveryCodes,
+  } as unknown as jest.Mocked<RecoveryCodeSetApplicationService>;
+
   const idempotency = {
     execute: jest.fn(async (execution: { execute: () => Promise<unknown> }) => execution.execute()),
   } as unknown as jest.Mocked<ApiIdempotencyService>;
@@ -68,6 +76,7 @@ describe('Module 01 MFA enrollment API (integration)', () => {
       controllers: [MfaController],
       providers: [
         { provide: MFA_ENROLLMENT_APPLICATION_SERVICE, useValue: mfaEnrollment },
+        { provide: RECOVERY_CODE_SET_APPLICATION_SERVICE, useValue: recoveryCodeSets },
         { provide: API_IDEMPOTENCY, useValue: idempotency },
         { provide: RATE_LIMITER, useValue: rateLimiter },
         { provide: BASIC_AUDIT_LOGGER, useValue: auditLogger },
@@ -75,6 +84,7 @@ describe('Module 01 MFA enrollment API (integration)', () => {
         { provide: SESSION_REPOSITORY, useValue: sessions },
         { provide: IDENTITY_REPOSITORY, useValue: identities },
         AuthoritativeSessionGuard,
+        Aal2SessionGuard,
         NonProductionRateLimiterGuard,
         BasicAuditInterceptor,
       ],
@@ -128,6 +138,100 @@ describe('Module 01 MFA enrollment API (integration)', () => {
         lockedUntil: undefined,
       },
     } as never);
+  });
+
+  describe('M01-MFA-005 POST /mfa/recovery-code-sets', () => {
+    function useAal2Session(): void {
+      jwt.verifyAccessToken.mockResolvedValue({
+        subject: identityId,
+        sessionId,
+        jwtId: 'jwt',
+        issuer: 'issuer',
+        audience: 'audience',
+        issuedAt: new Date(),
+        expiresAt: new Date(Date.now() + 60_000),
+        authenticationMethods: ['PASSWORD', 'TOTP_AUTHENTICATOR'],
+        authenticationAssurance: 'AAL2',
+        sessionVersion: 1,
+      });
+      sessions.findById.mockResolvedValue({
+        properties: {
+          identityId: { value: identityId },
+          sessionState: 'ACTIVE',
+          sessionClass: 'INTERACTIVE_WEB',
+          sessionVersion: { value: 1 },
+          authenticationAssurance: 'AAL2',
+          mfaVerifiedAt: new Date(Date.now() - 60_000),
+          idleExpiresAt: new Date(Date.now() + 60_000),
+          absoluteExpiresAt: new Date(Date.now() + 120_000),
+        },
+      } as never);
+    }
+
+    it('regenerates the recovery-code set and returns raw codes exactly once (201)', async () => {
+      useAal2Session();
+      regenerateRecoveryCodes.mockResolvedValueOnce({
+        recoveryCodeSetId: '0191310f-789a-7123-8123-000000000004',
+        setVersion: 3,
+        recoveryCodes: ['AAAA0000BBBB1111CCCC2222DDDD', 'EEEE3333FFFF4444GGGG5555HHHH'],
+      });
+
+      const response = await request(server)
+        .post('/mfa/recovery-code-sets')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .expect(201);
+
+      const body = response.body as { data: Readonly<Record<string, unknown>> };
+      expect(body.data).toMatchObject({
+        recoveryCodeSetId: '0191310f-789a-7123-8123-000000000004',
+        setVersion: 3,
+        recoveryCodes: ['AAAA0000BBBB1111CCCC2222DDDD', 'EEEE3333FFFF4444GGGG5555HHHH'],
+      });
+      expect(regenerateRecoveryCodes).toHaveBeenCalledWith(
+        expect.objectContaining({ expectedIdentityVersion: 3 }),
+      );
+    });
+
+    it('returns 401 AUTHENTICATION_ASSURANCE_INSUFFICIENT for an AAL1 session', async () => {
+      // beforeEach keeps the default AAL1 session for this request.
+      await request(server)
+        .post('/mfa/recovery-code-sets')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .expect(401);
+    });
+
+    it('returns 401 Unauthorized when the access token is missing', async () => {
+      useAal2Session();
+      await request(server)
+        .post('/mfa/recovery-code-sets')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .expect(401);
+    });
+
+    it('returns 400 when the Idempotency-Key is missing', async () => {
+      useAal2Session();
+      await request(server)
+        .post('/mfa/recovery-code-sets')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .expect(400);
+    });
+
+    it('returns 409 for a stale identity version', async () => {
+      useAal2Session();
+      regenerateRecoveryCodes.mockRejectedValueOnce(new MfaError('RESOURCE_STATE_CONFLICT'));
+      await request(server)
+        .post('/mfa/recovery-code-sets')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v2"`)
+        .expect(409);
+    });
   });
 
   describe('M01-MFA-001 POST /mfa/enrollments', () => {

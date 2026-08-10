@@ -44,6 +44,7 @@ describe('IdentityManagementApplicationService', () => {
     findAuthenticationById: jest.fn(),
     findByIdentifierLookups: jest.fn(),
     findPasswordHistory: jest.fn(),
+    findRecoveryCodeSets: jest.fn(),
     insert: jest.fn(),
     save: jest.fn(),
     advanceTotpReplayState: jest.fn(),
