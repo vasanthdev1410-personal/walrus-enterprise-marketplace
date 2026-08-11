@@ -18,3 +18,13 @@ export class MfaEnrollmentConfirmationRequestDto {
   @Matches(/^\d{6}$/)
   public readonly verificationEvidence!: string;
 }
+
+/**
+ * M01-MFA-004 request. Only the approved TOTP authenticator factor type may
+ * be replaced in Phase 1; any other factor type is rejected by validation.
+ */
+export class MfaReplacementRequestDto {
+  @ApiProperty({ enum: ['TOTP_AUTHENTICATOR'] })
+  @IsEnum(['TOTP_AUTHENTICATOR'])
+  public readonly replacementFactorType!: 'TOTP_AUTHENTICATOR';
+}

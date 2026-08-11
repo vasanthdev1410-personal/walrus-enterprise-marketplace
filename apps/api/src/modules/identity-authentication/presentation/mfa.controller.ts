@@ -20,15 +20,21 @@ import type { Response } from 'express';
 import { MfaError } from '../application/errors/mfa.error';
 import type { ApiIdempotencyService } from '../application/services/api-idempotency.service';
 import type { MfaEnrollmentApplicationService } from '../application/services/mfa-enrollment-application.service';
+import type { MfaReplacementApplicationService } from '../application/services/mfa-replacement-application.service';
 import type { RecoveryCodeSetApplicationService } from '../application/services/recovery-code-set-application.service';
 import { UuidV7 } from '../domain/shared/value-objects/uuid-v7';
 import { API_IDEMPOTENCY } from '../identity-authentication.tokens';
 import type { AuthenticatedRequest } from './authentication-context';
 import {
   MFA_ENROLLMENT_APPLICATION_SERVICE,
+  MFA_REPLACEMENT_APPLICATION_SERVICE,
   RECOVERY_CODE_SET_APPLICATION_SERVICE,
 } from './authentication.tokens';
-import { MfaEnrollmentConfirmationRequestDto, MfaEnrollmentRequestDto } from './dto/mfa.dto';
+import {
+  MfaEnrollmentConfirmationRequestDto,
+  MfaEnrollmentRequestDto,
+  MfaReplacementRequestDto,
+} from './dto/mfa.dto';
 import { Aal2SessionGuard } from './guards/aal2-session.guard';
 import { AuthoritativeSessionGuard } from './guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
@@ -44,6 +50,8 @@ export class MfaController {
   public constructor(
     @Inject(MFA_ENROLLMENT_APPLICATION_SERVICE)
     private readonly mfaEnrollment: MfaEnrollmentApplicationService,
+    @Inject(MFA_REPLACEMENT_APPLICATION_SERVICE)
+    private readonly mfaReplacement: MfaReplacementApplicationService,
     @Inject(RECOVERY_CODE_SET_APPLICATION_SERVICE)
     private readonly recoveryCodeSets: RecoveryCodeSetApplicationService,
     @Inject(API_IDEMPOTENCY) private readonly idempotency: ApiIdempotencyService,
@@ -200,6 +208,58 @@ export class MfaController {
           recoveryCodeSetId: result.recoveryCodeSetId,
           setVersion: result.setVersion,
           recoveryCodes: result.recoveryCodes,
+        }),
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  /**
+   * M01-MFA-004. Starts a recovery-based MFA factor replacement. The caller
+   * must hold an ordinary AAL2 session and an enrolled factor of the requested
+   * type; the identity version (If-Match) guards the aggregate write. The
+   * request creates a purpose-bound recovery request (MFA_FACTOR_REPLACEMENT)
+   * whose completion by M01-REC-006 performs the actual factor removal. No MFA
+   * secrets are read, stored or exposed.
+   */
+  @Post('replacement-requests')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RateLimit({ limit: 3, windowSeconds: 900 })
+  @UseGuards(Aal2SessionGuard)
+  @ApiOperation({ operationId: 'M01-MFA-004', summary: 'Start MFA factor replacement' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiHeader({ name: 'If-Match', required: true })
+  public async requestReplacement(
+    @Body() body: MfaReplacementRequestDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Req() request: AuthenticatedRequest,
+    @Res() response: Response,
+  ): Promise<void> {
+    assertIdempotencyKey(idempotencyKey);
+    const claims = request.authentication;
+    const expectedIdentityVersion = etagVersion(ifMatch, `identity:${claims.subject}`);
+    try {
+      const result = await this.idempotency.execute({
+        scope: `identity:${claims.subject}`,
+        operationType: 'M01-MFA-004',
+        idempotencyKey,
+        request: { replacementFactorType: body.replacementFactorType, ifMatch },
+        execute: () =>
+          this.mfaReplacement.requestReplacement({
+            identityId: new UuidV7(claims.subject),
+            expectedIdentityVersion,
+            replacementFactorType: body.replacementFactorType,
+          }),
+      });
+      noStore(response);
+      response.status(HttpStatus.ACCEPTED).json(
+        success({
+          requestId: result.requestId,
+          state: result.state,
+          nextAction: result.nextAction,
+          version: result.version,
         }),
       );
     } catch (error) {

@@ -2,6 +2,8 @@
 import { AuthenticationSecurityClassificationAssignment } from '../../domain/identity/entities/authentication-security-classification-assignment';
 import { Identity } from '../../domain/identity/entities/identity';
 import { IdentityIdentifier } from '../../domain/identity/entities/identity-identifier';
+import { MfaEnrollment } from '../../domain/identity/entities/mfa-enrollment';
+import { MfaFactor } from '../../domain/identity/entities/mfa-factor';
 import { RecoveryCodeRecord } from '../../domain/identity/entities/recovery-code-record';
 import { RecoveryCodeSet } from '../../domain/identity/entities/recovery-code-set';
 import type {
@@ -105,6 +107,7 @@ function createFixture(): RecoveryRequestFixture {
   };
   const recoveryRequests: jest.Mocked<RecoveryRequestRepository> = {
     findById: jest.fn(),
+    findActiveByOperationClass: jest.fn(),
     findEvidence: jest.fn().mockResolvedValue([]),
     findApprovalRecords: jest.fn().mockResolvedValue([]),
     insert: jest.fn().mockResolvedValue(undefined),
@@ -1527,6 +1530,125 @@ describe('RecoveryRequestApplicationService.executeRecovery (M01-REC-006)', () =
 
     await expect(service.executeRecovery(command)).rejects.toMatchObject({
       code: 'RECOVERY_STATE_CONFLICT',
+    });
+  });
+
+  it('revokes the MFA factor and marks the enrollment REPLACEMENT_REQUIRED when executing MFA_FACTOR_REPLACEMENT', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    // A recovery bound to MFA_FACTOR_REPLACEMENT completes by removing the
+    // enrolled factor and forcing fresh MFA setup (spec policy row: require
+    // fresh authentication and MFA setup).
+    recoveryRequests.findById.mockResolvedValue(
+      buildRecoveryRequest({
+        operationClass: 'MFA_FACTOR_REPLACEMENT',
+        permittedOperation: new PermittedRecoveryOperation('MFA_FACTOR_REPLACEMENT'),
+        recoveryState: 'APPROVED',
+        recoveryAssurance: 'RA2',
+        stateVersion: 4,
+        aggregateVersion: new AggregateVersion(4),
+        approvedAt: FIXED_NOW,
+      }),
+    );
+    identityRepository.findAuthenticationById.mockResolvedValue({
+      ...buildSnapshot(),
+      mfaEnrollments: [
+        new MfaEnrollment({
+          mfaEnrollmentId: new UuidV7('0191310f-789a-7123-8123-0000000000f1'),
+          identityId: new UuidV7(IDENTITY_ID),
+          enrollmentState: 'ACTIVE',
+          createdAt: FIXED_NOW,
+          updatedAt: FIXED_NOW,
+          activatedAt: FIXED_NOW,
+        }),
+      ],
+      mfaFactors: [
+        new MfaFactor({
+          mfaFactorId: new UuidV7('0191310f-789a-7123-8123-0000000000f2'),
+          mfaEnrollmentId: new UuidV7('0191310f-789a-7123-8123-0000000000f1'),
+          factorType: 'TOTP_AUTHENTICATOR',
+          factorState: 'ACTIVE',
+          encryptedSecretOrReference: new ProtectedValue('envelope:encrypted-secret'),
+          encryptionKeyVersion: 'v1',
+          createdAt: FIXED_NOW,
+          updatedAt: FIXED_NOW,
+          verifiedAt: FIXED_NOW,
+        }),
+      ],
+    });
+    identityRepository.findRecoveryCodeSets.mockResolvedValue(activeCodeSetSnapshot());
+
+    const result = await service.executeRecovery({
+      ...command,
+      permittedOperation: 'MFA_FACTOR_REPLACEMENT',
+    });
+
+    expect(result.safeState).toBe('COMPLETED');
+    const identityChangeSet = identityRepository.save.mock.calls[0]?.[0];
+    expect(identityChangeSet?.mfaEnrollments[0]?.properties).toMatchObject({
+      enrollmentState: 'REPLACEMENT_REQUIRED',
+      replacementRequiredAt: FIXED_NOW,
+    });
+    expect(identityChangeSet?.mfaFactors[0]?.properties).toMatchObject({
+      factorState: 'REVOKED',
+      revokedAt: FIXED_NOW,
+    });
+  });
+
+  it('supersedes a pending first enrollment and revokes its factor when executing MFA_FACTOR_REPLACEMENT', async () => {
+    const { service, identityRepository, recoveryRequests } = createFixture();
+    recoveryRequests.findById.mockResolvedValue(
+      buildRecoveryRequest({
+        operationClass: 'MFA_FACTOR_REPLACEMENT',
+        permittedOperation: new PermittedRecoveryOperation('MFA_FACTOR_REPLACEMENT'),
+        recoveryState: 'APPROVED',
+        recoveryAssurance: 'RA2',
+        stateVersion: 4,
+        aggregateVersion: new AggregateVersion(4),
+        approvedAt: FIXED_NOW,
+      }),
+    );
+    // An in-flight first enrollment cannot coexist with a completed
+    // replacement: it is superseded as DISABLED and its factor revoked.
+    identityRepository.findAuthenticationById.mockResolvedValue({
+      ...buildSnapshot(),
+      mfaEnrollments: [
+        new MfaEnrollment({
+          mfaEnrollmentId: new UuidV7('0191310f-789a-7123-8123-0000000000f3'),
+          identityId: new UuidV7(IDENTITY_ID),
+          enrollmentState: 'PENDING_VERIFICATION',
+          createdAt: FIXED_NOW,
+          updatedAt: FIXED_NOW,
+        }),
+      ],
+      mfaFactors: [
+        new MfaFactor({
+          mfaFactorId: new UuidV7('0191310f-789a-7123-8123-0000000000f4'),
+          mfaEnrollmentId: new UuidV7('0191310f-789a-7123-8123-0000000000f3'),
+          factorType: 'TOTP_AUTHENTICATOR',
+          factorState: 'PENDING_VERIFICATION',
+          encryptedSecretOrReference: new ProtectedValue('envelope:encrypted-secret'),
+          encryptionKeyVersion: 'v1',
+          createdAt: FIXED_NOW,
+          updatedAt: FIXED_NOW,
+        }),
+      ],
+    });
+    identityRepository.findRecoveryCodeSets.mockResolvedValue(activeCodeSetSnapshot());
+
+    const result = await service.executeRecovery({
+      ...command,
+      permittedOperation: 'MFA_FACTOR_REPLACEMENT',
+    });
+
+    expect(result.safeState).toBe('COMPLETED');
+    const identityChangeSet = identityRepository.save.mock.calls[0]?.[0];
+    expect(identityChangeSet?.mfaEnrollments[0]?.properties).toMatchObject({
+      enrollmentState: 'DISABLED',
+      disabledAt: FIXED_NOW,
+    });
+    expect(identityChangeSet?.mfaFactors[0]?.properties).toMatchObject({
+      factorState: 'REVOKED',
+      revokedAt: FIXED_NOW,
     });
   });
 });

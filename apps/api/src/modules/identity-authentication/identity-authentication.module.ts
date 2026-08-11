@@ -4,6 +4,7 @@ import { ApiIdempotencyService } from './application/services/api-idempotency.se
 import { AuthenticationApplicationService } from './application/services/authentication-application.service';
 import { IdentityManagementApplicationService } from './application/services/identity-management-application.service';
 import { MfaEnrollmentApplicationService } from './application/services/mfa-enrollment-application.service';
+import { MfaReplacementApplicationService } from './application/services/mfa-replacement-application.service';
 import { PasswordResetApplicationService } from './application/services/password-reset-application.service';
 import { RecoveryCodeSetApplicationService } from './application/services/recovery-code-set-application.service';
 import { RecoveryRequestApplicationService } from './application/services/recovery-request-application.service';
@@ -48,6 +49,7 @@ import {
   CSRF_PROTECTION,
   IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
   MFA_ENROLLMENT_APPLICATION_SERVICE,
+  MFA_REPLACEMENT_APPLICATION_SERVICE,
   PASSWORD_RESET_APPLICATION_SERVICE,
   RATE_LIMITER,
   RECOVERY_CODE_SET_APPLICATION_SERVICE,
@@ -361,6 +363,27 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
           environment: application.values.APP_ENV,
           challengeLifetimeSeconds: configuration.totp.challengeLifetimeSeconds,
           maximumVerificationAttempts: configuration.totp.maximumVerificationAttempts,
+        }),
+    },
+    {
+      provide: MFA_REPLACEMENT_APPLICATION_SERVICE,
+      inject: [
+        IDENTITY_REPOSITORY,
+        RECOVERY_REQUEST_REPOSITORY,
+        CLOCK,
+        UUID_V7_GENERATOR,
+        MODULE_CONFIGURATION,
+      ],
+      useFactory: (
+        identities: never,
+        recoveryRequests: never,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+        configuration: ReturnType<typeof createIdentityAuthenticationConfiguration>,
+      ) =>
+        new MfaReplacementApplicationService(identities, recoveryRequests, clock, identifiers, {
+          recoveryPolicyVersion: configuration.recovery.policyVersion,
+          requestLifetimeSeconds: configuration.recovery.requestLifetimeSeconds,
         }),
     },
     {

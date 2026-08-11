@@ -5,6 +5,7 @@ import request from 'supertest';
 import { MfaError } from '../src/modules/identity-authentication/application/errors/mfa.error';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
 import type { MfaEnrollmentApplicationService } from '../src/modules/identity-authentication/application/services/mfa-enrollment-application.service';
+import type { MfaReplacementApplicationService } from '../src/modules/identity-authentication/application/services/mfa-replacement-application.service';
 import type { RecoveryCodeSetApplicationService } from '../src/modules/identity-authentication/application/services/recovery-code-set-application.service';
 import type { JwtCryptographicPort } from '../src/modules/identity-authentication/application/ports/jwt-cryptographic.port';
 import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
@@ -14,6 +15,7 @@ import { MfaController } from '../src/modules/identity-authentication/presentati
 import {
   BASIC_AUDIT_LOGGER,
   MFA_ENROLLMENT_APPLICATION_SERVICE,
+  MFA_REPLACEMENT_APPLICATION_SERVICE,
   RATE_LIMITER,
   RECOVERY_CODE_SET_APPLICATION_SERVICE,
 } from '../src/modules/identity-authentication/presentation/authentication.tokens';
@@ -50,6 +52,13 @@ describe('Module 01 MFA enrollment API (integration)', () => {
     regenerate: regenerateRecoveryCodes,
   } as unknown as jest.Mocked<RecoveryCodeSetApplicationService>;
 
+  const requestReplacement = jest.fn() as jest.MockedFunction<
+    MfaReplacementApplicationService['requestReplacement']
+  >;
+  const mfaReplacement = {
+    requestReplacement,
+  } as unknown as jest.Mocked<MfaReplacementApplicationService>;
+
   const idempotency = {
     execute: jest.fn(async (execution: { execute: () => Promise<unknown> }) => execution.execute()),
   } as unknown as jest.Mocked<ApiIdempotencyService>;
@@ -76,6 +85,7 @@ describe('Module 01 MFA enrollment API (integration)', () => {
       controllers: [MfaController],
       providers: [
         { provide: MFA_ENROLLMENT_APPLICATION_SERVICE, useValue: mfaEnrollment },
+        { provide: MFA_REPLACEMENT_APPLICATION_SERVICE, useValue: mfaReplacement },
         { provide: RECOVERY_CODE_SET_APPLICATION_SERVICE, useValue: recoveryCodeSets },
         { provide: API_IDEMPOTENCY, useValue: idempotency },
         { provide: RATE_LIMITER, useValue: rateLimiter },
@@ -230,6 +240,143 @@ describe('Module 01 MFA enrollment API (integration)', () => {
         .set('Authorization', 'Bearer valid-jwt-token')
         .set('Idempotency-Key', idempotencyKey)
         .set('If-Match', `"identity:${identityId}:v2"`)
+        .expect(409);
+    });
+  });
+
+  describe('M01-MFA-004 POST /mfa/replacement-requests', () => {
+    function useAal2Session(): void {
+      jwt.verifyAccessToken.mockResolvedValue({
+        subject: identityId,
+        sessionId,
+        jwtId: 'jwt',
+        issuer: 'issuer',
+        audience: 'audience',
+        issuedAt: new Date(),
+        expiresAt: new Date(Date.now() + 60_000),
+        authenticationMethods: ['PASSWORD', 'TOTP_AUTHENTICATOR'],
+        authenticationAssurance: 'AAL2',
+        sessionVersion: 1,
+      });
+      sessions.findById.mockResolvedValue({
+        properties: {
+          identityId: { value: identityId },
+          sessionState: 'ACTIVE',
+          sessionClass: 'INTERACTIVE_WEB',
+          sessionVersion: { value: 1 },
+          authenticationAssurance: 'AAL2',
+          mfaVerifiedAt: new Date(Date.now() - 60_000),
+          idleExpiresAt: new Date(Date.now() + 60_000),
+          absoluteExpiresAt: new Date(Date.now() + 120_000),
+        },
+      } as never);
+    }
+
+    it('starts a recovery-based MFA factor replacement (202)', async () => {
+      useAal2Session();
+      requestReplacement.mockResolvedValueOnce({
+        requestId: '0191310f-789a-7123-8123-00000000000a',
+        state: 'REQUESTED',
+        nextAction: 'SUBMIT_EVIDENCE',
+        version: 1,
+      });
+
+      const response = await request(server)
+        .post('/mfa/replacement-requests')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .send({ replacementFactorType: 'TOTP_AUTHENTICATOR' })
+        .expect(202);
+
+      const body = response.body as { data: Readonly<Record<string, unknown>> };
+      expect(body.data).toEqual({
+        requestId: '0191310f-789a-7123-8123-00000000000a',
+        state: 'REQUESTED',
+        nextAction: 'SUBMIT_EVIDENCE',
+        version: 1,
+      });
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(requestReplacement).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedIdentityVersion: 3,
+          replacementFactorType: 'TOTP_AUTHENTICATOR',
+        }),
+      );
+      const replacementCommand = requestReplacement.mock.calls[0]?.[0] as
+        { identityId?: { value?: unknown } } | undefined;
+      expect(replacementCommand?.identityId?.value).toBe(identityId);
+    });
+
+    it('returns 401 AUTHENTICATION_ASSURANCE_INSUFFICIENT for an AAL1 session', async () => {
+      // beforeEach keeps the default AAL1 session for this request.
+      await request(server)
+        .post('/mfa/replacement-requests')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .send({ replacementFactorType: 'TOTP_AUTHENTICATOR' })
+        .expect(401);
+
+      expect(requestReplacement).not.toHaveBeenCalled();
+    });
+
+    it('returns 401 Unauthorized when the access token is missing', async () => {
+      useAal2Session();
+      await request(server)
+        .post('/mfa/replacement-requests')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .send({ replacementFactorType: 'TOTP_AUTHENTICATOR' })
+        .expect(401);
+    });
+
+    it('returns 400 when the Idempotency-Key is missing', async () => {
+      useAal2Session();
+      await request(server)
+        .post('/mfa/replacement-requests')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .send({ replacementFactorType: 'TOTP_AUTHENTICATOR' })
+        .expect(400);
+
+      expect(requestReplacement).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unapproved replacement factor type (400)', async () => {
+      useAal2Session();
+      await request(server)
+        .post('/mfa/replacement-requests')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .send({ replacementFactorType: 'WEBAUTHN_PASSKEY' })
+        .expect(400);
+
+      expect(requestReplacement).not.toHaveBeenCalled();
+    });
+
+    it('returns 409 when MFA replacement is not permitted in the current state', async () => {
+      useAal2Session();
+      requestReplacement.mockRejectedValueOnce(new MfaError('MFA_ENROLLMENT_NOT_PERMITTED'));
+      await request(server)
+        .post('/mfa/replacement-requests')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .send({ replacementFactorType: 'TOTP_AUTHENTICATOR' })
+        .expect(409);
+    });
+
+    it('returns 409 for a stale identity version', async () => {
+      useAal2Session();
+      requestReplacement.mockRejectedValueOnce(new MfaError('RESOURCE_STATE_CONFLICT'));
+      await request(server)
+        .post('/mfa/replacement-requests')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v2"`)
+        .send({ replacementFactorType: 'TOTP_AUTHENTICATOR' })
         .expect(409);
     });
   });

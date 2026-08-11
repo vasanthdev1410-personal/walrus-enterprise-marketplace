@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { RecoveryApprovalRecord } from '../../../../domain/recovery/entities/recovery-approval-record';
 import type { RecoveryEvidenceRecord } from '../../../../domain/recovery/entities/recovery-evidence-record';
 import type { RecoveryRequest } from '../../../../domain/recovery/entities/recovery-request';
+import type { RecoveryOperationClass } from '../../../../domain/recovery/value-objects/recovery-operation-class';
 import type {
   ExecuteRecoveryPersistenceCommand,
   RecoveryAggregateChangeSet,
@@ -30,6 +31,25 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
   public async findById(recoveryRequestId: UuidV7): Promise<RecoveryRequest | null> {
     const record = await this.prisma.recoveryRequest.findUnique({
       where: { recoveryRequestId: recoveryRequestId.value },
+    });
+    return record === null ? null : recoveryRequestMapper.toDomain(record);
+  }
+
+  public async findActiveByOperationClass(
+    identityId: UuidV7,
+    operationClass: RecoveryOperationClass,
+    now: Date,
+  ): Promise<RecoveryRequest | null> {
+    const record = await this.prisma.recoveryRequest.findFirst({
+      where: {
+        identityId: identityId.value,
+        operationClass,
+        recoveryState: {
+          notIn: ['COMPLETED', 'REJECTED', 'CANCELLED', 'EXPIRED', 'FAILED_SECURELY'],
+        },
+        expiresAt: { gt: now },
+      },
+      orderBy: { createdAt: 'desc' },
     });
     return record === null ? null : recoveryRequestMapper.toDomain(record);
   }

@@ -2,6 +2,8 @@ import { canonicalizeIdentifier } from '../../domain/identity/value-objects/cano
 import type { IdentifierType } from '../../domain/identity/value-objects/identifier-type';
 import type { IdentityRepository } from '../../domain/identity/repositories/identity-repository';
 import { Identity } from '../../domain/identity/entities/identity';
+import { MfaEnrollment } from '../../domain/identity/entities/mfa-enrollment';
+import { MfaFactor } from '../../domain/identity/entities/mfa-factor';
 import { RecoveryCodeRecord } from '../../domain/identity/entities/recovery-code-record';
 import { RecoveryCodeSet } from '../../domain/identity/entities/recovery-code-set';
 import { TrustedDevice } from '../../domain/identity/entities/trusted-device';
@@ -1185,6 +1187,51 @@ export class RecoveryRequestApplicationService {
             })
           : code,
       ) ?? [];
+    // M01-MFA-004 completion effect: when the recovery is bound to
+    // MFA_FACTOR_REPLACEMENT, the enrolled factor is removed and the enrollment
+    // is marked REPLACEMENT_REQUIRED so fresh MFA setup is mandatory (spec
+    // policy row: require fresh authentication and MFA setup). A pending first
+    // enrollment cannot coexist with a completed replacement and is superseded
+    // as DISABLED, mirroring M01-MFA-001. No factor secret is read or exposed.
+    const replacingMfaFactor = properties.permittedOperation.value === 'MFA_FACTOR_REPLACEMENT';
+    const updatedEnrollments = replacingMfaFactor
+      ? snapshot.mfaEnrollments.map((enrollment) => {
+          if (enrollment.properties.enrollmentState === 'ACTIVE') {
+            return new MfaEnrollment({
+              ...enrollment.properties,
+              enrollmentState: 'REPLACEMENT_REQUIRED',
+              replacementRequiredAt: now,
+              updatedAt: now,
+            });
+          }
+          if (enrollment.properties.enrollmentState === 'PENDING_VERIFICATION') {
+            return new MfaEnrollment({
+              ...enrollment.properties,
+              enrollmentState: 'DISABLED',
+              disabledAt: now,
+              updatedAt: now,
+            });
+          }
+          return enrollment;
+        })
+      : snapshot.mfaEnrollments;
+    const updatedFactors = replacingMfaFactor
+      ? snapshot.mfaFactors.map((factor) => {
+          if (
+            factor.properties.factorState === 'ACTIVE' ||
+            factor.properties.factorState === 'PENDING_VERIFICATION' ||
+            factor.properties.factorState === 'REPLACEMENT_REQUIRED'
+          ) {
+            return new MfaFactor({
+              ...factor.properties,
+              factorState: 'REVOKED',
+              revokedAt: now,
+              updatedAt: now,
+            });
+          }
+          return factor;
+        })
+      : snapshot.mfaFactors;
     try {
       await this.identityRepository.save(
         {
@@ -1192,8 +1239,8 @@ export class RecoveryRequestApplicationService {
           identifiers: snapshot.identifiers,
           credentials: snapshot.credentials,
           classificationAssignments: snapshot.classificationAssignments,
-          mfaEnrollments: snapshot.mfaEnrollments,
-          mfaFactors: snapshot.mfaFactors,
+          mfaEnrollments: updatedEnrollments,
+          mfaFactors: updatedFactors,
           recoveryCodeSets: invalidatedSets,
           recoveryCodes: invalidatedCodes,
           trustedDevices: revokedDevices,

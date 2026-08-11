@@ -6,9 +6,22 @@ import type { RecoveryAttempt } from '../entities/recovery-attempt';
 import type { RecoveryEvidenceRecord } from '../entities/recovery-evidence-record';
 import type { RecoveryNotificationRecord } from '../entities/recovery-notification-record';
 import type { RecoveryStateTransition } from '../entities/recovery-state-transition';
+import type { RecoveryOperationClass } from '../value-objects/recovery-operation-class';
 
 export interface RecoveryRequestRepository {
   findById(recoveryRequestId: UuidV7): Promise<RecoveryRequest | null>;
+  /**
+   * M01-MFA-004. Loads the most recent non-terminal, non-expired recovery
+   * request for an identity and operation class, or null when none is in
+   * flight. Used to prevent stacking duplicate recovery sessions (one active
+   * replacement per identity). The evaluation instant comes from the caller's
+   * clock so expiry is judged on the same time source as every other decision.
+   */
+  findActiveByOperationClass(
+    identityId: UuidV7,
+    operationClass: RecoveryOperationClass,
+    now: Date,
+  ): Promise<RecoveryRequest | null>;
   /** Loads every evidence record of a recovery request for policy evaluation. */
   findEvidence(recoveryRequestId: UuidV7): Promise<readonly RecoveryEvidenceRecord[]>;
   /**
