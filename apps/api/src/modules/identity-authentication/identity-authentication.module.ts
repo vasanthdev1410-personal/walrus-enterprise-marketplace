@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigurationService } from '../../platform/configuration/configuration.service';
 import { ApiIdempotencyService } from './application/services/api-idempotency.service';
 import { AuthenticationApplicationService } from './application/services/authentication-application.service';
+import { IdentityLifecycleApplicationService } from './application/services/identity-lifecycle-application.service';
 import { IdentityManagementApplicationService } from './application/services/identity-management-application.service';
 import { MfaEnrollmentApplicationService } from './application/services/mfa-enrollment-application.service';
 import { MfaReplacementApplicationService } from './application/services/mfa-replacement-application.service';
@@ -23,6 +24,7 @@ import { NonProductionRefreshTokenAdapter } from './infrastructure/cryptography/
 import { NonProductionTotpAdapter } from './infrastructure/cryptography/non-production-totp.adapter';
 import { NonProductionOtpDeliveryAdapter } from './infrastructure/delivery/non-production-otp-delivery.adapter';
 import { NonProductionApprovalAuthorizationAdapter } from './infrastructure/authorization/non-production-approval-authorization.adapter';
+import { NonProductionIdentityStateChangeAuthorizationAdapter } from './infrastructure/authorization/non-production-identity-state-change-authorization.adapter';
 import { createIdentityAuthenticationConfiguration } from './infrastructure/configuration/identity-authentication.configuration';
 import {
   API_IDEMPOTENCY_REPOSITORY,
@@ -41,6 +43,8 @@ import {
 import { AuthenticationController } from './presentation/authentication.controller';
 import { CredentialsController } from './presentation/credentials.controller';
 import { IdentityController } from './presentation/identity.controller';
+import { IdentityLifecycleController } from './presentation/identity-lifecycle.controller';
+import { InternalIdentityController } from './presentation/internal-identity.controller';
 import { MfaController } from './presentation/mfa.controller';
 import { RecoveryController } from './presentation/recovery.controller';
 import { RegistrationController } from './presentation/registration.controller';
@@ -51,7 +55,9 @@ import {
   AUTHENTICATION_APPLICATION_SERVICE,
   BASIC_AUDIT_LOGGER,
   CSRF_PROTECTION,
+  IDENTITY_LIFECYCLE_APPLICATION_SERVICE,
   IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
+  IDENTITY_STATE_CHANGE_AUTHORIZATION,
   MFA_ENROLLMENT_APPLICATION_SERVICE,
   MFA_REPLACEMENT_APPLICATION_SERVICE,
   PASSWORD_RESET_APPLICATION_SERVICE,
@@ -91,6 +97,8 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     AuthenticationController,
     CredentialsController,
     IdentityController,
+    IdentityLifecycleController,
+    InternalIdentityController,
     MfaController,
     RecoveryController,
     RegistrationController,
@@ -232,6 +240,37 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     // implemented yet, so the adapter fails closed: every approval decision is
     // denied until the approved Module 02 contract is integrated.
     { provide: APPROVAL_AUTHORIZATION, useClass: NonProductionApprovalAuthorizationAdapter },
+    // M01-ID-004 Module 02 authorization boundary. Module 02 is not
+    // implemented yet, so the adapter fails closed: every identity state
+    // transition is denied until the approved Module 02 contract is integrated.
+    {
+      provide: IDENTITY_STATE_CHANGE_AUTHORIZATION,
+      useClass: NonProductionIdentityStateChangeAuthorizationAdapter,
+    },
+    {
+      provide: IDENTITY_LIFECYCLE_APPLICATION_SERVICE,
+      inject: [
+        IDENTITY_REPOSITORY,
+        SESSION_REPOSITORY,
+        IDENTITY_STATE_CHANGE_AUTHORIZATION,
+        CLOCK,
+        UUID_V7_GENERATOR,
+      ],
+      useFactory: (
+        identities: never,
+        sessions: never,
+        authorization: NonProductionIdentityStateChangeAuthorizationAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+      ) =>
+        new IdentityLifecycleApplicationService(
+          identities,
+          sessions,
+          authorization,
+          clock,
+          identifiers,
+        ),
+    },
     {
       provide: IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
       inject: [
