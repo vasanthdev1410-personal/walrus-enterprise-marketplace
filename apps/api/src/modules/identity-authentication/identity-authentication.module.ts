@@ -9,6 +9,7 @@ import { PasswordResetApplicationService } from './application/services/password
 import { RecoveryCodeSetApplicationService } from './application/services/recovery-code-set-application.service';
 import { RecoveryRequestApplicationService } from './application/services/recovery-request-application.service';
 import { RegistrationApplicationService } from './application/services/registration-application.service';
+import { SessionManagementApplicationService } from './application/services/session-management-application.service';
 import { TotpMfaAuthenticationAdapter } from './application/services/totp-mfa-authentication.adapter';
 import { VerificationApplicationService } from './application/services/verification-application.service';
 import { Argon2idPasswordHashingAdapter } from './infrastructure/cryptography/argon2id-password-hashing.adapter';
@@ -42,6 +43,7 @@ import { IdentityController } from './presentation/identity.controller';
 import { MfaController } from './presentation/mfa.controller';
 import { RecoveryController } from './presentation/recovery.controller';
 import { RegistrationController } from './presentation/registration.controller';
+import { SessionsController } from './presentation/sessions.controller';
 import { VerificationController } from './presentation/verification.controller';
 import {
   AUTHENTICATION_APPLICATION_SERVICE,
@@ -55,6 +57,7 @@ import {
   RECOVERY_CODE_SET_APPLICATION_SERVICE,
   RECOVERY_REQUEST_APPLICATION_SERVICE,
   REGISTRATION_APPLICATION_SERVICE,
+  SESSION_MANAGEMENT_APPLICATION_SERVICE,
   VERIFICATION_APPLICATION_SERVICE,
 } from './presentation/authentication.tokens';
 import { Aal2SessionGuard } from './presentation/guards/aal2-session.guard';
@@ -88,6 +91,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     MfaController,
     RecoveryController,
     RegistrationController,
+    SessionsController,
     VerificationController,
   ],
   providers: [
@@ -385,6 +389,12 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
           recoveryPolicyVersion: configuration.recovery.policyVersion,
           requestLifetimeSeconds: configuration.recovery.requestLifetimeSeconds,
         }),
+    },
+    {
+      provide: SESSION_MANAGEMENT_APPLICATION_SERVICE,
+      inject: [SESSION_REPOSITORY, CLOCK],
+      useFactory: (sessions: never, clock: SystemClockAdapter) =>
+        new SessionManagementApplicationService(sessions, clock),
     },
     {
       provide: RECOVERY_CODE_SET_APPLICATION_SERVICE,

@@ -7,6 +7,12 @@ import type { RefreshTokenDigest } from '../value-objects/refresh-token-digest';
 
 export interface SessionRepository {
   findById(sessionId: UuidV7): Promise<Session | null>;
+  /**
+   * M01-SES-001. Returns every persisted Session of an identity (newest
+   * activity first); the service filters the approved visible subset. Session
+   * state is authoritative, so revoked/expired rows are retained for audit.
+   */
+  findSessionsByIdentity(identityId: UuidV7): Promise<readonly Session[]>;
   findByRefreshTokenDigest(digest: RefreshTokenDigest): Promise<RefreshTokenSnapshot | null>;
   rotateRefreshToken(rotation: RefreshTokenRotation): Promise<void>;
   revokeRefreshTokenFamilyForReuse(reuse: RefreshTokenReuse): Promise<void>;

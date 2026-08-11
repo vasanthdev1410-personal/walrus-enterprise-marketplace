@@ -145,6 +145,7 @@ function createFixture(): PasswordResetFixture {
 
   const sessionRepository: jest.Mocked<SessionRepository> = {
     findById: jest.fn(),
+    findSessionsByIdentity: jest.fn(),
     findByRefreshTokenDigest: jest.fn(),
     rotateRefreshToken: jest.fn(),
     revokeRefreshTokenFamilyForReuse: jest.fn(),

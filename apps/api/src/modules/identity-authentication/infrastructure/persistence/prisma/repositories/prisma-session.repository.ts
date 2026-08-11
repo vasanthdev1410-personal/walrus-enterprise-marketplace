@@ -31,6 +31,14 @@ export class PrismaSessionRepository implements SessionRepository {
     return record === null ? null : sessionMapper.toDomain(record);
   }
 
+  public async findSessionsByIdentity(identityId: UuidV7): Promise<readonly Session[]> {
+    const records = await this.prisma.session.findMany({
+      where: { identityId: identityId.value },
+      orderBy: { lastActivityAt: 'desc' },
+    });
+    return Object.freeze(records.map((record) => sessionMapper.toDomain(record)));
+  }
+
   public async findByRefreshTokenDigest(
     digest: RefreshTokenDigest,
   ): Promise<RefreshTokenSnapshot | null> {
