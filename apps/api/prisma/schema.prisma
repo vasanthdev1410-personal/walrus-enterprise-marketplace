@@ -869,6 +869,7 @@ model IdentityRoleAssignment {
 
 model AuthorizationDecisionRecord {
   authorizationReference  String                      @id @map("authorization_reference") @db.Text
+  actorIdentityId          String?                     @map("actor_identity_id") @db.Uuid
   subjectIdentityId       String                      @map("subject_identity_id") @db.Uuid
   permissionId            String                      @map("permission_id") @db.Text
   resourceClassification  String?                     @map("resource_classification") @db.Text
@@ -880,6 +881,7 @@ model AuthorizationDecisionRecord {
   createdAt               DateTime                    @map("created_at") @db.Timestamptz(6)
 
   @@index([subjectIdentityId, decidedAt(sort: Desc)])
+  @@index([actorIdentityId, decidedAt(sort: Desc)])
   @@index([permissionId, decidedAt(sort: Desc)])
   @@index([decidedAt(sort: Desc)])
   @@map("authorization_decision_records")

@@ -4,6 +4,7 @@ import type {
   ClockPort,
   UuidV7GenerationPort,
 } from '../../../identity-authentication/application/ports/application-runtime.port';
+import type { AuthorizationMutationPort } from '../ports/authorization-mutation.port';
 import { OptimisticConcurrencyError } from '../../../identity-authentication/domain/shared/errors/optimistic-concurrency.error';
 import { AggregateVersion } from '../../../identity-authentication/domain/shared/value-objects/aggregate-version';
 import type { UuidV7 } from '../../../identity-authentication/domain/shared/value-objects/uuid-v7';
@@ -14,6 +15,7 @@ import {
 } from '../../../identity-authentication/identity-authentication.tokens';
 import {
   AUTHORIZATION_DECISION_REPOSITORY,
+  AUTHORIZATION_MUTATION,
   IDENTITY_ROLE_ASSIGNMENT_REPOSITORY,
 } from '../../authorization.tokens';
 import { AuthorizationDecisionEngine } from '../../domain/authorization-decision-engine';
@@ -67,6 +69,8 @@ export class AuthorizationApplicationService {
     private readonly assignments: IdentityRoleAssignmentRepository,
     @Inject(AUTHORIZATION_DECISION_REPOSITORY)
     private readonly decisions: AuthorizationDecisionRepository,
+    @Inject(AUTHORIZATION_MUTATION)
+    private readonly mutations: AuthorizationMutationPort,
     @Inject(CLOCK) private readonly clock: ClockPort,
     @Inject(UUID_V7_GENERATOR) private readonly identifiers: UuidV7GenerationPort,
   ) {}
@@ -78,6 +82,7 @@ export class AuthorizationApplicationService {
     );
     const decision = this.engine.evaluate(
       {
+        decisionInstanceId: this.identifiers.next(),
         subjectIdentityId: command.subjectIdentityId,
         permissionId: command.permissionId,
         ...(command.resourceClassification === undefined
@@ -90,6 +95,7 @@ export class AuthorizationApplicationService {
     await this.decisions.insert(
       new AuthorizationDecisionRecord({
         authorizationReference: decision.properties.authorizationReference,
+        actorIdentityId: command.subjectIdentityId,
         subjectIdentityId: command.subjectIdentityId,
         permissionId: command.permissionId,
         ...(command.resourceClassification === undefined
@@ -162,8 +168,15 @@ export class AuthorizationApplicationService {
       createdAt: now,
       updatedAt: now,
     });
-    await this.assignments.insert(assignment);
-    await this.recordRoleEvent(command.targetIdentityId, 'authorization.role.assign', now);
+    await this.mutations.assignRoleWithAudit(
+      assignment,
+      this.createRoleEvent(
+        command.assignedByIdentityId,
+        command.targetIdentityId,
+        'authorization.role.assign',
+        now,
+      ),
+    );
     return assignment;
   }
 
@@ -176,6 +189,19 @@ export class AuthorizationApplicationService {
     if (current.properties.assignmentState === 'REVOKED') {
       throw new AuthorizationError('ALREADY_REVOKED');
     }
+    const actorAssignments = await this.assignments.findActiveByIdentityId(
+      command.revokedByIdentityId,
+    );
+    const managesTarget = actorAssignments.some(
+      (actor) =>
+        actor.properties.assignmentState === 'ACTIVE' &&
+        this.roleCatalog
+          .hierarchy()
+          .manages(actor.properties.roleName, current.properties.roleName),
+    );
+    if (!managesTarget) {
+      throw new AuthorizationError('TARGET_OUTSIDE_ADMINISTRATIVE_SCOPE');
+    }
     const revoked = new IdentityRoleAssignment({
       ...current.properties,
       assignmentState: 'REVOKED',
@@ -185,14 +211,21 @@ export class AuthorizationApplicationService {
       updatedAt: now,
     });
     try {
-      await this.assignments.save(revoked);
+      await this.mutations.revokeRoleWithAudit(
+        revoked,
+        this.createRoleEvent(
+          command.revokedByIdentityId,
+          current.properties.identityId,
+          'authorization.role.revoke',
+          now,
+        ),
+      );
     } catch (error) {
       if (error instanceof OptimisticConcurrencyError) {
         throw new AuthorizationError('STALE_VERSION');
       }
       throw error;
     }
-    await this.recordRoleEvent(current.properties.identityId, 'authorization.role.revoke', now);
     return revoked;
   }
 
@@ -211,25 +244,27 @@ export class AuthorizationApplicationService {
    * authorization audit store. The correlation identifier ties the event to
    * the originating request; no secrets are ever recorded.
    */
-  private async recordRoleEvent(
+  private createRoleEvent(
+    actorIdentityId: UuidV7,
     targetIdentityId: UuidV7,
     permissionId: string,
     now: Date,
-  ): Promise<void> {
+  ): AuthorizationDecisionRecord {
     const correlationId = currentCorrelationId();
-    await this.decisions.insert(
-      new AuthorizationDecisionRecord({
-        authorizationReference: `azr:${createHash('sha256')
-          .update(`${permissionId}|${targetIdentityId.value}|${now.toISOString()}`)
-          .digest('hex')
-          .slice(0, 24)}`,
-        subjectIdentityId: targetIdentityId,
-        permissionId,
-        decisionOutcome: 'GRANTED',
-        ...(correlationId === undefined ? {} : { correlationId }),
-        decidedAt: now,
-        createdAt: now,
-      }),
-    );
+    return new AuthorizationDecisionRecord({
+      authorizationReference: `azr:${createHash('sha256')
+        .update(
+          `${this.identifiers.next().value}|${permissionId}|${actorIdentityId.value}|${targetIdentityId.value}|${now.toISOString()}`,
+        )
+        .digest('hex')
+        .slice(0, 24)}`,
+      actorIdentityId,
+      subjectIdentityId: targetIdentityId,
+      permissionId,
+      decisionOutcome: 'GRANTED',
+      ...(correlationId === undefined ? {} : { correlationId }),
+      decidedAt: now,
+      createdAt: now,
+    });
   }
 }

@@ -26,6 +26,8 @@ import type { ResourceClassification } from './value-objects/resource-classifica
  *     6.2 §7).
  */
 export interface AuthorizationRequest {
+  /** Server-generated identifier for this decision instance. */
+  readonly decisionInstanceId?: UuidV7;
   readonly subjectIdentityId: UuidV7;
   readonly permissionId: string;
   /**
@@ -96,11 +98,14 @@ export class AuthorizationDecisionEngine {
     assignments: readonly IdentityRoleAssignment[],
   ): AuthorizationDecision {
     const referenceSource = [
+      request.decisionInstanceId?.value ?? '',
       request.subjectIdentityId.value,
       request.permissionId,
       outcome,
       denialReason ?? '',
-      ...assignments.map((assignment) => assignment.properties.assignmentId.value),
+      ...assignments
+        .map((assignment) => assignment.properties.assignmentId.value)
+        .sort((left, right) => left.localeCompare(right)),
     ].join('|');
     const authorizationReference = `azr:${createHash('sha256')
       .update(referenceSource)

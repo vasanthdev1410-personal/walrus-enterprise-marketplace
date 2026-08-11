@@ -3093,6 +3093,7 @@ export type IdentityRoleAssignmentScalarFieldEnum = (typeof IdentityRoleAssignme
 
 export const AuthorizationDecisionRecordScalarFieldEnum = {
   authorizationReference: 'authorizationReference',
+  actorIdentityId: 'actorIdentityId',
   subjectIdentityId: 'subjectIdentityId',
   permissionId: 'permissionId',
   resourceClassification: 'resourceClassification',

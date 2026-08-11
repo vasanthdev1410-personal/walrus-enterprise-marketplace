@@ -11,9 +11,11 @@ import {
 import { SystemClockAdapter } from '../identity-authentication/infrastructure/runtime/system-runtime.adapter';
 import { SystemUuidV7Generator } from '../identity-authentication/infrastructure/runtime/system-runtime.adapter';
 import { AuthorizationApplicationService } from './application/services/authorization-application.service';
+import type { AuthorizationMutationPort } from './application/ports/authorization-mutation.port';
 import {
   AUTHORIZATION_APPLICATION_SERVICE,
   AUTHORIZATION_DECISION_REPOSITORY,
+  AUTHORIZATION_MUTATION,
   IDENTITY_ROLE_ASSIGNMENT_REPOSITORY,
 } from './authorization.tokens';
 import { AuthorizationDecisionEngine } from './domain/authorization-decision-engine';
@@ -22,6 +24,7 @@ import type { IdentityRoleAssignmentRepository } from './domain/repositories/ide
 import { PermissionCatalog } from './domain/permission-catalog';
 import { RoleCatalog } from './domain/role-catalog';
 import { PrismaAuthorizationDecisionRepository } from './infrastructure/persistence/prisma/repositories/prisma-authorization-decision.repository';
+import { PrismaAuthorizationMutationRepository } from './infrastructure/persistence/prisma/repositories/prisma-authorization-mutation.repository';
 import { PrismaIdentityRoleAssignmentRepository } from './infrastructure/persistence/prisma/repositories/prisma-identity-role-assignment.repository';
 import { AuthorizationController } from './presentation/authorization.controller';
 import { AuthorizationPermissionGuard } from './presentation/guards/authorization-permission.guard';
@@ -40,6 +43,7 @@ import { AuthorizationPermissionGuard } from './presentation/guards/authorizatio
     { provide: UUID_V7_GENERATOR, useClass: SystemUuidV7Generator },
     PrismaIdentityRoleAssignmentRepository,
     PrismaAuthorizationDecisionRepository,
+    PrismaAuthorizationMutationRepository,
     {
       provide: IDENTITY_ROLE_ASSIGNMENT_REPOSITORY,
       useExisting: PrismaIdentityRoleAssignmentRepository,
@@ -49,16 +53,22 @@ import { AuthorizationPermissionGuard } from './presentation/guards/authorizatio
       useExisting: PrismaAuthorizationDecisionRepository,
     },
     {
+      provide: AUTHORIZATION_MUTATION,
+      useExisting: PrismaAuthorizationMutationRepository,
+    },
+    {
       provide: AUTHORIZATION_APPLICATION_SERVICE,
       inject: [
         IDENTITY_ROLE_ASSIGNMENT_REPOSITORY,
         AUTHORIZATION_DECISION_REPOSITORY,
+        AUTHORIZATION_MUTATION,
         CLOCK,
         UUID_V7_GENERATOR,
       ],
       useFactory: (
         assignments: IdentityRoleAssignmentRepository,
         decisions: AuthorizationDecisionRepository,
+        mutations: AuthorizationMutationPort,
         clock: ClockPort,
         identifiers: UuidV7GenerationPort,
       ) => {
@@ -69,6 +79,7 @@ import { AuthorizationPermissionGuard } from './presentation/guards/authorizatio
           roles,
           assignments,
           decisions,
+          mutations,
           clock,
           identifiers,
         );

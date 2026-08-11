@@ -26,6 +26,7 @@ export type AggregateAuthorizationDecisionRecord = {
 
 export type AuthorizationDecisionRecordMinAggregateOutputType = {
   authorizationReference: string | null
+  actorIdentityId: string | null
   subjectIdentityId: string | null
   permissionId: string | null
   resourceClassification: string | null
@@ -39,6 +40,7 @@ export type AuthorizationDecisionRecordMinAggregateOutputType = {
 
 export type AuthorizationDecisionRecordMaxAggregateOutputType = {
   authorizationReference: string | null
+  actorIdentityId: string | null
   subjectIdentityId: string | null
   permissionId: string | null
   resourceClassification: string | null
@@ -52,6 +54,7 @@ export type AuthorizationDecisionRecordMaxAggregateOutputType = {
 
 export type AuthorizationDecisionRecordCountAggregateOutputType = {
   authorizationReference: number
+  actorIdentityId: number
   subjectIdentityId: number
   permissionId: number
   resourceClassification: number
@@ -67,6 +70,7 @@ export type AuthorizationDecisionRecordCountAggregateOutputType = {
 
 export type AuthorizationDecisionRecordMinAggregateInputType = {
   authorizationReference?: true
+  actorIdentityId?: true
   subjectIdentityId?: true
   permissionId?: true
   resourceClassification?: true
@@ -80,6 +84,7 @@ export type AuthorizationDecisionRecordMinAggregateInputType = {
 
 export type AuthorizationDecisionRecordMaxAggregateInputType = {
   authorizationReference?: true
+  actorIdentityId?: true
   subjectIdentityId?: true
   permissionId?: true
   resourceClassification?: true
@@ -93,6 +98,7 @@ export type AuthorizationDecisionRecordMaxAggregateInputType = {
 
 export type AuthorizationDecisionRecordCountAggregateInputType = {
   authorizationReference?: true
+  actorIdentityId?: true
   subjectIdentityId?: true
   permissionId?: true
   resourceClassification?: true
@@ -179,6 +185,7 @@ export type AuthorizationDecisionRecordGroupByArgs<ExtArgs extends runtime.Types
 
 export type AuthorizationDecisionRecordGroupByOutputType = {
   authorizationReference: string
+  actorIdentityId: string | null
   subjectIdentityId: string
   permissionId: string
   resourceClassification: string | null
@@ -213,6 +220,7 @@ export type AuthorizationDecisionRecordWhereInput = {
   OR?: Prisma.AuthorizationDecisionRecordWhereInput[]
   NOT?: Prisma.AuthorizationDecisionRecordWhereInput | Prisma.AuthorizationDecisionRecordWhereInput[]
   authorizationReference?: Prisma.StringFilter<"AuthorizationDecisionRecord"> | string
+  actorIdentityId?: Prisma.UuidNullableFilter<"AuthorizationDecisionRecord"> | string | null
   subjectIdentityId?: Prisma.UuidFilter<"AuthorizationDecisionRecord"> | string
   permissionId?: Prisma.StringFilter<"AuthorizationDecisionRecord"> | string
   resourceClassification?: Prisma.StringNullableFilter<"AuthorizationDecisionRecord"> | string | null
@@ -226,6 +234,7 @@ export type AuthorizationDecisionRecordWhereInput = {
 
 export type AuthorizationDecisionRecordOrderByWithRelationInput = {
   authorizationReference?: Prisma.SortOrder
+  actorIdentityId?: Prisma.SortOrderInput | Prisma.SortOrder
   subjectIdentityId?: Prisma.SortOrder
   permissionId?: Prisma.SortOrder
   resourceClassification?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -242,6 +251,7 @@ export type AuthorizationDecisionRecordWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.AuthorizationDecisionRecordWhereInput | Prisma.AuthorizationDecisionRecordWhereInput[]
   OR?: Prisma.AuthorizationDecisionRecordWhereInput[]
   NOT?: Prisma.AuthorizationDecisionRecordWhereInput | Prisma.AuthorizationDecisionRecordWhereInput[]
+  actorIdentityId?: Prisma.UuidNullableFilter<"AuthorizationDecisionRecord"> | string | null
   subjectIdentityId?: Prisma.UuidFilter<"AuthorizationDecisionRecord"> | string
   permissionId?: Prisma.StringFilter<"AuthorizationDecisionRecord"> | string
   resourceClassification?: Prisma.StringNullableFilter<"AuthorizationDecisionRecord"> | string | null
@@ -255,6 +265,7 @@ export type AuthorizationDecisionRecordWhereUniqueInput = Prisma.AtLeast<{
 
 export type AuthorizationDecisionRecordOrderByWithAggregationInput = {
   authorizationReference?: Prisma.SortOrder
+  actorIdentityId?: Prisma.SortOrderInput | Prisma.SortOrder
   subjectIdentityId?: Prisma.SortOrder
   permissionId?: Prisma.SortOrder
   resourceClassification?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -274,6 +285,7 @@ export type AuthorizationDecisionRecordScalarWhereWithAggregatesInput = {
   OR?: Prisma.AuthorizationDecisionRecordScalarWhereWithAggregatesInput[]
   NOT?: Prisma.AuthorizationDecisionRecordScalarWhereWithAggregatesInput | Prisma.AuthorizationDecisionRecordScalarWhereWithAggregatesInput[]
   authorizationReference?: Prisma.StringWithAggregatesFilter<"AuthorizationDecisionRecord"> | string
+  actorIdentityId?: Prisma.UuidNullableWithAggregatesFilter<"AuthorizationDecisionRecord"> | string | null
   subjectIdentityId?: Prisma.UuidWithAggregatesFilter<"AuthorizationDecisionRecord"> | string
   permissionId?: Prisma.StringWithAggregatesFilter<"AuthorizationDecisionRecord"> | string
   resourceClassification?: Prisma.StringNullableWithAggregatesFilter<"AuthorizationDecisionRecord"> | string | null
@@ -287,6 +299,7 @@ export type AuthorizationDecisionRecordScalarWhereWithAggregatesInput = {
 
 export type AuthorizationDecisionRecordCreateInput = {
   authorizationReference: string
+  actorIdentityId?: string | null
   subjectIdentityId: string
   permissionId: string
   resourceClassification?: string | null
@@ -300,6 +313,7 @@ export type AuthorizationDecisionRecordCreateInput = {
 
 export type AuthorizationDecisionRecordUncheckedCreateInput = {
   authorizationReference: string
+  actorIdentityId?: string | null
   subjectIdentityId: string
   permissionId: string
   resourceClassification?: string | null
@@ -313,6 +327,7 @@ export type AuthorizationDecisionRecordUncheckedCreateInput = {
 
 export type AuthorizationDecisionRecordUpdateInput = {
   authorizationReference?: Prisma.StringFieldUpdateOperationsInput | string
+  actorIdentityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subjectIdentityId?: Prisma.StringFieldUpdateOperationsInput | string
   permissionId?: Prisma.StringFieldUpdateOperationsInput | string
   resourceClassification?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -326,6 +341,7 @@ export type AuthorizationDecisionRecordUpdateInput = {
 
 export type AuthorizationDecisionRecordUncheckedUpdateInput = {
   authorizationReference?: Prisma.StringFieldUpdateOperationsInput | string
+  actorIdentityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subjectIdentityId?: Prisma.StringFieldUpdateOperationsInput | string
   permissionId?: Prisma.StringFieldUpdateOperationsInput | string
   resourceClassification?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -339,6 +355,7 @@ export type AuthorizationDecisionRecordUncheckedUpdateInput = {
 
 export type AuthorizationDecisionRecordCreateManyInput = {
   authorizationReference: string
+  actorIdentityId?: string | null
   subjectIdentityId: string
   permissionId: string
   resourceClassification?: string | null
@@ -352,6 +369,7 @@ export type AuthorizationDecisionRecordCreateManyInput = {
 
 export type AuthorizationDecisionRecordUpdateManyMutationInput = {
   authorizationReference?: Prisma.StringFieldUpdateOperationsInput | string
+  actorIdentityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subjectIdentityId?: Prisma.StringFieldUpdateOperationsInput | string
   permissionId?: Prisma.StringFieldUpdateOperationsInput | string
   resourceClassification?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -365,6 +383,7 @@ export type AuthorizationDecisionRecordUpdateManyMutationInput = {
 
 export type AuthorizationDecisionRecordUncheckedUpdateManyInput = {
   authorizationReference?: Prisma.StringFieldUpdateOperationsInput | string
+  actorIdentityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   subjectIdentityId?: Prisma.StringFieldUpdateOperationsInput | string
   permissionId?: Prisma.StringFieldUpdateOperationsInput | string
   resourceClassification?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -378,6 +397,7 @@ export type AuthorizationDecisionRecordUncheckedUpdateManyInput = {
 
 export type AuthorizationDecisionRecordCountOrderByAggregateInput = {
   authorizationReference?: Prisma.SortOrder
+  actorIdentityId?: Prisma.SortOrder
   subjectIdentityId?: Prisma.SortOrder
   permissionId?: Prisma.SortOrder
   resourceClassification?: Prisma.SortOrder
@@ -391,6 +411,7 @@ export type AuthorizationDecisionRecordCountOrderByAggregateInput = {
 
 export type AuthorizationDecisionRecordMaxOrderByAggregateInput = {
   authorizationReference?: Prisma.SortOrder
+  actorIdentityId?: Prisma.SortOrder
   subjectIdentityId?: Prisma.SortOrder
   permissionId?: Prisma.SortOrder
   resourceClassification?: Prisma.SortOrder
@@ -404,6 +425,7 @@ export type AuthorizationDecisionRecordMaxOrderByAggregateInput = {
 
 export type AuthorizationDecisionRecordMinOrderByAggregateInput = {
   authorizationReference?: Prisma.SortOrder
+  actorIdentityId?: Prisma.SortOrder
   subjectIdentityId?: Prisma.SortOrder
   permissionId?: Prisma.SortOrder
   resourceClassification?: Prisma.SortOrder
@@ -423,6 +445,7 @@ export type EnumAuthorizationDecisionOutcomeFieldUpdateOperationsInput = {
 
 export type AuthorizationDecisionRecordSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   authorizationReference?: boolean
+  actorIdentityId?: boolean
   subjectIdentityId?: boolean
   permissionId?: boolean
   resourceClassification?: boolean
@@ -436,6 +459,7 @@ export type AuthorizationDecisionRecordSelect<ExtArgs extends runtime.Types.Exte
 
 export type AuthorizationDecisionRecordSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   authorizationReference?: boolean
+  actorIdentityId?: boolean
   subjectIdentityId?: boolean
   permissionId?: boolean
   resourceClassification?: boolean
@@ -449,6 +473,7 @@ export type AuthorizationDecisionRecordSelectCreateManyAndReturn<ExtArgs extends
 
 export type AuthorizationDecisionRecordSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   authorizationReference?: boolean
+  actorIdentityId?: boolean
   subjectIdentityId?: boolean
   permissionId?: boolean
   resourceClassification?: boolean
@@ -462,6 +487,7 @@ export type AuthorizationDecisionRecordSelectUpdateManyAndReturn<ExtArgs extends
 
 export type AuthorizationDecisionRecordSelectScalar = {
   authorizationReference?: boolean
+  actorIdentityId?: boolean
   subjectIdentityId?: boolean
   permissionId?: boolean
   resourceClassification?: boolean
@@ -473,13 +499,14 @@ export type AuthorizationDecisionRecordSelectScalar = {
   createdAt?: boolean
 }
 
-export type AuthorizationDecisionRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"authorizationReference" | "subjectIdentityId" | "permissionId" | "resourceClassification" | "decisionOutcome" | "denialReason" | "sessionIdentifier" | "correlationId" | "decidedAt" | "createdAt", ExtArgs["result"]["authorizationDecisionRecord"]>
+export type AuthorizationDecisionRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"authorizationReference" | "actorIdentityId" | "subjectIdentityId" | "permissionId" | "resourceClassification" | "decisionOutcome" | "denialReason" | "sessionIdentifier" | "correlationId" | "decidedAt" | "createdAt", ExtArgs["result"]["authorizationDecisionRecord"]>
 
 export type $AuthorizationDecisionRecordPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AuthorizationDecisionRecord"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     authorizationReference: string
+    actorIdentityId: string | null
     subjectIdentityId: string
     permissionId: string
     resourceClassification: string | null
@@ -913,6 +940,7 @@ export interface Prisma__AuthorizationDecisionRecordClient<T, Null = never, ExtA
  */
 export interface AuthorizationDecisionRecordFieldRefs {
   readonly authorizationReference: Prisma.FieldRef<"AuthorizationDecisionRecord", 'String'>
+  readonly actorIdentityId: Prisma.FieldRef<"AuthorizationDecisionRecord", 'String'>
   readonly subjectIdentityId: Prisma.FieldRef<"AuthorizationDecisionRecord", 'String'>
   readonly permissionId: Prisma.FieldRef<"AuthorizationDecisionRecord", 'String'>
   readonly resourceClassification: Prisma.FieldRef<"AuthorizationDecisionRecord", 'String'>

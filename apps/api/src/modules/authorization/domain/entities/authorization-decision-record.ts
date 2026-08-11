@@ -11,6 +11,8 @@ import type { ResourceClassification } from '../value-objects/resource-classific
  */
 export interface AuthorizationDecisionRecordProperties {
   readonly authorizationReference: string;
+  /** Actor performing the operation; distinct from the target/subject for administration. */
+  readonly actorIdentityId?: UuidV7;
   readonly subjectIdentityId: UuidV7;
   readonly permissionId: string;
   readonly resourceClassification?: ResourceClassification;

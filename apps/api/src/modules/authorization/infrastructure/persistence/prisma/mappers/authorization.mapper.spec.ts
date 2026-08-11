@@ -77,6 +77,7 @@ describe('authorization mappers (M02 persistence)', () => {
     it('roundtrips a denied record with optional fields', () => {
       const entity = new AuthorizationDecisionRecord({
         authorizationReference: 'azr:0123456789abcdef0123456789abcdef',
+        actorIdentityId: ACTOR,
         subjectIdentityId: IDENTITY_ID,
         permissionId: 'recovery.approval.decide',
         resourceClassification: 'RESTRICTED',
@@ -90,6 +91,7 @@ describe('authorization mappers (M02 persistence)', () => {
 
       const row = {
         authorizationReference: entity.properties.authorizationReference,
+        actorIdentityId: ACTOR.value,
         subjectIdentityId: IDENTITY_ID.value,
         permissionId: 'recovery.approval.decide',
         resourceClassification: 'RESTRICTED',
@@ -120,6 +122,7 @@ describe('authorization mappers (M02 persistence)', () => {
 
       const persistence = authorizationDecisionRecordMapper.toPersistence(entity);
       expect(persistence.resourceClassification).toBeUndefined();
+      expect(persistence.actorIdentityId).toBeUndefined();
       expect(persistence.sessionIdentifier).toBeUndefined();
       expect(persistence.correlationId).toBeUndefined();
     });

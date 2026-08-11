@@ -94,6 +94,8 @@ export const authorizationDecisionRecordMapper = {
     return new AuthorizationDecisionRecord(
       compactProperties({
         authorizationReference: record.authorizationReference,
+        actorIdentityId:
+          record.actorIdentityId == null ? undefined : new UuidV7(record.actorIdentityId),
         subjectIdentityId: new UuidV7(record.subjectIdentityId),
         permissionId: record.permissionId,
         resourceClassification: toResourceClassification(record.resourceClassification),
@@ -112,6 +114,7 @@ export const authorizationDecisionRecordMapper = {
     const value = entity.properties;
     return compactProperties({
       authorizationReference: value.authorizationReference,
+      actorIdentityId: value.actorIdentityId?.value,
       subjectIdentityId: value.subjectIdentityId.value,
       permissionId: value.permissionId,
       resourceClassification: value.resourceClassification,
