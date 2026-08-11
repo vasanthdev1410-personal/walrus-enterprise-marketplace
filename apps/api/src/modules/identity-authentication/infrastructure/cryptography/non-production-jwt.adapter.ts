@@ -1,5 +1,6 @@
-import { readFile } from 'node:fs/promises';
 import type { KeyObject } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import type * as Jose from 'jose' with { 'resolution-mode': 'import' };
 import type {
   AccessTokenAuthenticationClaims,
@@ -29,15 +30,23 @@ const APPROVED_PAYLOAD_CLAIMS = new Set([
   'sessionVersion',
 ]);
 
-// JOSE v6 is ESM-only; preserving native dynamic import avoids unsafe JWT reimplementation
-// while the NestJS application remains CommonJS.
-// eslint-disable-next-line @typescript-eslint/no-implied-eval
-const importEsmModule = new Function('specifier', 'return import(specifier)') as (
-  specifier: string,
-) => Promise<typeof Jose>;
+// JOSE v6 is ESM-only while the NestJS application is CommonJS. Node 26, the
+// repository floor for both the production image (node:26.6.0-alpine) and CI,
+// supports require() of ESM modules natively, so a createRequire-scoped require
+// loads jose through Node's own module loader. This deliberately avoids a
+// vm-routed dynamic import (import()) from CommonJS: Jest attributes such an
+// import to the test file that first compiled the module, so a later test file
+// reusing the same worker fails with "import a file after the Jest environment
+// has been torn down" (jest-runtime bailIfTornDown).
+const requireFromProject = createRequire(__filename);
+
+// The jose module is stateless, so it is resolved once per module evaluation
+// and reused by every caller.
+let joseModule: typeof Jose | undefined;
 
 export function loadJoseModule(): Promise<typeof Jose> {
-  return importEsmModule('jose');
+  joseModule ??= requireFromProject('jose') as typeof Jose;
+  return Promise.resolve(joseModule);
 }
 
 export class NonProductionJwtAdapter implements JwtCryptographicPort {
