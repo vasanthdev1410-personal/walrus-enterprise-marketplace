@@ -74,10 +74,7 @@ export class ClassificationTransitionApplicationService {
     const current = snapshot.classificationAssignments.find(
       (assignment) => assignment.properties.assignmentState === 'EFFECTIVE',
     );
-    if (
-      current !== undefined &&
-      current.properties.classification === command.targetAuthenticationSecurityClassification
-    ) {
+    if (current?.properties.classification === command.targetAuthenticationSecurityClassification) {
       // No-op transition: the classification already equals the target. Fail
       // closed on the contract instead of silently accepting a meaningless
       // privileged call; the caller must not obtain a fresh privilege grant.

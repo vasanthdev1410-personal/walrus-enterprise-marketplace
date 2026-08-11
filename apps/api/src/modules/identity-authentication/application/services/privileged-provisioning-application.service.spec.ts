@@ -260,7 +260,7 @@ describe('PrivilegedProvisioningApplicationService.bootstrapSuperAdminIdentity (
   });
 
   it('rejects an already registered identifier', async () => {
-    const { service, identities } = createFixture({
+    const { service } = createFixture({
       existingSnapshot: {
         identity: {} as never,
         identifiers: [],
