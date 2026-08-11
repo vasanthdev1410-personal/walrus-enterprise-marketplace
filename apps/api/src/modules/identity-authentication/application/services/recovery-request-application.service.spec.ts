@@ -243,9 +243,9 @@ describe('RecoveryRequestApplicationService (M01-REC-001)', () => {
     expect(changeSet?.approvalsToAppend).toEqual([]);
     expect(changeSet?.attemptsToAppend).toEqual([]);
     expect(changeSet?.transitionsToAppend).toEqual([]);
-    expect(
-      changeSet?.recoveryRequest.properties.expiresAt.getTime(),
-    ).toBe(FIXED_NOW.getTime() + 3_600_000);
+    expect(changeSet?.recoveryRequest.properties.expiresAt.getTime()).toBe(
+      FIXED_NOW.getTime() + 3_600_000,
+    );
   });
 
   it('persists the correlation id when supplied', async () => {
@@ -428,9 +428,7 @@ function buildRejectedEvidence(count: number): readonly RecoveryEvidenceRecord[]
 
 function buildClassificationAssignment(
   classification:
-    | 'STANDARD_AUTHENTICATION'
-    | 'PRIVILEGED_ADMIN_AUTHENTICATION'
-    | 'SUPER_ADMIN_AUTHENTICATION',
+    'STANDARD_AUTHENTICATION' | 'PRIVILEGED_ADMIN_AUTHENTICATION' | 'SUPER_ADMIN_AUTHENTICATION',
 ): AuthenticationSecurityClassificationAssignment {
   return new AuthenticationSecurityClassificationAssignment({
     classificationAssignmentId: new UuidV7('0191310f-789a-7123-8123-0000000000c1'),
@@ -556,12 +554,12 @@ describe('RecoveryRequestApplicationService.submitEvidence (M01-REC-002)', () =>
     });
     expect(submitted?.attempt.properties.outcome).toBe('SUCCEEDED');
     // Canonical machine: REQUESTED -> EVIDENCE_PENDING -> EVIDENCE_VERIFIED.
-    expect(submitted?.transitionsToAppend.map((t) => [t.properties.fromState, t.properties.toState])).toEqual(
-      [
-        ['REQUESTED', 'EVIDENCE_PENDING'],
-        ['EVIDENCE_PENDING', 'EVIDENCE_VERIFIED'],
-      ],
-    );
+    expect(
+      submitted?.transitionsToAppend.map((t) => [t.properties.fromState, t.properties.toState]),
+    ).toEqual([
+      ['REQUESTED', 'EVIDENCE_PENDING'],
+      ['EVIDENCE_PENDING', 'EVIDENCE_VERIFIED'],
+    ]);
     expect(otpCrypto.matchesRecoveryCode).toHaveBeenCalledWith(
       RAW_RECOVERY_CODE,
       expect.objectContaining({
@@ -590,9 +588,9 @@ describe('RecoveryRequestApplicationService.submitEvidence (M01-REC-002)', () =>
     const submitted = recoveryRequests.submitRecoveryCodeEvidence.mock.calls[0]?.[0];
     // Single boundary (RECOVERY_CODE_SET) does not satisfy two independent
     // sources, so only the REQUESTED -> EVIDENCE_PENDING transition is written.
-    expect(submitted?.transitionsToAppend.map((t) => [t.properties.fromState, t.properties.toState])).toEqual(
-      [['REQUESTED', 'EVIDENCE_PENDING']],
-    );
+    expect(
+      submitted?.transitionsToAppend.map((t) => [t.properties.fromState, t.properties.toState]),
+    ).toEqual([['REQUESTED', 'EVIDENCE_PENDING']]);
     expect(submitted?.updatedRecoveryRequest.properties.recoveryAssurance).toBe('RA0');
   });
 
@@ -630,7 +628,9 @@ describe('RecoveryRequestApplicationService.submitEvidence (M01-REC-002)', () =>
     expect(saved?.recoveryRequest.properties.recoveryState).toBe('FAILED_SECURELY');
     expect(saved?.recoveryRequest.properties.terminalReason).toBe('EVIDENCE_ATTEMPTS_EXCEEDED');
     expect(saved?.attemptsToAppend[0]?.properties.outcome).toBe('FAILED_SECURELY');
-    expect(saved?.transitionsToAppend.map((t) => t.properties.toState)).toEqual(['FAILED_SECURELY']);
+    expect(saved?.transitionsToAppend.map((t) => t.properties.toState)).toEqual([
+      'FAILED_SECURELY',
+    ]);
   });
 
   it('rejects an unsupported evidence type fail-closed', async () => {
@@ -671,7 +671,9 @@ describe('RecoveryRequestApplicationService.submitEvidence (M01-REC-002)', () =>
 
   it('throws RECOVERY_STATE_CONFLICT for a terminal request', async () => {
     const { service, recoveryRequests } = createFixture();
-    recoveryRequests.findById.mockResolvedValue(buildRecoveryRequest({ recoveryState: 'COMPLETED' }));
+    recoveryRequests.findById.mockResolvedValue(
+      buildRecoveryRequest({ recoveryState: 'COMPLETED' }),
+    );
 
     await expect(service.submitEvidence(command)).rejects.toMatchObject({
       code: 'RECOVERY_STATE_CONFLICT',
@@ -763,9 +765,7 @@ describe('RecoveryRequestApplicationService.requestApproval (M01-REC-004)', () =
 
   function classifiedSnapshot(
     classification:
-      | 'STANDARD_AUTHENTICATION'
-      | 'PRIVILEGED_ADMIN_AUTHENTICATION'
-      | 'SUPER_ADMIN_AUTHENTICATION',
+      'STANDARD_AUTHENTICATION' | 'PRIVILEGED_ADMIN_AUTHENTICATION' | 'SUPER_ADMIN_AUTHENTICATION',
   ): IdentityAuthenticationSnapshot {
     return {
       ...buildSnapshot(),
@@ -794,10 +794,7 @@ describe('RecoveryRequestApplicationService.requestApproval (M01-REC-004)', () =
       aggregateVersion: { value: 3 },
     });
     expect(
-      changeSet?.transitionsToAppend.map((t) => [
-        t.properties.fromState,
-        t.properties.toState,
-      ]),
+      changeSet?.transitionsToAppend.map((t) => [t.properties.fromState, t.properties.toState]),
     ).toEqual([['EVIDENCE_VERIFIED', 'APPROVAL_PENDING']]);
     expect(changeSet?.approvalsToAppend).toEqual([]);
     expect(changeSet?.attemptsToAppend).toEqual([]);
@@ -949,9 +946,7 @@ describe('RecoveryRequestApplicationService.requestApproval (M01-REC-004)', () =
     identityRepository.findAuthenticationById.mockResolvedValue(
       classifiedSnapshot('SUPER_ADMIN_AUTHENTICATION'),
     );
-    recoveryRequests.save.mockRejectedValue(
-      new OptimisticConcurrencyError('RecoveryRequest'),
-    );
+    recoveryRequests.save.mockRejectedValue(new OptimisticConcurrencyError('RecoveryRequest'));
 
     await expect(service.requestApproval(command)).rejects.toMatchObject({
       code: 'RECOVERY_STATE_CONFLICT',
@@ -1010,7 +1005,8 @@ describe('RecoveryRequestApplicationService.recordApprovalDecision (M01-REC-005)
   }
 
   it('keeps APPROVAL_PENDING after the first APPROVED decision (dual control not yet satisfied)', async () => {
-    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } =
+      createFixture();
     recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
     identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
     useAuthorizedApprover(approvalAuthorization);
@@ -1047,7 +1043,8 @@ describe('RecoveryRequestApplicationService.recordApprovalDecision (M01-REC-005)
   });
 
   it('reaches APPROVED after the second distinct APPROVED decision', async () => {
-    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } =
+      createFixture();
     recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
     identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
     useAuthorizedApprover(approvalAuthorization);
@@ -1072,17 +1069,15 @@ describe('RecoveryRequestApplicationService.recordApprovalDecision (M01-REC-005)
       approvedAt: FIXED_NOW,
     });
     expect(
-      recorded?.transitionsToAppend.map((t) => [
-        t.properties.fromState,
-        t.properties.toState,
-      ]),
+      recorded?.transitionsToAppend.map((t) => [t.properties.fromState, t.properties.toState]),
     ).toEqual([['APPROVAL_PENDING', 'APPROVED']]);
     // The approver's reason code is preserved on the immutable transition.
     expect(recorded?.transitionsToAppend[0]?.properties.reasonCode).toBe('DUAL_CONTROL_APPROVED');
   });
 
   it('fails the recovery securely to REJECTED on a rejection decision', async () => {
-    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } =
+      createFixture();
     recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
     identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
     useAuthorizedApprover(approvalAuthorization);
@@ -1106,10 +1101,7 @@ describe('RecoveryRequestApplicationService.recordApprovalDecision (M01-REC-005)
       terminalReason: 'APPROVAL_REJECTED',
     });
     expect(
-      recorded?.transitionsToAppend.map((t) => [
-        t.properties.fromState,
-        t.properties.toState,
-      ]),
+      recorded?.transitionsToAppend.map((t) => [t.properties.fromState, t.properties.toState]),
     ).toEqual([['APPROVAL_PENDING', 'REJECTED']]);
     expect(recorded?.transitionsToAppend[0]?.properties.reasonCode).toBe('DUAL_CONTROL_REJECTED');
     expect(recorded?.approvalRecord.properties.decision).toBe('REJECTED');
@@ -1132,7 +1124,8 @@ describe('RecoveryRequestApplicationService.recordApprovalDecision (M01-REC-005)
   });
 
   it('rejects a duplicate decision from the same approver', async () => {
-    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } =
+      createFixture();
     recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
     identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
     useAuthorizedApprover(approvalAuthorization);
@@ -1159,7 +1152,8 @@ describe('RecoveryRequestApplicationService.recordApprovalDecision (M01-REC-005)
   });
 
   it('rejects an ineligible bound identity with RECOVERY_APPROVAL_INVALID', async () => {
-    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } =
+      createFixture();
     recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
     identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot('LOCKED'));
 
@@ -1270,7 +1264,8 @@ describe('RecoveryRequestApplicationService.recordApprovalDecision (M01-REC-005)
   });
 
   it('maps a stale-version or duplicate persistence race to RECOVERY_APPROVAL_INVALID', async () => {
-    const { service, identityRepository, recoveryRequests, approvalAuthorization } = createFixture();
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } =
+      createFixture();
     recoveryRequests.findById.mockResolvedValue(approvalPendingRequest());
     identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
     useAuthorizedApprover(approvalAuthorization);
@@ -1442,7 +1437,11 @@ describe('RecoveryRequestApplicationService.executeRecovery (M01-REC-006)', () =
     ] as const) {
       const { service, recoveryRequests } = createFixture();
       recoveryRequests.findById.mockResolvedValue(
-        buildRecoveryRequest({ recoveryState, stateVersion: 2, aggregateVersion: new AggregateVersion(2) }),
+        buildRecoveryRequest({
+          recoveryState,
+          stateVersion: 2,
+          aggregateVersion: new AggregateVersion(2),
+        }),
       );
 
       await expect(service.executeRecovery(command)).rejects.toMatchObject({
@@ -1468,8 +1467,9 @@ describe('RecoveryRequestApplicationService.executeRecovery (M01-REC-006)', () =
     const { service, recoveryRequests } = createFixture();
     recoveryRequests.findById.mockResolvedValue(approvedRequest());
 
-    await expect(service.executeRecovery({ ...command, expectedRecoveryVersion: 3 })).rejects
-      .toMatchObject({ code: 'RECOVERY_STATE_CONFLICT' });
+    await expect(
+      service.executeRecovery({ ...command, expectedRecoveryVersion: 3 }),
+    ).rejects.toMatchObject({ code: 'RECOVERY_STATE_CONFLICT' });
 
     recoveryRequests.findById.mockResolvedValue(
       buildRecoveryRequest({
@@ -1506,7 +1506,9 @@ describe('RecoveryRequestApplicationService.executeRecovery (M01-REC-006)', () =
   it('fails closed when the bound identity is no longer eligible', async () => {
     const { service, identityRepository, recoveryRequests } = createFixture();
     recoveryRequests.findById.mockResolvedValue(approvedRequest());
-    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot('LOCKED', 'VERIFIED'));
+    identityRepository.findAuthenticationById.mockResolvedValue(
+      buildSnapshot('LOCKED', 'VERIFIED'),
+    );
 
     await expect(service.executeRecovery(command)).rejects.toMatchObject({
       code: 'RECOVERY_STATE_CONFLICT',
@@ -1539,10 +1541,7 @@ describe('RecoveryRequestApplicationService.cancelRecovery (M01-REC-007)', () =>
     expectedRecoveryVersion: 3,
   };
 
-  function inProgressRequest(
-    recoveryState: RecoveryState,
-    version = 3,
-  ): RecoveryRequest {
+  function inProgressRequest(recoveryState: RecoveryState, version = 3): RecoveryRequest {
     return buildRecoveryRequest({
       recoveryState,
       stateVersion: version,
@@ -1611,8 +1610,9 @@ describe('RecoveryRequestApplicationService.cancelRecovery (M01-REC-007)', () =>
     const { service, recoveryRequests } = createFixture();
     recoveryRequests.findById.mockResolvedValue(inProgressRequest('EVIDENCE_PENDING'));
 
-    await expect(service.cancelRecovery({ ...command, expectedRecoveryVersion: 2 })).rejects
-      .toMatchObject({ code: 'RECOVERY_STATE_CONFLICT' });
+    await expect(
+      service.cancelRecovery({ ...command, expectedRecoveryVersion: 2 }),
+    ).rejects.toMatchObject({ code: 'RECOVERY_STATE_CONFLICT' });
 
     recoveryRequests.findById.mockResolvedValue(
       buildRecoveryRequest({

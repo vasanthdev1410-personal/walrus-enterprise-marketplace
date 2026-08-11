@@ -12,7 +12,10 @@ import { VerificationChallenge } from '../../domain/verification/entities/verifi
 import type { VerificationChallengeRepository } from '../../domain/verification/repositories/verification-challenge-repository';
 import { MfaError } from '../errors/mfa.error';
 import type { ClockPort, UuidV7GenerationPort } from '../ports/application-runtime.port';
-import type { EnvelopeEncryptionContext, ProtectedEnvelope } from '../ports/envelope-encryption.port';
+import type {
+  EnvelopeEncryptionContext,
+  ProtectedEnvelope,
+} from '../ports/envelope-encryption.port';
 import type { TotpCryptographicPort } from '../ports/totp-cryptographic.port';
 
 export interface MfaEnrollmentPolicy {
@@ -225,7 +228,9 @@ export class MfaEnrollmentApplicationService {
     const pendingEnrollmentId = pendingEnrollment?.properties.mfaEnrollmentId.value;
     const updatedIdentity = new Identity({
       ...snapshot.identity.properties,
-      aggregateVersion: new AggregateVersion(snapshot.identity.properties.aggregateVersion.value + 1),
+      aggregateVersion: new AggregateVersion(
+        snapshot.identity.properties.aggregateVersion.value + 1,
+      ),
       updatedAt: now,
     });
     try {
@@ -285,9 +290,7 @@ export class MfaEnrollmentApplicationService {
    * atomically activates the factor and enrollment, records the accepted TOTP
    * time step (replay guard) and consumes the challenge.
    */
-  public async confirmEnrollment(
-    command: ConfirmMfaEnrollmentCommand,
-  ): Promise<MfaEnabledResult> {
+  public async confirmEnrollment(command: ConfirmMfaEnrollmentCommand): Promise<MfaEnabledResult> {
     // Defense-in-depth: an identity deactivated or tombstoned after enrollment
     // started must not remain able to activate MFA.
     const snapshot = await this.identities.findAuthenticationById(command.identityId);
@@ -295,8 +298,7 @@ export class MfaEnrollmentApplicationService {
       throw new MfaError('CHALLENGE_INVALID_OR_EXPIRED');
     }
     const enrollment = snapshot.mfaEnrollments.find(
-      (candidate) =>
-        candidate.properties.mfaEnrollmentId.value === command.enrollmentId.value,
+      (candidate) => candidate.properties.mfaEnrollmentId.value === command.enrollmentId.value,
     );
     if (enrollment === undefined) throw new MfaError('CHALLENGE_INVALID_OR_EXPIRED');
     if (enrollment.properties.enrollmentState !== 'PENDING_VERIFICATION') {
@@ -415,7 +417,9 @@ export class MfaEnrollmentApplicationService {
               code.properties.codeState === 'ACTIVE',
           ).length;
     const enrollment =
-      snapshot.mfaEnrollments.find((candidate) => candidate.properties.enrollmentState === 'ACTIVE') ??
+      snapshot.mfaEnrollments.find(
+        (candidate) => candidate.properties.enrollmentState === 'ACTIVE',
+      ) ??
       snapshot.mfaEnrollments.find(
         (candidate) => candidate.properties.enrollmentState === 'PENDING_VERIFICATION',
       ) ??
@@ -451,7 +455,8 @@ export class MfaEnrollmentApplicationService {
       snapshot.mfaFactors.some(
         (candidate) => candidate.properties.factorState === 'REPLACEMENT_REQUIRED',
       );
-    const version = enrollmentState === 'PENDING_VERIFICATION' ? 1 : enrollmentState === 'DISABLED' ? 0 : 2;
+    const version =
+      enrollmentState === 'PENDING_VERIFICATION' ? 1 : enrollmentState === 'DISABLED' ? 0 : 2;
 
     return {
       enrollmentState,

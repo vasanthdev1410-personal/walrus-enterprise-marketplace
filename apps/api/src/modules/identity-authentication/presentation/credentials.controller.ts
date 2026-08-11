@@ -29,10 +29,7 @@ import {
   PASSWORD_RESET_APPLICATION_SERVICE,
 } from './authentication.tokens';
 import { ChangePasswordRequestDto } from './dto/credential.dto';
-import {
-  PasswordResetConfirmationDto,
-  PasswordResetRequestDto,
-} from './dto/password-reset.dto';
+import { PasswordResetConfirmationDto, PasswordResetRequestDto } from './dto/password-reset.dto';
 import { AuthoritativeSessionGuard } from './guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
 import {

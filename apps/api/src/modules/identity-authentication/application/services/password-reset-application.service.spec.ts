@@ -182,7 +182,9 @@ function createFixture(): PasswordResetFixture {
   };
 
   const otpCrypto: jest.Mocked<OtpRecoveryCodeCryptographicPort> = {
-    issueOtp: jest.fn().mockReturnValue({ rawValue: '123456', digest: 'stored-otp-digest', keyVersion: 'v1' }),
+    issueOtp: jest
+      .fn()
+      .mockReturnValue({ rawValue: '123456', digest: 'stored-otp-digest', keyVersion: 'v1' }),
     matchesOtp: jest.fn().mockReturnValue(true),
     issueRecoveryCodeSet: jest.fn(),
     matchesRecoveryCode: jest.fn(),
@@ -497,9 +499,7 @@ describe('PasswordResetApplicationService', () => {
       const fixture = createFixture();
       fixture.verificationChallenges.findAggregateById.mockResolvedValue(buildChallengeAggregate());
       fixture.identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
-      fixture.identityRepository.save.mockRejectedValue(
-        new OptimisticConcurrencyError('identity'),
-      );
+      fixture.identityRepository.save.mockRejectedValue(new OptimisticConcurrencyError('identity'));
 
       await expect(
         fixture.service.confirmReset({

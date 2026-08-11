@@ -50,9 +50,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
     return record === null ? null : identityMapper.toDomain(record);
   }
 
-  public async findRecoveryCodeSets(
-    identityId: UuidV7,
-  ): Promise<RecoveryCodeSetsSnapshot | null> {
+  public async findRecoveryCodeSets(identityId: UuidV7): Promise<RecoveryCodeSetsSnapshot | null> {
     const record = await this.prisma.identity.findUnique({
       where: { identityId: identityId.value },
       include: {

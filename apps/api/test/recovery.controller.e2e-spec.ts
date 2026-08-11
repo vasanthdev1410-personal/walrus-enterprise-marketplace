@@ -508,9 +508,7 @@ describe('Module 01 recovery API (integration)', () => {
     });
 
     it('answers 409 RECOVERY_APPROVAL_NOT_REQUIRED when the policy row requires no approval', async () => {
-      requestApproval.mockRejectedValueOnce(
-        new RecoveryError('RECOVERY_APPROVAL_NOT_REQUIRED'),
-      );
+      requestApproval.mockRejectedValueOnce(new RecoveryError('RECOVERY_APPROVAL_NOT_REQUIRED'));
 
       const response = await request(server)
         .post(`/recovery-requests/${recoveryRequestLocator}/approval-requests`)
@@ -688,9 +686,7 @@ describe('Module 01 recovery API (integration)', () => {
 
     it('returns 403 RECOVERY_APPROVAL_INVALID for an invalid approval attempt', async () => {
       useAal2Session();
-      recordApprovalDecision.mockRejectedValueOnce(
-        new RecoveryError('RECOVERY_APPROVAL_INVALID'),
-      );
+      recordApprovalDecision.mockRejectedValueOnce(new RecoveryError('RECOVERY_APPROVAL_INVALID'));
 
       const response = await request(server)
         .post(`/recovery-requests/${recoveryRequestLocator}/approval-decisions`)

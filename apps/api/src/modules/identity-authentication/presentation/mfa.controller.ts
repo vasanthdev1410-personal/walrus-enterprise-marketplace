@@ -28,10 +28,7 @@ import {
   MFA_ENROLLMENT_APPLICATION_SERVICE,
   RECOVERY_CODE_SET_APPLICATION_SERVICE,
 } from './authentication.tokens';
-import {
-  MfaEnrollmentConfirmationRequestDto,
-  MfaEnrollmentRequestDto,
-} from './dto/mfa.dto';
+import { MfaEnrollmentConfirmationRequestDto, MfaEnrollmentRequestDto } from './dto/mfa.dto';
 import { Aal2SessionGuard } from './guards/aal2-session.guard';
 import { AuthoritativeSessionGuard } from './guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
@@ -128,10 +125,7 @@ export class MfaController {
   ): Promise<void> {
     assertIdempotencyKey(idempotencyKey);
     const enrollmentIdValue = parseEnrollmentId(enrollmentId);
-    const expectedEnrollmentVersion = etagVersion(
-      ifMatch,
-      `enrollment:${enrollmentIdValue.value}`,
-    );
+    const expectedEnrollmentVersion = etagVersion(ifMatch, `enrollment:${enrollmentIdValue.value}`);
     const claims = request.authentication;
     try {
       const result = await this.idempotency.execute({

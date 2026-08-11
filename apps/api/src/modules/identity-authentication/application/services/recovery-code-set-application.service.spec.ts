@@ -79,8 +79,7 @@ function createFixture(options: {
 } {
   const issueRecoveryCodeSet: jest.MockedFunction<
     OtpRecoveryCodeCryptographicPort['issueRecoveryCodeSet']
-  > =
-    options.issueRecoveryCodeSet ?? jest.fn().mockReturnValue(ISSUED_CODES);
+  > = options.issueRecoveryCodeSet ?? jest.fn().mockReturnValue(ISSUED_CODES);
 
   let sequence = 0;
   const nextIds: string[] = [];
@@ -97,7 +96,14 @@ function createFixture(options: {
   const findAuthenticationById = jest.fn().mockResolvedValue(
     options.snapshot === null
       ? null
-      : { identity: options.snapshot, identifiers: [], credentials: [], classificationAssignments: [], mfaEnrollments: [], mfaFactors: [] },
+      : {
+          identity: options.snapshot,
+          identifiers: [],
+          credentials: [],
+          classificationAssignments: [],
+          mfaEnrollments: [],
+          mfaFactors: [],
+        },
   );
   const findRecoveryCodeSets = jest
     .fn()
@@ -120,7 +126,12 @@ function createFixture(options: {
 
   const service = new RecoveryCodeSetApplicationService(
     identities,
-    { issueOtp: jest.fn(), matchesOtp: jest.fn(), issueRecoveryCodeSet, matchesRecoveryCode: jest.fn() },
+    {
+      issueOtp: jest.fn(),
+      matchesOtp: jest.fn(),
+      issueRecoveryCodeSet,
+      matchesRecoveryCode: jest.fn(),
+    },
     { now: () => now },
     identifiers,
     { environment: 'test' },
@@ -277,9 +288,9 @@ describe('RecoveryCodeSetApplicationService (M01-MFA-005)', () => {
 
     const changeSet = fixture.save.mock.calls[0]?.[0];
     for (const code of changeSet?.recoveryCodes ?? []) {
-      expect(ISSUED_CODES.some((issued) => issued.rawValue === code.properties.codeDigest.value)).toBe(
-        false,
-      );
+      expect(
+        ISSUED_CODES.some((issued) => issued.rawValue === code.properties.codeDigest.value),
+      ).toBe(false);
     }
     // The identity write must also carry the bumped aggregate version.
     expect(changeSet?.identity.properties.aggregateVersion.value).toBe(5);

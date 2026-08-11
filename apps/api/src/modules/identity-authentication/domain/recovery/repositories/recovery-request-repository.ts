@@ -15,9 +15,7 @@ export interface RecoveryRequestRepository {
    * Loads every approval-decision record of a recovery request for dual
    * control evaluation (M01-REC-005).
    */
-  findApprovalRecords(
-    recoveryRequestId: UuidV7,
-  ): Promise<readonly RecoveryApprovalRecord[]>;
+  findApprovalRecords(recoveryRequestId: UuidV7): Promise<readonly RecoveryApprovalRecord[]>;
   insert(changeSet: RecoveryAggregateChangeSet): Promise<void>;
   save(changeSet: RecoveryAggregateChangeSet, expectedVersion: AggregateVersion): Promise<void>;
   /**
@@ -37,9 +35,7 @@ export interface RecoveryRequestRepository {
    * mutating any state when the code was already consumed or the request
    * version is stale, so a failed guard rolls the whole change set back.
    */
-  submitRecoveryCodeEvidence(
-    command: SubmitRecoveryCodeEvidencePersistenceCommand,
-  ): Promise<void>;
+  submitRecoveryCodeEvidence(command: SubmitRecoveryCodeEvidencePersistenceCommand): Promise<void>;
   /**
    * M01-REC-006. Atomically completes a recovery: transitions the request to
    * COMPLETED, appends the immutable EXECUTING and COMPLETED state transitions

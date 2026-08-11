@@ -22,7 +22,5 @@ export interface ApprovalAuthorizationDecision {
 }
 
 export interface ApprovalAuthorizationPort {
-  authorizeApprover(
-    command: ApproverAuthorizationCommand,
-  ): Promise<ApprovalAuthorizationDecision>;
+  authorizeApprover(command: ApproverAuthorizationCommand): Promise<ApprovalAuthorizationDecision>;
 }

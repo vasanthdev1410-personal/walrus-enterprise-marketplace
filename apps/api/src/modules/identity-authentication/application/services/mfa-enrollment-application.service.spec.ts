@@ -156,7 +156,9 @@ describe('MfaEnrollmentApplicationService', () => {
     const enrollments = saved.changeSet.mfaEnrollments;
     const factors = saved.changeSet.mfaFactors;
     expect(enrollments).toHaveLength(2);
-    const disabled = enrollments.find((e) => e.properties.mfaEnrollmentId.value === enrollmentId.value);
+    const disabled = enrollments.find(
+      (e) => e.properties.mfaEnrollmentId.value === enrollmentId.value,
+    );
     expect(disabled?.properties.enrollmentState).toBe('DISABLED');
     expect(disabled?.properties.disabledAt).toEqual(now);
     expect(
@@ -385,7 +387,9 @@ describe('MfaEnrollmentApplicationService', () => {
 
   it('M01-MFA-003 flags replacementRequired when the enrollment requires replacement', async () => {
     const fixture = createFixture({
-      snapshot: buildSnapshot([buildEnrollment('REPLACEMENT_REQUIRED', { replacementRequiredAt: now })]),
+      snapshot: buildSnapshot([
+        buildEnrollment('REPLACEMENT_REQUIRED', { replacementRequiredAt: now }),
+      ]),
     });
     await expect(fixture.service.readStatus(identityId)).resolves.toMatchObject({
       enrollmentState: 'REPLACEMENT_REQUIRED',
@@ -491,16 +495,15 @@ interface FixtureOptions {
 function createFixture(options: FixtureOptions): Fixture {
   const findRecoveryCodeSets = jest
     .fn()
-    .mockResolvedValue(
-      options.recoverySets ?? { recoveryCodeSets: [], recoveryCodes: [] },
-    );
+    .mockResolvedValue(options.recoverySets ?? { recoveryCodeSets: [], recoveryCodes: [] });
   const identities = {
     findAuthenticationById: jest.fn().mockResolvedValue(options.snapshot),
     findRecoveryCodeSets,
     save: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<IdentityRepository>;
-  const insertChallenge: jest.MockedFunction<VerificationChallengeRepository['insert']> =
-    jest.fn().mockResolvedValue(undefined);
+  const insertChallenge: jest.MockedFunction<VerificationChallengeRepository['insert']> = jest
+    .fn()
+    .mockResolvedValue(undefined);
   const findActiveByBinding: jest.MockedFunction<
     VerificationChallengeRepository['findActiveByBinding']
   > = jest.fn().mockResolvedValue(options.activeChallenge ?? null);
@@ -523,8 +526,9 @@ function createFixture(options: FixtureOptions): Fixture {
     confirmOtpChallenge: jest.fn(),
     rejectOtpChallenge: jest.fn(),
   } as unknown as jest.Mocked<VerificationChallengeRepository>;
-  const createSecret: jest.MockedFunction<TotpCryptographicPort['createEnrollmentSecret']> =
-    jest.fn().mockReturnValue({ base32Secret: 'BASE32SECRET', protectedEnvelope: TEST_ENVELOPE });
+  const createSecret: jest.MockedFunction<TotpCryptographicPort['createEnrollmentSecret']> = jest
+    .fn()
+    .mockReturnValue({ base32Secret: 'BASE32SECRET', protectedEnvelope: TEST_ENVELOPE });
   const verifyTotp: jest.MockedFunction<TotpCryptographicPort['verify']> = jest
     .fn()
     .mockReturnValue({ valid: true, matchedTimeStep: 300n });
@@ -538,14 +542,11 @@ function createFixture(options: FixtureOptions): Fixture {
     next: () => generated.shift() ?? nextAttemptId,
   };
   return {
-    service: new MfaEnrollmentApplicationService(
-      identities,
-      challenges,
-      totp,
-      clock,
-      identifiers,
-      { environment: 'test', challengeLifetimeSeconds: 300, maximumVerificationAttempts: 5 },
-    ),
+    service: new MfaEnrollmentApplicationService(identities, challenges, totp, clock, identifiers, {
+      environment: 'test',
+      challengeLifetimeSeconds: 300,
+      maximumVerificationAttempts: 5,
+    }),
     saveIdentity: identities.save,
     insertChallenge,
     findActiveByBinding,
@@ -561,39 +562,34 @@ function lastSaveCall(fixture: Fixture): {
   readonly expectedVersion: AggregateVersion;
 } {
   const call = fixture.saveIdentity.mock.calls.at(-1) as
-    | [IdentityAggregateChangeSet, AggregateVersion]
-    | undefined;
+    [IdentityAggregateChangeSet, AggregateVersion] | undefined;
   if (call === undefined) throw new Error('IdentityRepository.save was not called');
   return { changeSet: call[0], expectedVersion: call[1] };
 }
 
-function lastInsertCall(
-  fixture: Fixture,
-): VerificationAggregateChangeSet {
+function lastInsertCall(fixture: Fixture): VerificationAggregateChangeSet {
   const call = fixture.insertChallenge.mock.calls.at(-1) as
-    | [VerificationAggregateChangeSet]
-    | undefined;
+    [VerificationAggregateChangeSet] | undefined;
   if (call === undefined) throw new Error('VerificationChallengeRepository.insert was not called');
   return call[0];
 }
 
-function lastCompletionCall(
-  fixture: Fixture,
-): CompleteMfaEnrollmentChallengePersistenceCommand {
+function lastCompletionCall(fixture: Fixture): CompleteMfaEnrollmentChallengePersistenceCommand {
   const call = fixture.completeEnrollment.mock.calls.at(-1) as
-    | [CompleteMfaEnrollmentChallengePersistenceCommand]
-    | undefined;
+    [CompleteMfaEnrollmentChallengePersistenceCommand] | undefined;
   if (call === undefined) {
-    throw new Error('VerificationChallengeRepository.completeMfaEnrollmentChallenge was not called');
+    throw new Error(
+      'VerificationChallengeRepository.completeMfaEnrollmentChallenge was not called',
+    );
   }
   return call[0];
 }
 
 function lastRejectCall(fixture: Fixture): RejectTotpChallengePersistenceCommand {
   const call = fixture.rejectChallenge.mock.calls.at(-1) as
-    | [RejectTotpChallengePersistenceCommand]
-    | undefined;
-  if (call === undefined) throw new Error('VerificationChallengeRepository.rejectTotpChallenge was not called');
+    [RejectTotpChallengePersistenceCommand] | undefined;
+  if (call === undefined)
+    throw new Error('VerificationChallengeRepository.rejectTotpChallenge was not called');
   return call[0];
 }
 
@@ -634,9 +630,7 @@ function buildSnapshot(
 
 function buildEnrollment(
   enrollmentState:
-    | 'PENDING_VERIFICATION'
-    | 'ACTIVE'
-    | 'REPLACEMENT_REQUIRED' = 'PENDING_VERIFICATION',
+    'PENDING_VERIFICATION' | 'ACTIVE' | 'REPLACEMENT_REQUIRED' = 'PENDING_VERIFICATION',
   timestamps: Partial<{ activatedAt: Date; replacementRequiredAt: Date }> = {},
 ): MfaEnrollment {
   return new MfaEnrollment({
@@ -678,9 +672,7 @@ function buildChallenge(
     identityId,
     purpose: 'MFA_ENROLLMENT',
     channelType: 'AUTHENTICATOR_APPLICATION',
-    protectedDestinationReference: new ProtectedValue(
-      `mfa-enrollment:${boundEnrollmentId.value}`,
-    ),
+    protectedDestinationReference: new ProtectedValue(`mfa-enrollment:${boundEnrollmentId.value}`),
     challengeDigest: new ProtectedValue(`mfa-enrollment-challenge:${challengeId.value}`),
     challengeState: 'CHALLENGE_ISSUED',
     attemptCount,

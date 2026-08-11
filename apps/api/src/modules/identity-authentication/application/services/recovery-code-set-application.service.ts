@@ -128,7 +128,9 @@ export class RecoveryCodeSetApplicationService {
 
     const updatedIdentity = new Identity({
       ...snapshot.identity.properties,
-      aggregateVersion: new AggregateVersion(snapshot.identity.properties.aggregateVersion.value + 1),
+      aggregateVersion: new AggregateVersion(
+        snapshot.identity.properties.aggregateVersion.value + 1,
+      ),
       updatedAt: now,
     });
     try {

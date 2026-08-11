@@ -99,7 +99,9 @@ export class PasswordResetApplicationService {
    * destination. An already-active challenge is returned as-is (its OTP was
    * already delivered) so a retry does not generate a second code.
    */
-  public async requestReset(command: RequestPasswordResetCommand): Promise<PasswordResetChallengeResult> {
+  public async requestReset(
+    command: RequestPasswordResetCommand,
+  ): Promise<PasswordResetChallengeResult> {
     const identifierType: IdentifierType = command.channelType === 'EMAIL' ? 'EMAIL' : 'MOBILE';
     let canonicalValue: string;
     try {
@@ -159,8 +161,7 @@ export class PasswordResetApplicationService {
       identityId: identity.identityId,
       purpose: 'PASSWORD_RECOVERY',
       channelType: command.channelType,
-      protectedDestinationReference: verifiedChannelIdentifier.properties
-        .protectedNormalizedValue,
+      protectedDestinationReference: verifiedChannelIdentifier.properties.protectedNormalizedValue,
       challengeDigest: digest,
       challengeState: 'CHALLENGE_ISSUED',
       attemptCount: 0,
@@ -255,7 +256,10 @@ export class PasswordResetApplicationService {
     if (challenge.purpose !== 'PASSWORD_RECOVERY') {
       throw new PasswordResetError('RECOVERY_OPERATION_NOT_PERMITTED');
     }
-    if (challenge.challengeState !== 'CHALLENGE_ISSUED' || challenge.expiresAt <= this.clock.now()) {
+    if (
+      challenge.challengeState !== 'CHALLENGE_ISSUED' ||
+      challenge.expiresAt <= this.clock.now()
+    ) {
       throw new PasswordResetError('RECOVERY_OPERATION_NOT_PERMITTED');
     }
     if (challenge.aggregateVersion.value !== command.expectedChallengeVersion) {
@@ -367,7 +371,9 @@ export class PasswordResetApplicationService {
     const newHash = await this.passwordHashing.hash(command.newPassword);
     const updatedIdentity = new Identity({
       ...snapshot.identity.properties,
-      aggregateVersion: new AggregateVersion(snapshot.identity.properties.aggregateVersion.value + 1),
+      aggregateVersion: new AggregateVersion(
+        snapshot.identity.properties.aggregateVersion.value + 1,
+      ),
       updatedAt: now,
     });
     const replaced = new Credential({

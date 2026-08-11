@@ -72,11 +72,7 @@ export interface RecoveryRequestStartedResult {
 }
 
 export type RecoveryNextAction =
-  | 'SUBMIT_EVIDENCE'
-  | 'REQUEST_APPROVAL'
-  | 'AWAIT_APPROVAL'
-  | 'EXECUTE'
-  | 'NONE';
+  'SUBMIT_EVIDENCE' | 'REQUEST_APPROVAL' | 'AWAIT_APPROVAL' | 'EXECUTE' | 'NONE';
 
 /**
  * M01-REC-002. Submits one piece of recovery evidence bound to the recovery
@@ -183,9 +179,7 @@ export interface RecoveryCancellationResult {
 
 /** Non-sensitive failure reasons recorded on rejected evidence/attempt rows. */
 export type RejectedEvidenceReason =
-  | 'UNSUPPORTED_EVIDENCE_TYPE'
-  | 'MISSING_EVIDENCE_VALUE'
-  | 'INVALID_RECOVERY_CODE';
+  'UNSUPPORTED_EVIDENCE_TYPE' | 'MISSING_EVIDENCE_VALUE' | 'INVALID_RECOVERY_CODE';
 
 /** Approved evidence type → compromise boundary mapping (spec Section 22). */
 const EVIDENCE_BOUNDARY: Readonly<Record<RecoveryEvidenceType, RecoveryEvidenceBoundary>> = {
@@ -228,9 +222,7 @@ function policyRequirement(
 }
 
 type RecoverySecurityClassification =
-  | 'STANDARD_AUTHENTICATION'
-  | 'PRIVILEGED_ADMIN_AUTHENTICATION'
-  | 'SUPER_ADMIN_AUTHENTICATION';
+  'STANDARD_AUTHENTICATION' | 'PRIVILEGED_ADMIN_AUTHENTICATION' | 'SUPER_ADMIN_AUTHENTICATION';
 
 /**
  * Deterministic approval requirement (spec Section 22): SUPER_ADMIN recovery
@@ -546,7 +538,8 @@ export class RecoveryRequestApplicationService {
         : sets.recoveryCodes.filter(
             (code) =>
               code.properties.codeState === 'ACTIVE' &&
-              code.properties.recoveryCodeSetId.value === activeSet.properties.recoveryCodeSetId.value,
+              code.properties.recoveryCodeSetId.value ===
+                activeSet.properties.recoveryCodeSetId.value,
           );
     const matched =
       activeSet === undefined
@@ -976,8 +969,7 @@ export class RecoveryRequestApplicationService {
     );
     if (
       existingApprovals.some(
-        (record) =>
-          record.properties.approverIdentityId.value === command.approverIdentityId.value,
+        (record) => record.properties.approverIdentityId.value === command.approverIdentityId.value,
       )
     ) {
       throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
@@ -1024,8 +1016,7 @@ export class RecoveryRequestApplicationService {
       terminalReason = 'APPROVAL_REJECTED';
     } else {
       const approvedCount =
-        existingApprovals.filter((record) => record.properties.decision === 'APPROVED').length +
-        1;
+        existingApprovals.filter((record) => record.properties.decision === 'APPROVED').length + 1;
       if (approvedCount >= REQUIRED_APPROVAL_RECORDS) {
         transitions.push(
           transition(
@@ -1153,7 +1144,9 @@ export class RecoveryRequestApplicationService {
     // RECOVERY_STATE_CONFLICT and nothing is reported as completed.
     const updatedIdentity = new Identity({
       ...snapshot.identity.properties,
-      aggregateVersion: new AggregateVersion(snapshot.identity.properties.aggregateVersion.value + 1),
+      aggregateVersion: new AggregateVersion(
+        snapshot.identity.properties.aggregateVersion.value + 1,
+      ),
       updatedAt: now,
     });
     const revokedDevices = (snapshot.trustedDevices ?? []).map((device) => {
@@ -1223,7 +1216,14 @@ export class RecoveryRequestApplicationService {
     // reported COMPLETED with executionStartedAt/completedAt.
     const stateVersion = properties.stateVersion + 2;
     const transitions: RecoveryStateTransition[] = [
-      transition(properties, this.identifiers.next(), properties.recoveryState, 'EXECUTING', properties.stateVersion + 1, now),
+      transition(
+        properties,
+        this.identifiers.next(),
+        properties.recoveryState,
+        'EXECUTING',
+        properties.stateVersion + 1,
+        now,
+      ),
       transition(properties, this.identifiers.next(), 'EXECUTING', 'COMPLETED', stateVersion, now),
     ];
     // The completion notification targets the identity's verified recovery

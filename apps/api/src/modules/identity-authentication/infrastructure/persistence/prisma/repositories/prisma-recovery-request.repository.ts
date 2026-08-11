@@ -34,9 +34,7 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
     return record === null ? null : recoveryRequestMapper.toDomain(record);
   }
 
-  public async findEvidence(
-    recoveryRequestId: UuidV7,
-  ): Promise<readonly RecoveryEvidenceRecord[]> {
+  public async findEvidence(recoveryRequestId: UuidV7): Promise<readonly RecoveryEvidenceRecord[]> {
     const records = await this.prisma.recoveryEvidenceRecord.findMany({
       where: { recoveryRequestId: recoveryRequestId.value },
     });
@@ -114,9 +112,7 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
     });
   }
 
-  public async executeRecovery(
-    command: ExecuteRecoveryPersistenceCommand,
-  ): Promise<void> {
+  public async executeRecovery(command: ExecuteRecoveryPersistenceCommand): Promise<void> {
     await this.prisma.$transaction(async (transaction) => {
       // Single-winner execution gate: the version guard plus the
       // executable-state guard (APPROVED, or EVIDENCE_VERIFIED when approval is
@@ -221,7 +217,8 @@ export class PrismaRecoveryRequestRepository implements RecoveryRequestRepositor
     for (const entity of changeSet.approvalsToAppend)
       await transaction.recoveryApprovalRecord.create({
         data: recoveryApprovalMapper.toPersistence(entity),
-      });      for (const entity of changeSet.attemptsToAppend)
+      });
+    for (const entity of changeSet.attemptsToAppend)
       await transaction.recoveryAttempt.create({
         data: recoveryAttemptMapper.toPersistence(entity),
       });
