@@ -4,9 +4,11 @@ import type { Server } from 'node:http';
 import request from 'supertest';
 import { ClassificationTransitionError } from '../src/modules/identity-authentication/application/errors/classification-transition.error';
 import { IdentityLifecycleError } from '../src/modules/identity-authentication/application/errors/identity-lifecycle.error';
+import { ProvisioningError } from '../src/modules/identity-authentication/application/errors/provisioning.error';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
 import type { ClassificationTransitionApplicationService } from '../src/modules/identity-authentication/application/services/classification-transition-application.service';
 import type { IdentityLifecycleApplicationService } from '../src/modules/identity-authentication/application/services/identity-lifecycle-application.service';
+import type { PrivilegedProvisioningApplicationService } from '../src/modules/identity-authentication/application/services/privileged-provisioning-application.service';
 import type { JwtCryptographicPort } from '../src/modules/identity-authentication/application/ports/jwt-cryptographic.port';
 import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
 import type { SessionRepository } from '../src/modules/identity-authentication/domain/session/repositories/session-repository';
@@ -17,6 +19,7 @@ import {
   BASIC_AUDIT_LOGGER,
   CLASSIFICATION_TRANSITION_APPLICATION_SERVICE,
   IDENTITY_LIFECYCLE_APPLICATION_SERVICE,
+  PRIVILEGED_PROVISIONING_APPLICATION_SERVICE,
   RATE_LIMITER,
 } from '../src/modules/identity-authentication/presentation/authentication.tokens';
 import { AuthoritativeSessionGuard } from '../src/modules/identity-authentication/presentation/guards/authoritative-session.guard';
@@ -48,6 +51,13 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
   const classificationService = {
     transitionClassification,
   } as unknown as jest.Mocked<ClassificationTransitionApplicationService>;
+
+  const provisionPrivilegedIdentity = jest.fn() as jest.MockedFunction<
+    PrivilegedProvisioningApplicationService['provisionPrivilegedIdentity']
+  >;
+  const provisioningService = {
+    provisionPrivilegedIdentity,
+  } as unknown as jest.Mocked<PrivilegedProvisioningApplicationService>;
 
   const lifecycleService = {
     readAuthenticationState,
@@ -83,6 +93,10 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
         {
           provide: CLASSIFICATION_TRANSITION_APPLICATION_SERVICE,
           useValue: classificationService,
+        },
+        {
+          provide: PRIVILEGED_PROVISIONING_APPLICATION_SERVICE,
+          useValue: provisioningService,
         },
         { provide: API_IDEMPOTENCY, useValue: idempotency },
         { provide: RATE_LIMITER, useValue: rateLimiter },
@@ -368,6 +382,115 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
           targetAuthenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
           reasonCode: 'ADMIN_PROVISIONED',
           sourceContractReference: 'M02-CONTRACT-CLS-4',
+        })
+        .expect(400);
+    });
+  });
+
+  describe('M01-ADM-001 POST /internal/identities/provisioning', () => {
+    it('provisions a privileged identity when authorized (202)', async () => {
+      provisionPrivilegedIdentity.mockResolvedValueOnce({
+        operationId: '0191310f-789a-7123-8123-0000000000aa',
+        state: 'PENDING_VERIFICATION',
+      });
+
+      const response = await request(server)
+        .post('/internal/identities/provisioning')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .send({
+          provisioningReference: 'M02-PROVISIONING-REF-1',
+          identifierType: 'EMAIL',
+          identifier: 'admin@example.com',
+          targetAuthenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
+        })
+        .expect(202);
+
+      const body = response.body as { data: Readonly<Record<string, unknown>> };
+      expect(body.data).toEqual({
+        operationId: '0191310f-789a-7123-8123-0000000000aa',
+        state: 'PENDING_VERIFICATION',
+      });
+      expect(response.headers['cache-control']).toBe('no-store');
+      const command = provisionPrivilegedIdentity.mock.calls[0]?.[0];
+      expect(command?.actorIdentityId.value).toBe(identityId);
+      expect(command?.provisioningReference).toBe('M02-PROVISIONING-REF-1');
+      expect(command?.targetAuthenticationSecurityClassification).toBe(
+        'PRIVILEGED_ADMIN_AUTHENTICATION',
+      );
+    });
+
+    it('returns 403 AUTHORIZATION_DENIED when the service boundary refuses', async () => {
+      provisionPrivilegedIdentity.mockRejectedValueOnce(
+        new ProvisioningError('AUTHORIZATION_DENIED'),
+      );
+      await request(server)
+        .post('/internal/identities/provisioning')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .send({
+          provisioningReference: 'M02-PROVISIONING-REF-2',
+          identifierType: 'EMAIL',
+          identifier: 'admin@example.com',
+          targetAuthenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
+        })
+        .expect(403);
+    });
+
+    it('returns 400 when the SUPER_ADMIN classification is requested (hidden super-admin prevented)', async () => {
+      await request(server)
+        .post('/internal/identities/provisioning')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .send({
+          provisioningReference: 'M02-PROVISIONING-REF-3',
+          identifierType: 'EMAIL',
+          identifier: 'admin@example.com',
+          targetAuthenticationSecurityClassification: 'SUPER_ADMIN_AUTHENTICATION',
+        })
+        .expect(400);
+      expect(provisionPrivilegedIdentity).not.toHaveBeenCalled();
+    });
+
+    it('returns 409 IDENTIFIER_ALREADY_REGISTERED for an existing identifier', async () => {
+      provisionPrivilegedIdentity.mockRejectedValueOnce(
+        new ProvisioningError('IDENTIFIER_ALREADY_REGISTERED'),
+      );
+      await request(server)
+        .post('/internal/identities/provisioning')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .send({
+          provisioningReference: 'M02-PROVISIONING-REF-4',
+          identifierType: 'EMAIL',
+          identifier: 'admin@example.com',
+          targetAuthenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
+        })
+        .expect(409);
+    });
+
+    it('returns 401 Unauthorized when the access token is missing', async () => {
+      await request(server)
+        .post('/internal/identities/provisioning')
+        .set('Idempotency-Key', idempotencyKey)
+        .send({
+          provisioningReference: 'M02-PROVISIONING-REF-5',
+          identifierType: 'EMAIL',
+          identifier: 'admin@example.com',
+          targetAuthenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
+        })
+        .expect(401);
+    });
+
+    it('returns 400 when the Idempotency-Key is missing', async () => {
+      await request(server)
+        .post('/internal/identities/provisioning')
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .send({
+          provisioningReference: 'M02-PROVISIONING-REF-6',
+          identifierType: 'EMAIL',
+          identifier: 'admin@example.com',
+          targetAuthenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
         })
         .expect(400);
     });

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   ForbiddenException,
   Headers,
@@ -20,18 +21,22 @@ import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { ClassificationTransitionError } from '../application/errors/classification-transition.error';
 import { IdentityLifecycleError } from '../application/errors/identity-lifecycle.error';
+import { ProvisioningError } from '../application/errors/provisioning.error';
 import type { ApiIdempotencyService } from '../application/services/api-idempotency.service';
 import type { ClassificationTransitionApplicationService } from '../application/services/classification-transition-application.service';
 import type { IdentityLifecycleApplicationService } from '../application/services/identity-lifecycle-application.service';
+import type { PrivilegedProvisioningApplicationService } from '../application/services/privileged-provisioning-application.service';
 import { UuidV7 } from '../domain/shared/value-objects/uuid-v7';
 import { API_IDEMPOTENCY } from '../identity-authentication.tokens';
 import type { AuthenticatedRequest } from './authentication-context';
 import {
   CLASSIFICATION_TRANSITION_APPLICATION_SERVICE,
   IDENTITY_LIFECYCLE_APPLICATION_SERVICE,
+  PRIVILEGED_PROVISIONING_APPLICATION_SERVICE,
 } from './authentication.tokens';
 import { ClassificationTransitionRequestDto } from './dto/classification-transition.dto';
 import { IdentityStateTransitionRequestDto } from './dto/identity-lifecycle.dto';
+import { ProvisionPrivilegedIdentityRequestDto } from './dto/provisioning.dto';
 import { AuthoritativeSessionGuard } from './guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
 import { assertIdempotencyKey, etagVersion, noStore, success } from './http-contract';
@@ -48,6 +53,8 @@ export class InternalIdentityController {
     private readonly lifecycle: IdentityLifecycleApplicationService,
     @Inject(CLASSIFICATION_TRANSITION_APPLICATION_SERVICE)
     private readonly classifications: ClassificationTransitionApplicationService,
+    @Inject(PRIVILEGED_PROVISIONING_APPLICATION_SERVICE)
+    private readonly provisioning: PrivilegedProvisioningApplicationService,
     @Inject(API_IDEMPOTENCY) private readonly idempotency: ApiIdempotencyService,
   ) {}
 
@@ -177,7 +184,83 @@ export class InternalIdentityController {
     }
   }
 
+  /**
+   * M01-ADM-001. Provisions a privileged (Admin) Identity through the approved
+   * internal service boundary. The caller must hold an ordinary Session; a
+   * current service authorization decision is obtained through the narrow
+   * provisioning authorization port at decision time (AUTHORIZATION_DENIED
+   * otherwise — an ordinary Session alone never provisions a privileged
+   * Identity). Only PRIVILEGED_ADMIN_AUTHENTICATION is accepted;
+   * SUPER_ADMIN_AUTHENTICATION is applied exclusively by the controlled
+   * bootstrap (M01-ADM-002) so no hidden Super Admin can be created here. The
+   * provisioned Identity starts pending verification; no credential or role is
+   * created by provisioning.
+   */
+  @Post('provisioning')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RateLimit({ limit: 3, windowSeconds: 900 })
+  @UseGuards(AuthoritativeSessionGuard)
+  @ApiOperation({ operationId: 'M01-ADM-001', summary: 'Provision privileged identity' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  public async provisionPrivilegedIdentity(
+    @Body() body: ProvisionPrivilegedIdentityRequestDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Req() request: AuthenticatedRequest,
+    @Res() response: Response,
+  ): Promise<void> {
+    assertIdempotencyKey(idempotencyKey);
+    const claims = request.authentication;
+    try {
+      const result = await this.idempotency.execute({
+        scope: `internal:provisioning:${claims.subject}`,
+        operationType: 'M01-ADM-001',
+        idempotencyKey,
+        request: {
+          provisioningReference: body.provisioningReference,
+          identifierType: body.identifierType,
+          identifier: body.identifier,
+          targetAuthenticationSecurityClassification:
+            body.targetAuthenticationSecurityClassification,
+        },
+        execute: () =>
+          this.provisioning.provisionPrivilegedIdentity({
+            actorIdentityId: new UuidV7(claims.subject),
+            provisioningReference: body.provisioningReference,
+            identifierType: body.identifierType,
+            identifier: body.identifier,
+            targetAuthenticationSecurityClassification:
+              body.targetAuthenticationSecurityClassification,
+          }),
+      });
+      noStore(response);
+      response.status(HttpStatus.ACCEPTED).json(
+        success({
+          operationId: result.operationId,
+          state: result.state,
+        }),
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
   private handleError(error: unknown): never {
+    if (error instanceof ProvisioningError) {
+      switch (error.code) {
+        case 'AUTHORIZATION_DENIED':
+          throw new ForbiddenException(error.code);
+        case 'CLASSIFICATION_NOT_PERMITTED':
+          throw new ForbiddenException(error.code);
+        case 'IDENTIFIER_INVALID':
+          throw new BadRequestException(error.code);
+        case 'IDENTIFIER_ALREADY_REGISTERED':
+          throw new ConflictException(error.code);
+        case 'RESOURCE_STATE_CONFLICT':
+          throw new PreconditionFailedException(error.code);
+        default:
+          throw new BadRequestException(error.code);
+      }
+    }
     if (error instanceof IdentityLifecycleError) {
       switch (error.code) {
         case 'AUTHORIZATION_DENIED':

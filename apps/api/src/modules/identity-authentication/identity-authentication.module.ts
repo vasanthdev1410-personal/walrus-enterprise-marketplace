@@ -8,6 +8,7 @@ import { IdentityManagementApplicationService } from './application/services/ide
 import { MfaEnrollmentApplicationService } from './application/services/mfa-enrollment-application.service';
 import { MfaReplacementApplicationService } from './application/services/mfa-replacement-application.service';
 import { PasswordResetApplicationService } from './application/services/password-reset-application.service';
+import { PrivilegedProvisioningApplicationService } from './application/services/privileged-provisioning-application.service';
 import { RecoveryCodeSetApplicationService } from './application/services/recovery-code-set-application.service';
 import { RecoveryRequestApplicationService } from './application/services/recovery-request-application.service';
 import { RegistrationApplicationService } from './application/services/registration-application.service';
@@ -25,8 +26,10 @@ import { NonProductionRefreshTokenAdapter } from './infrastructure/cryptography/
 import { NonProductionTotpAdapter } from './infrastructure/cryptography/non-production-totp.adapter';
 import { NonProductionOtpDeliveryAdapter } from './infrastructure/delivery/non-production-otp-delivery.adapter';
 import { NonProductionApprovalAuthorizationAdapter } from './infrastructure/authorization/non-production-approval-authorization.adapter';
+import { NonProductionBootstrapAuthorizationAdapter } from './infrastructure/authorization/non-production-bootstrap-authorization.adapter';
 import { NonProductionClassificationTransitionCoordinationAdapter } from './infrastructure/authorization/non-production-classification-transition-coordination.adapter';
 import { NonProductionIdentityStateChangeAuthorizationAdapter } from './infrastructure/authorization/non-production-identity-state-change-authorization.adapter';
+import { NonProductionPrivilegedProvisioningAuthorizationAdapter } from './infrastructure/authorization/non-production-privileged-provisioning-authorization.adapter';
 import { createIdentityAuthenticationConfiguration } from './infrastructure/configuration/identity-authentication.configuration';
 import {
   API_IDEMPOTENCY_REPOSITORY,
@@ -43,6 +46,7 @@ import {
   SystemUuidV7Generator,
 } from './infrastructure/runtime/system-runtime.adapter';
 import { AuthenticationController } from './presentation/authentication.controller';
+import { BootstrapController } from './presentation/bootstrap.controller';
 import { CredentialsController } from './presentation/credentials.controller';
 import { IdentityController } from './presentation/identity.controller';
 import { IdentityLifecycleController } from './presentation/identity-lifecycle.controller';
@@ -56,6 +60,7 @@ import { VerificationController } from './presentation/verification.controller';
 import {
   AUTHENTICATION_APPLICATION_SERVICE,
   BASIC_AUDIT_LOGGER,
+  BOOTSTRAP_AUTHORIZATION,
   CLASSIFICATION_TRANSITION_APPLICATION_SERVICE,
   CLASSIFICATION_TRANSITION_COORDINATION,
   CSRF_PROTECTION,
@@ -65,6 +70,8 @@ import {
   MFA_ENROLLMENT_APPLICATION_SERVICE,
   MFA_REPLACEMENT_APPLICATION_SERVICE,
   PASSWORD_RESET_APPLICATION_SERVICE,
+  PRIVILEGED_PROVISIONING_APPLICATION_SERVICE,
+  PRIVILEGED_PROVISIONING_AUTHORIZATION,
   RATE_LIMITER,
   RECOVERY_CODE_SET_APPLICATION_SERVICE,
   RECOVERY_REQUEST_APPLICATION_SERVICE,
@@ -99,6 +106,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
   imports: [PrismaModule],
   controllers: [
     AuthenticationController,
+    BootstrapController,
     CredentialsController,
     IdentityController,
     IdentityLifecycleController,
@@ -282,6 +290,54 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     {
       provide: CLASSIFICATION_TRANSITION_COORDINATION,
       useClass: NonProductionClassificationTransitionCoordinationAdapter,
+    },
+    // M01-ADM-001 internal-service authorization boundary. No approved service
+    // authorization contract is integrated yet, so the adapter fails closed:
+    // every privileged provisioning request is denied with AUTHORIZATION_DENIED
+    // until the approved Module 02/coordination contract is integrated.
+    {
+      provide: PRIVILEGED_PROVISIONING_AUTHORIZATION,
+      useClass: NonProductionPrivilegedProvisioningAuthorizationAdapter,
+    },
+    // M01-ADM-002 controlled-bootstrap boundary. No approved controlled
+    // bootstrap contract is integrated yet, so the adapter fails closed: the
+    // bootstrap route is BOOTSTRAP_UNAVAILABLE until the approved controlled
+    // deployment contract is integrated.
+    {
+      provide: BOOTSTRAP_AUTHORIZATION,
+      useClass: NonProductionBootstrapAuthorizationAdapter,
+    },
+    {
+      provide: PRIVILEGED_PROVISIONING_APPLICATION_SERVICE,
+      inject: [
+        IDENTITY_REPOSITORY,
+        IDENTIFIER_LOOKUP,
+        PRIVILEGED_PROVISIONING_AUTHORIZATION,
+        BOOTSTRAP_AUTHORIZATION,
+        CLOCK,
+        UUID_V7_GENERATOR,
+        ConfigurationService,
+      ],
+      useFactory: (
+        identities: never,
+        lookups: NonProductionIdentifierLookupAdapter,
+        provisioningAuthorization: NonProductionPrivilegedProvisioningAuthorizationAdapter,
+        bootstrapAuthorization: NonProductionBootstrapAuthorizationAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+        application: ConfigurationService,
+      ) =>
+        new PrivilegedProvisioningApplicationService(
+          identities,
+          lookups,
+          provisioningAuthorization,
+          bootstrapAuthorization,
+          clock,
+          identifiers,
+          {
+            environment: application.values.APP_ENV,
+          },
+        ),
     },
     {
       provide: CLASSIFICATION_TRANSITION_APPLICATION_SERVICE,
