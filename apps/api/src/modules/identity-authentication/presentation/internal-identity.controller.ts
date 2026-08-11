@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
@@ -17,13 +18,19 @@ import {
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
+import { ClassificationTransitionError } from '../application/errors/classification-transition.error';
 import { IdentityLifecycleError } from '../application/errors/identity-lifecycle.error';
 import type { ApiIdempotencyService } from '../application/services/api-idempotency.service';
+import type { ClassificationTransitionApplicationService } from '../application/services/classification-transition-application.service';
 import type { IdentityLifecycleApplicationService } from '../application/services/identity-lifecycle-application.service';
 import { UuidV7 } from '../domain/shared/value-objects/uuid-v7';
 import { API_IDEMPOTENCY } from '../identity-authentication.tokens';
 import type { AuthenticatedRequest } from './authentication-context';
-import { IDENTITY_LIFECYCLE_APPLICATION_SERVICE } from './authentication.tokens';
+import {
+  CLASSIFICATION_TRANSITION_APPLICATION_SERVICE,
+  IDENTITY_LIFECYCLE_APPLICATION_SERVICE,
+} from './authentication.tokens';
+import { ClassificationTransitionRequestDto } from './dto/classification-transition.dto';
 import { IdentityStateTransitionRequestDto } from './dto/identity-lifecycle.dto';
 import { AuthoritativeSessionGuard } from './guards/authoritative-session.guard';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
@@ -39,6 +46,8 @@ export class InternalIdentityController {
   public constructor(
     @Inject(IDENTITY_LIFECYCLE_APPLICATION_SERVICE)
     private readonly lifecycle: IdentityLifecycleApplicationService,
+    @Inject(CLASSIFICATION_TRANSITION_APPLICATION_SERVICE)
+    private readonly classifications: ClassificationTransitionApplicationService,
     @Inject(API_IDEMPOTENCY) private readonly idempotency: ApiIdempotencyService,
   ) {}
 
@@ -103,6 +112,71 @@ export class InternalIdentityController {
     }
   }
 
+  /**
+   * M01-CLS-001. Internal authentication-security-classification transition.
+   * The request is INTERNAL_SERVICE: the versioned source contract reference
+   * is validated through the narrow approved coordination-contract port at
+   * decision time (CONTRACT_INVALID when no approved contract is present — a
+   * service Session alone never changes a classification). The identity
+   * version (If-Match) guards the write; the current EFFECTIVE assignment is
+   * atomically ENDED while a new EFFECTIVE assignment is created in the same
+   * version-guarded aggregate write. A classification only selects
+   * authentication controls and never grants permissions.
+   */
+  @Post(':identityId/authentication-classification-transitions')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 10, windowSeconds: 60 })
+  @UseGuards(AuthoritativeSessionGuard)
+  @ApiOperation({ operationId: 'M01-CLS-001', summary: 'Transition authentication classification' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiHeader({ name: 'If-Match', required: true })
+  public async transitionClassification(
+    @Param('identityId') identityId: string,
+    @Body() body: ClassificationTransitionRequestDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('if-match') ifMatch: string | undefined,
+    @Req() request: AuthenticatedRequest,
+    @Res() response: Response,
+  ): Promise<void> {
+    assertIdempotencyKey(idempotencyKey);
+    const targetIdentityId = parseIdentityId(identityId);
+    const expectedIdentityVersion = etagVersion(ifMatch, `identity:${identityId}`);
+    const claims = request.authentication;
+    try {
+      const result = await this.idempotency.execute({
+        scope: `identity:${identityId}`,
+        operationType: 'M01-CLS-001',
+        idempotencyKey,
+        request: {
+          targetAuthenticationSecurityClassification:
+            body.targetAuthenticationSecurityClassification,
+          sourceContractReference: body.sourceContractReference,
+          ifMatch,
+        },
+        execute: () =>
+          this.classifications.transitionClassification({
+            actorIdentityId: new UuidV7(claims.subject),
+            targetIdentityId,
+            targetAuthenticationSecurityClassification:
+              body.targetAuthenticationSecurityClassification,
+            reasonCode: body.reasonCode,
+            sourceContractReference: body.sourceContractReference,
+            expectedIdentityVersion,
+          }),
+      });
+      noStore(response);
+      response.status(HttpStatus.OK).json(
+        success({
+          identityId: result.identityId,
+          authenticationSecurityClassification: result.authenticationSecurityClassification,
+          version: result.version,
+        }),
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
   private handleError(error: unknown): never {
     if (error instanceof IdentityLifecycleError) {
       switch (error.code) {
@@ -114,6 +188,17 @@ export class InternalIdentityController {
           throw new NotFoundException(error.code);
         default:
           throw error;
+      }
+    }
+    if (error instanceof ClassificationTransitionError) {
+      switch (error.code) {
+        case 'CONTRACT_INVALID':
+          throw new BadRequestException(error.code);
+        case 'RESOURCE_STATE_CONFLICT':
+          throw new PreconditionFailedException(error.code);
+        case 'RESOURCE_NOT_AVAILABLE':
+        default:
+          throw new NotFoundException(error.code);
       }
     }
     throw error;

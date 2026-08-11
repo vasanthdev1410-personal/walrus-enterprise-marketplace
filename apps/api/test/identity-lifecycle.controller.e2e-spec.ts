@@ -2,8 +2,10 @@ import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Server } from 'node:http';
 import request from 'supertest';
+import { ClassificationTransitionError } from '../src/modules/identity-authentication/application/errors/classification-transition.error';
 import { IdentityLifecycleError } from '../src/modules/identity-authentication/application/errors/identity-lifecycle.error';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
+import type { ClassificationTransitionApplicationService } from '../src/modules/identity-authentication/application/services/classification-transition-application.service';
 import type { IdentityLifecycleApplicationService } from '../src/modules/identity-authentication/application/services/identity-lifecycle-application.service';
 import type { JwtCryptographicPort } from '../src/modules/identity-authentication/application/ports/jwt-cryptographic.port';
 import type { IdentityRepository } from '../src/modules/identity-authentication/domain/identity/repositories/identity-repository';
@@ -13,6 +15,7 @@ import { IdentityLifecycleController } from '../src/modules/identity-authenticat
 import { InternalIdentityController } from '../src/modules/identity-authentication/presentation/internal-identity.controller';
 import {
   BASIC_AUDIT_LOGGER,
+  CLASSIFICATION_TRANSITION_APPLICATION_SERVICE,
   IDENTITY_LIFECYCLE_APPLICATION_SERVICE,
   RATE_LIMITER,
 } from '../src/modules/identity-authentication/presentation/authentication.tokens';
@@ -39,6 +42,13 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
   const changeIdentityState = jest.fn() as jest.MockedFunction<
     IdentityLifecycleApplicationService['changeIdentityState']
   >;
+  const transitionClassification = jest.fn() as jest.MockedFunction<
+    ClassificationTransitionApplicationService['transitionClassification']
+  >;
+  const classificationService = {
+    transitionClassification,
+  } as unknown as jest.Mocked<ClassificationTransitionApplicationService>;
+
   const lifecycleService = {
     readAuthenticationState,
     changeIdentityState,
@@ -70,6 +80,10 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
       controllers: [IdentityLifecycleController, InternalIdentityController],
       providers: [
         { provide: IDENTITY_LIFECYCLE_APPLICATION_SERVICE, useValue: lifecycleService },
+        {
+          provide: CLASSIFICATION_TRANSITION_APPLICATION_SERVICE,
+          useValue: classificationService,
+        },
         { provide: API_IDEMPOTENCY, useValue: idempotency },
         { provide: RATE_LIMITER, useValue: rateLimiter },
         { provide: BASIC_AUDIT_LOGGER, useValue: auditLogger },
@@ -273,6 +287,89 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
           sourceContractReference: 'M02-CONTRACT-REF-6',
         })
         .expect(404);
+    });
+  });
+
+  describe('M01-CLS-001 POST /internal/identities/:identityId/authentication-classification-transitions', () => {
+    it('transitions the classification when the coordination contract is valid (200)', async () => {
+      transitionClassification.mockResolvedValueOnce({
+        identityId,
+        authenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
+        version: 4,
+      });
+
+      const response = await request(server)
+        .post(`/internal/identities/${identityId}/authentication-classification-transitions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .send({
+          targetAuthenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
+          reasonCode: 'ADMIN_PROVISIONED',
+          sourceContractReference: 'M02-CONTRACT-CLS-1',
+        })
+        .expect(200);
+
+      const body = response.body as { data: Readonly<Record<string, unknown>> };
+      expect(body.data).toEqual({
+        identityId,
+        authenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
+        version: 4,
+      });
+      expect(response.headers['cache-control']).toBe('no-store');
+      const command = transitionClassification.mock.calls[0]?.[0];
+      expect(command?.targetIdentityId.value).toBe(identityId);
+      expect(command?.targetAuthenticationSecurityClassification).toBe(
+        'PRIVILEGED_ADMIN_AUTHENTICATION',
+      );
+      expect(command?.expectedIdentityVersion).toBe(3);
+    });
+
+    it('returns 400 CONTRACT_INVALID when the coordination contract is not approved', async () => {
+      transitionClassification.mockRejectedValueOnce(
+        new ClassificationTransitionError('CONTRACT_INVALID'),
+      );
+      await request(server)
+        .post(`/internal/identities/${identityId}/authentication-classification-transitions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .send({
+          targetAuthenticationSecurityClassification: 'SUPER_ADMIN_AUTHENTICATION',
+          reasonCode: 'BOOTSTRAP',
+          sourceContractReference: 'M02-CONTRACT-CLS-2',
+        })
+        .expect(400);
+    });
+
+    it('returns 412 RESOURCE_STATE_CONFLICT for a stale version precondition', async () => {
+      transitionClassification.mockRejectedValueOnce(
+        new ClassificationTransitionError('RESOURCE_STATE_CONFLICT'),
+      );
+      await request(server)
+        .post(`/internal/identities/${identityId}/authentication-classification-transitions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('Idempotency-Key', idempotencyKey)
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .send({
+          targetAuthenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
+          reasonCode: 'ADMIN_PROVISIONED',
+          sourceContractReference: 'M02-CONTRACT-CLS-3',
+        })
+        .expect(412);
+    });
+
+    it('returns 400 when the Idempotency-Key is missing', async () => {
+      await request(server)
+        .post(`/internal/identities/${identityId}/authentication-classification-transitions`)
+        .set('Authorization', 'Bearer valid-jwt-token')
+        .set('If-Match', `"identity:${identityId}:v3"`)
+        .send({
+          targetAuthenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
+          reasonCode: 'ADMIN_PROVISIONED',
+          sourceContractReference: 'M02-CONTRACT-CLS-4',
+        })
+        .expect(400);
     });
   });
 });

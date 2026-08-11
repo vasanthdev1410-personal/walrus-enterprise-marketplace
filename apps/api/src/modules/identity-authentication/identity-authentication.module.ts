@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigurationService } from '../../platform/configuration/configuration.service';
 import { ApiIdempotencyService } from './application/services/api-idempotency.service';
 import { AuthenticationApplicationService } from './application/services/authentication-application.service';
+import { ClassificationTransitionApplicationService } from './application/services/classification-transition-application.service';
 import { IdentityLifecycleApplicationService } from './application/services/identity-lifecycle-application.service';
 import { IdentityManagementApplicationService } from './application/services/identity-management-application.service';
 import { MfaEnrollmentApplicationService } from './application/services/mfa-enrollment-application.service';
@@ -24,6 +25,7 @@ import { NonProductionRefreshTokenAdapter } from './infrastructure/cryptography/
 import { NonProductionTotpAdapter } from './infrastructure/cryptography/non-production-totp.adapter';
 import { NonProductionOtpDeliveryAdapter } from './infrastructure/delivery/non-production-otp-delivery.adapter';
 import { NonProductionApprovalAuthorizationAdapter } from './infrastructure/authorization/non-production-approval-authorization.adapter';
+import { NonProductionClassificationTransitionCoordinationAdapter } from './infrastructure/authorization/non-production-classification-transition-coordination.adapter';
 import { NonProductionIdentityStateChangeAuthorizationAdapter } from './infrastructure/authorization/non-production-identity-state-change-authorization.adapter';
 import { createIdentityAuthenticationConfiguration } from './infrastructure/configuration/identity-authentication.configuration';
 import {
@@ -54,6 +56,8 @@ import { VerificationController } from './presentation/verification.controller';
 import {
   AUTHENTICATION_APPLICATION_SERVICE,
   BASIC_AUDIT_LOGGER,
+  CLASSIFICATION_TRANSITION_APPLICATION_SERVICE,
+  CLASSIFICATION_TRANSITION_COORDINATION,
   CSRF_PROTECTION,
   IDENTITY_LIFECYCLE_APPLICATION_SERVICE,
   IDENTITY_MANAGEMENT_APPLICATION_SERVICE,
@@ -267,6 +271,35 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
           identities,
           sessions,
           authorization,
+          clock,
+          identifiers,
+        ),
+    },
+    // M01-CLS-001 approved coordination-contract boundary. No approved
+    // internal coordination contract is integrated yet, so the adapter fails
+    // closed: every classification transition is rejected with CONTRACT_INVALID
+    // until the approved contract is integrated.
+    {
+      provide: CLASSIFICATION_TRANSITION_COORDINATION,
+      useClass: NonProductionClassificationTransitionCoordinationAdapter,
+    },
+    {
+      provide: CLASSIFICATION_TRANSITION_APPLICATION_SERVICE,
+      inject: [
+        IDENTITY_REPOSITORY,
+        CLASSIFICATION_TRANSITION_COORDINATION,
+        CLOCK,
+        UUID_V7_GENERATOR,
+      ],
+      useFactory: (
+        identities: never,
+        coordination: NonProductionClassificationTransitionCoordinationAdapter,
+        clock: SystemClockAdapter,
+        identifiers: SystemUuidV7Generator,
+      ) =>
+        new ClassificationTransitionApplicationService(
+          identities,
+          coordination,
           clock,
           identifiers,
         ),
