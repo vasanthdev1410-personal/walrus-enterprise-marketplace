@@ -27,17 +27,17 @@ Establish a centralized, fail-closed authorization foundation owned by Module 02
 
 ### 2.1 Approved (binding — from approved Module 01 milestones)
 
-| Contract | Owner milestone | Boundary | Today's fail-closed behavior |
-|---|---|---|---|
-| `ApprovalAuthorizationPort` | M01-REC-005 | Recovery approval decisions | always `authorized: false` |
-| `IdentityStateChangeAuthorizationPort` | M01-ID-004 | Identity authentication-state transitions | always `authorized: false` |
-| `ClassificationTransitionCoordinationPort` | M01-CLS-001 | Authentication-security classification transitions | always `contractValid: false` |
-| `PrivilegedProvisioningAuthorizationPort` | M01-ADM-001 | Privileged identity provisioning | always `authorized: false` |
-| `BootstrapAuthorizationPort` | M01-ADM-002 | Super Admin bootstrap | always `available: false` |
+| Contract                                   | Owner milestone | Boundary                                           | Today's fail-closed behavior  |
+| ------------------------------------------ | --------------- | -------------------------------------------------- | ----------------------------- |
+| `ApprovalAuthorizationPort`                | M01-REC-005     | Recovery approval decisions                        | always `authorized: false`    |
+| `IdentityStateChangeAuthorizationPort`     | M01-ID-004      | Identity authentication-state transitions          | always `authorized: false`    |
+| `ClassificationTransitionCoordinationPort` | M01-CLS-001     | Authentication-security classification transitions | always `contractValid: false` |
+| `PrivilegedProvisioningAuthorizationPort`  | M01-ADM-001     | Privileged identity provisioning                   | always `authorized: false`    |
+| `BootstrapAuthorizationPort`               | M01-ADM-002     | Super Admin bootstrap                              | always `available: false`     |
 
 All five adapters are intentionally fail-closed (never permissive) and each carries the exact command/decision shape the future Module 02 contract must satisfy. Module 01 storage is never read directly by Module 02; Module 02 storage is never read directly by Module 01. **These boundaries are NOT rewired by this document's milestones until an approved Module 02 specification explicitly requires it.**
 
-Also approved: Module 01 v1.12 ownership statements — *"Module 02 owns roles, permissions, authorization decisions and approved assignments"*; Module 01 owns identity/authentication state.
+Also approved: Module 01 v1.12 ownership statements — _"Module 02 owns roles, permissions, authorization decisions and approved assignments"_; Module 01 owns identity/authentication state.
 
 ### 2.2 Implied by approved contracts / preserved source material (implementable)
 
@@ -70,7 +70,9 @@ The preserved source material (Draft parts 6.1–6.6) defines the RBAC model tha
 Milestones are anchored to draft Part/section numbers because no formal M02 IDs exist. Working tags are descriptive, not normative.
 
 ### Milestone 1 — RBAC Domain Core (anchors: 6.1 §5, 6.2 §6–10)
+
 Pure domain layer, **no schema, no DI, no API**.
+
 - Entities: `Permission`, `Role`, `IdentityRoleAssignment`.
 - Value objects: `RoleName`, `RoleState`, `IdentityRoleAssignmentState`, `PermissionStatus`, `ResourceClassification`, `AllowedAction`, `AuthorizationDecisionOutcome`, `AuthorizationDenialReason`.
 - `PermissionCatalog` and `RoleCatalog` (immutable, centrally managed in code; internal Phase-1 policy).
@@ -79,19 +81,24 @@ Pure domain layer, **no schema, no DI, no API**.
 - **Acceptance:** all 6.1/6.2 security principles demonstrable in tests; no Module 01 file touched.
 
 ### Milestone 2 — Persistence (anchor: 6.2 §9–10, 6.5 §22)
+
 **Implemented.** Refinement from implementation: the immutable role/permission catalogs remain code-owned configuration (versioned in git, centrally managed — §4), so no catalog tables are persisted in Phase 1. Persisted state covers the two dynamic aggregates:
+
 - `IdentityRoleAssignment` — one row per (identity, role), versioned for optimistic concurrency (unique `[identityId, roleName]`, `aggregateVersion`);
 - `AuthorizationDecisionRecord` — append-only, immutable audit records (Part 6.5 §22).
 
 Additive migration `20260811090237_module_02_authorization_role_assignments`, domain repository ports, Prisma repositories, mappers, and the `AuthorizationModule` wiring (registered once the application layer consumes it in Milestone 3). Tests cover mapper roundtrips, version-stale conflict rejection and append-only audit writes.
 
 ### Milestone 3 — Application, Guards & Admin API (anchors: 6.3 §13–14, 6.5 §22, §24)
-`AuthorizationApplicationService` (resolve roles, evaluate, record audit), an `AuthorizationGuard`, admin endpoints (assign/revoke role, list own role assignments) protected by AAL2 + authorization, standardized error responses. Tests include authorization-failure and escalation attempts.
+
+**Implemented.** Refinement from implementation: the guard is a permission guard (`AuthorizationPermissionGuard`, 6.3 §14) that runs after the existing AAL2 session guard (authentication before authorization); role assignment/revocation is centrally managed through the application service (6.2 §9, server-controlled, never client-selected), with a `SUPER_ADMIN`-only rule for Super Admin assignments, version-checked writes, append-only decision audit records, and standardized non-disclosing error responses (6.5 §24). Endpoints: assign role, revoke role, list own role assignments, read role catalog. Tests include authorization-failure and privilege-escalation attempts.
 
 ### Milestone 4 — Boundary Integration (deferred)
+
 Replace the five fail-closed adapters with real Module 02 decisions **only when the approved Module 02 specification explicitly requires it** and the role → permission matrix is approved. Until then the five adapters remain fail-closed.
 
 ### Deferred (require approved spec)
+
 Temporary permissions, delegated administration, authorization notifications, resource-ownership enforcement, M02 administrative dashboard.
 
 ---
@@ -100,16 +107,16 @@ Temporary permissions, delegated administration, authorization notifications, re
 
 Identifiers use the immutable `resource.action` form (draft §8: immutable permission identifiers). Marked **proposed** until Module 02 approval.
 
-| Permission | Category | Granted to (Phase 1) |
-|---|---|---|
-| `recovery.approval.decide` | Approve | Admin, Super Admin |
-| `identity.state.change` | Manage | Admin, Super Admin |
-| `identity.classification.change` | Configure | Admin, Super Admin |
-| `identity.privileged.provision` | Manage | Super Admin |
-| `identity.superadmin.bootstrap` | Manage | Super Admin (bootstrap path only) |
-| `authorization.role.assign` | Manage | Admin, Super Admin (Super Admin assignment: Super Admin only) |
-| `authorization.role.revoke` | Manage | Admin, Super Admin |
-| `authorization.permission.view` | Audit | Admin, Super Admin |
+| Permission                       | Category  | Granted to (Phase 1)                                          |
+| -------------------------------- | --------- | ------------------------------------------------------------- |
+| `recovery.approval.decide`       | Approve   | Admin, Super Admin                                            |
+| `identity.state.change`          | Manage    | Admin, Super Admin                                            |
+| `identity.classification.change` | Configure | Admin, Super Admin                                            |
+| `identity.privileged.provision`  | Manage    | Super Admin                                                   |
+| `identity.superadmin.bootstrap`  | Manage    | Super Admin (bootstrap path only)                             |
+| `authorization.role.assign`      | Manage    | Admin, Super Admin (Super Admin assignment: Super Admin only) |
+| `authorization.role.revoke`      | Manage    | Admin, Super Admin                                            |
+| `authorization.permission.view`  | Audit     | Admin, Super Admin                                            |
 
 Customers/Sellers receive no authorization-domain permission in Phase 1 (Module 01 owns their identity/self-service flows). Explicit deny overrides all grants. This matrix is the only speculative element and is isolated in the two catalogs for easy correction at approval.
 

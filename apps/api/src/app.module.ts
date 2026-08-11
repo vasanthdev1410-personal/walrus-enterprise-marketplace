@@ -10,9 +10,10 @@ import { MetricsService } from './platform/metrics/metrics.service';
 import { RequestContextMiddleware } from './platform/request-context/request-context.middleware';
 import { SecurityHeadersMiddleware } from './platform/security/security-headers.middleware';
 import { IdentityAuthenticationModule } from './modules/identity-authentication/identity-authentication.module';
+import { AuthorizationModule } from './modules/authorization/authorization.module';
 
 @Module({
-  imports: [ConfigurationModule, PrismaModule, IdentityAuthenticationModule],
+  imports: [ConfigurationModule, PrismaModule, IdentityAuthenticationModule, AuthorizationModule],
   controllers: [HealthController],
   providers: [
     HealthService,

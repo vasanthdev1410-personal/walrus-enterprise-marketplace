@@ -707,6 +707,7 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     NonProductionRateLimiterGuard,
     BasicAuditInterceptor,
   ],
+  exports: [AuthoritativeSessionGuard, Aal2SessionGuard],
 })
 // NestJS modules are declarative metadata containers and intentionally have no members.
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class

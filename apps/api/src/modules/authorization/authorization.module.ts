@@ -1,18 +1,43 @@
 import { Module } from '@nestjs/common';
+import type {
+  ClockPort,
+  UuidV7GenerationPort,
+} from '../identity-authentication/application/ports/application-runtime.port';
+import { IdentityAuthenticationModule } from '../identity-authentication/identity-authentication.module';
+import {
+  CLOCK,
+  UUID_V7_GENERATOR,
+} from '../identity-authentication/identity-authentication.tokens';
+import { SystemClockAdapter } from '../identity-authentication/infrastructure/runtime/system-runtime.adapter';
+import { SystemUuidV7Generator } from '../identity-authentication/infrastructure/runtime/system-runtime.adapter';
+import { AuthorizationApplicationService } from './application/services/authorization-application.service';
+import {
+  AUTHORIZATION_APPLICATION_SERVICE,
+  AUTHORIZATION_DECISION_REPOSITORY,
+  IDENTITY_ROLE_ASSIGNMENT_REPOSITORY,
+} from './authorization.tokens';
+import { AuthorizationDecisionEngine } from './domain/authorization-decision-engine';
+import type { AuthorizationDecisionRepository } from './domain/repositories/authorization-decision-repository';
+import type { IdentityRoleAssignmentRepository } from './domain/repositories/identity-role-assignment-repository';
+import { PermissionCatalog } from './domain/permission-catalog';
+import { RoleCatalog } from './domain/role-catalog';
 import { PrismaAuthorizationDecisionRepository } from './infrastructure/persistence/prisma/repositories/prisma-authorization-decision.repository';
 import { PrismaIdentityRoleAssignmentRepository } from './infrastructure/persistence/prisma/repositories/prisma-identity-role-assignment.repository';
-
-export const IDENTITY_ROLE_ASSIGNMENT_REPOSITORY = Symbol('IDENTITY_ROLE_ASSIGNMENT_REPOSITORY');
-export const AUTHORIZATION_DECISION_REPOSITORY = Symbol('AUTHORIZATION_DECISION_REPOSITORY');
+import { AuthorizationController } from './presentation/authorization.controller';
+import { AuthorizationPermissionGuard } from './presentation/guards/authorization-permission.guard';
 
 /**
- * Module 02 – Roles, Permissions & Authorization. Persistence layer wiring.
- * PrismaService is provided by the global PrismaModule. The module is not yet
- * imported by AppModule: its first consumer (the authorization application
- * service and guards, Milestone 3) registers it.
+ * Module 02 – Roles, Permissions & Authorization. Consumes Module 01's session
+ * authentication infrastructure (correct dependency direction: authentication
+ * precedes authorization, Part 6.1 §3.1) and owns all role/permission state.
+ * Module 01 never reads Module 02 storage.
  */
 @Module({
+  imports: [IdentityAuthenticationModule],
+  controllers: [AuthorizationController],
   providers: [
+    { provide: CLOCK, useClass: SystemClockAdapter },
+    { provide: UUID_V7_GENERATOR, useClass: SystemUuidV7Generator },
     PrismaIdentityRoleAssignmentRepository,
     PrismaAuthorizationDecisionRepository,
     {
@@ -23,8 +48,39 @@ export const AUTHORIZATION_DECISION_REPOSITORY = Symbol('AUTHORIZATION_DECISION_
       provide: AUTHORIZATION_DECISION_REPOSITORY,
       useExisting: PrismaAuthorizationDecisionRepository,
     },
+    {
+      provide: AUTHORIZATION_APPLICATION_SERVICE,
+      inject: [
+        IDENTITY_ROLE_ASSIGNMENT_REPOSITORY,
+        AUTHORIZATION_DECISION_REPOSITORY,
+        CLOCK,
+        UUID_V7_GENERATOR,
+      ],
+      useFactory: (
+        assignments: IdentityRoleAssignmentRepository,
+        decisions: AuthorizationDecisionRepository,
+        clock: ClockPort,
+        identifiers: UuidV7GenerationPort,
+      ) => {
+        const permissions = new PermissionCatalog();
+        const roles = new RoleCatalog();
+        return new AuthorizationApplicationService(
+          new AuthorizationDecisionEngine(permissions, roles),
+          roles,
+          assignments,
+          decisions,
+          clock,
+          identifiers,
+        );
+      },
+    },
+    AuthorizationPermissionGuard,
   ],
-  exports: [IDENTITY_ROLE_ASSIGNMENT_REPOSITORY, AUTHORIZATION_DECISION_REPOSITORY],
+  exports: [
+    AUTHORIZATION_APPLICATION_SERVICE,
+    IDENTITY_ROLE_ASSIGNMENT_REPOSITORY,
+    AUTHORIZATION_DECISION_REPOSITORY,
+  ],
 })
 // NestJS modules are declarative metadata containers and intentionally have no members.
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
