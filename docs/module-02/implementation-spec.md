@@ -78,8 +78,12 @@ Pure domain layer, **no schema, no DI, no API**.
 - Unit tests: deny-by-default, unknown/retired permissions, suspended/retired roles, revoked assignments, privilege-escalation attempts, explicit-deny precedence, determinism.
 - **Acceptance:** all 6.1/6.2 security principles demonstrable in tests; no Module 01 file touched.
 
-### Milestone 2 — Persistence (anchor: 6.2 §9–10)
-Additive Prisma models: `Role`, `Permission`, `RolePermissionAssignment`, `IdentityRoleAssignment`, `AuthorizationDecisionRecord`. Migration, repositories, mappers, integration tests (stale/version concurrency, unique constraints).
+### Milestone 2 — Persistence (anchor: 6.2 §9–10, 6.5 §22)
+**Implemented.** Refinement from implementation: the immutable role/permission catalogs remain code-owned configuration (versioned in git, centrally managed — §4), so no catalog tables are persisted in Phase 1. Persisted state covers the two dynamic aggregates:
+- `IdentityRoleAssignment` — one row per (identity, role), versioned for optimistic concurrency (unique `[identityId, roleName]`, `aggregateVersion`);
+- `AuthorizationDecisionRecord` — append-only, immutable audit records (Part 6.5 §22).
+
+Additive migration `20260811090237_module_02_authorization_role_assignments`, domain repository ports, Prisma repositories, mappers, and the `AuthorizationModule` wiring (registered once the application layer consumes it in Milestone 3). Tests cover mapper roundtrips, version-stale conflict rejection and append-only audit writes.
 
 ### Milestone 3 — Application, Guards & Admin API (anchors: 6.3 §13–14, 6.5 §22, §24)
 `AuthorizationApplicationService` (resolve roles, evaluate, record audit), an `AuthorizationGuard`, admin endpoints (assign/revoke role, list own role assignments) protected by AAL2 + authorization, standardized error responses. Tests include authorization-failure and escalation attempts.

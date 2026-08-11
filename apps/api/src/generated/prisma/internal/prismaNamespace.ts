@@ -423,7 +423,9 @@ export const ModelName = {
   RecoveryStateTransition: 'RecoveryStateTransition',
   RecoveryNotificationRecord: 'RecoveryNotificationRecord',
   NonProductionRateLimitRecord: 'NonProductionRateLimitRecord',
-  BasicAuditEventRecord: 'BasicAuditEventRecord'
+  BasicAuditEventRecord: 'BasicAuditEventRecord',
+  IdentityRoleAssignment: 'IdentityRoleAssignment',
+  AuthorizationDecisionRecord: 'AuthorizationDecisionRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -439,7 +441,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "apiIdempotencyRecord" | "identity" | "identityIdentifier" | "credential" | "credentialHistoryRecord" | "passwordHistoryRecord" | "authenticationSecurityClassificationAssignment" | "mfaEnrollment" | "mfaFactor" | "recoveryCodeSet" | "recoveryCodeRecord" | "trustedDevice" | "identityStateTransition" | "session" | "refreshTokenFamily" | "refreshTokenRecord" | "verificationChallenge" | "verificationAttempt" | "otpEvidenceRecord" | "recoveryRequest" | "recoveryEvidenceRecord" | "recoveryApprovalRecord" | "recoveryAttempt" | "recoveryStateTransition" | "recoveryNotificationRecord" | "nonProductionRateLimitRecord" | "basicAuditEventRecord"
+    modelProps: "apiIdempotencyRecord" | "identity" | "identityIdentifier" | "credential" | "credentialHistoryRecord" | "passwordHistoryRecord" | "authenticationSecurityClassificationAssignment" | "mfaEnrollment" | "mfaFactor" | "recoveryCodeSet" | "recoveryCodeRecord" | "trustedDevice" | "identityStateTransition" | "session" | "refreshTokenFamily" | "refreshTokenRecord" | "verificationChallenge" | "verificationAttempt" | "otpEvidenceRecord" | "recoveryRequest" | "recoveryEvidenceRecord" | "recoveryApprovalRecord" | "recoveryAttempt" | "recoveryStateTransition" | "recoveryNotificationRecord" | "nonProductionRateLimitRecord" | "basicAuditEventRecord" | "identityRoleAssignment" | "authorizationDecisionRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2441,6 +2443,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    IdentityRoleAssignment: {
+      payload: Prisma.$IdentityRoleAssignmentPayload<ExtArgs>
+      fields: Prisma.IdentityRoleAssignmentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.IdentityRoleAssignmentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.IdentityRoleAssignmentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload>
+        }
+        findFirst: {
+          args: Prisma.IdentityRoleAssignmentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.IdentityRoleAssignmentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload>
+        }
+        findMany: {
+          args: Prisma.IdentityRoleAssignmentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload>[]
+        }
+        create: {
+          args: Prisma.IdentityRoleAssignmentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload>
+        }
+        createMany: {
+          args: Prisma.IdentityRoleAssignmentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.IdentityRoleAssignmentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload>[]
+        }
+        delete: {
+          args: Prisma.IdentityRoleAssignmentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload>
+        }
+        update: {
+          args: Prisma.IdentityRoleAssignmentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload>
+        }
+        deleteMany: {
+          args: Prisma.IdentityRoleAssignmentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.IdentityRoleAssignmentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.IdentityRoleAssignmentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload>[]
+        }
+        upsert: {
+          args: Prisma.IdentityRoleAssignmentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$IdentityRoleAssignmentPayload>
+        }
+        aggregate: {
+          args: Prisma.IdentityRoleAssignmentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateIdentityRoleAssignment>
+        }
+        groupBy: {
+          args: Prisma.IdentityRoleAssignmentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.IdentityRoleAssignmentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.IdentityRoleAssignmentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.IdentityRoleAssignmentCountAggregateOutputType> | number
+        }
+      }
+    }
+    AuthorizationDecisionRecord: {
+      payload: Prisma.$AuthorizationDecisionRecordPayload<ExtArgs>
+      fields: Prisma.AuthorizationDecisionRecordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AuthorizationDecisionRecordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AuthorizationDecisionRecordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload>
+        }
+        findFirst: {
+          args: Prisma.AuthorizationDecisionRecordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AuthorizationDecisionRecordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload>
+        }
+        findMany: {
+          args: Prisma.AuthorizationDecisionRecordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload>[]
+        }
+        create: {
+          args: Prisma.AuthorizationDecisionRecordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload>
+        }
+        createMany: {
+          args: Prisma.AuthorizationDecisionRecordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AuthorizationDecisionRecordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload>[]
+        }
+        delete: {
+          args: Prisma.AuthorizationDecisionRecordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload>
+        }
+        update: {
+          args: Prisma.AuthorizationDecisionRecordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload>
+        }
+        deleteMany: {
+          args: Prisma.AuthorizationDecisionRecordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AuthorizationDecisionRecordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AuthorizationDecisionRecordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload>[]
+        }
+        upsert: {
+          args: Prisma.AuthorizationDecisionRecordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthorizationDecisionRecordPayload>
+        }
+        aggregate: {
+          args: Prisma.AuthorizationDecisionRecordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAuthorizationDecisionRecord>
+        }
+        groupBy: {
+          args: Prisma.AuthorizationDecisionRecordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AuthorizationDecisionRecordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AuthorizationDecisionRecordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AuthorizationDecisionRecordCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2922,6 +3072,39 @@ export const BasicAuditEventRecordScalarFieldEnum = {
 } as const
 
 export type BasicAuditEventRecordScalarFieldEnum = (typeof BasicAuditEventRecordScalarFieldEnum)[keyof typeof BasicAuditEventRecordScalarFieldEnum]
+
+
+export const IdentityRoleAssignmentScalarFieldEnum = {
+  assignmentId: 'assignmentId',
+  identityId: 'identityId',
+  roleName: 'roleName',
+  assignmentState: 'assignmentState',
+  assignedByIdentityId: 'assignedByIdentityId',
+  assignedAt: 'assignedAt',
+  revokedByIdentityId: 'revokedByIdentityId',
+  revokedAt: 'revokedAt',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type IdentityRoleAssignmentScalarFieldEnum = (typeof IdentityRoleAssignmentScalarFieldEnum)[keyof typeof IdentityRoleAssignmentScalarFieldEnum]
+
+
+export const AuthorizationDecisionRecordScalarFieldEnum = {
+  authorizationReference: 'authorizationReference',
+  subjectIdentityId: 'subjectIdentityId',
+  permissionId: 'permissionId',
+  resourceClassification: 'resourceClassification',
+  decisionOutcome: 'decisionOutcome',
+  denialReason: 'denialReason',
+  sessionIdentifier: 'sessionIdentifier',
+  correlationId: 'correlationId',
+  decidedAt: 'decidedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type AuthorizationDecisionRecordScalarFieldEnum = (typeof AuthorizationDecisionRecordScalarFieldEnum)[keyof typeof AuthorizationDecisionRecordScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -3550,6 +3733,48 @@ export type ListEnumRecoveryNotificationDeliveryStateFieldRefInput<$PrismaModel>
 
 
 /**
+ * Reference to a field of type 'RoleName'
+ */
+export type EnumRoleNameFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoleName'>
+    
+
+
+/**
+ * Reference to a field of type 'RoleName[]'
+ */
+export type ListEnumRoleNameFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoleName[]'>
+    
+
+
+/**
+ * Reference to a field of type 'IdentityRoleAssignmentState'
+ */
+export type EnumIdentityRoleAssignmentStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'IdentityRoleAssignmentState'>
+    
+
+
+/**
+ * Reference to a field of type 'IdentityRoleAssignmentState[]'
+ */
+export type ListEnumIdentityRoleAssignmentStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'IdentityRoleAssignmentState[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AuthorizationDecisionOutcome'
+ */
+export type EnumAuthorizationDecisionOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuthorizationDecisionOutcome'>
+    
+
+
+/**
+ * Reference to a field of type 'AuthorizationDecisionOutcome[]'
+ */
+export type ListEnumAuthorizationDecisionOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuthorizationDecisionOutcome[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -3740,6 +3965,8 @@ export type GlobalOmitConfig = {
   recoveryNotificationRecord?: Prisma.RecoveryNotificationRecordOmit
   nonProductionRateLimitRecord?: Prisma.NonProductionRateLimitRecordOmit
   basicAuditEventRecord?: Prisma.BasicAuditEventRecordOmit
+  identityRoleAssignment?: Prisma.IdentityRoleAssignmentOmit
+  authorizationDecisionRecord?: Prisma.AuthorizationDecisionRecordOmit
 }
 
 /* Types for Logging */

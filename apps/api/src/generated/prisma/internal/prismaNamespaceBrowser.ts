@@ -77,7 +77,9 @@ export const ModelName = {
   RecoveryStateTransition: 'RecoveryStateTransition',
   RecoveryNotificationRecord: 'RecoveryNotificationRecord',
   NonProductionRateLimitRecord: 'NonProductionRateLimitRecord',
-  BasicAuditEventRecord: 'BasicAuditEventRecord'
+  BasicAuditEventRecord: 'BasicAuditEventRecord',
+  IdentityRoleAssignment: 'IdentityRoleAssignment',
+  AuthorizationDecisionRecord: 'AuthorizationDecisionRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -538,6 +540,39 @@ export const BasicAuditEventRecordScalarFieldEnum = {
 } as const
 
 export type BasicAuditEventRecordScalarFieldEnum = (typeof BasicAuditEventRecordScalarFieldEnum)[keyof typeof BasicAuditEventRecordScalarFieldEnum]
+
+
+export const IdentityRoleAssignmentScalarFieldEnum = {
+  assignmentId: 'assignmentId',
+  identityId: 'identityId',
+  roleName: 'roleName',
+  assignmentState: 'assignmentState',
+  assignedByIdentityId: 'assignedByIdentityId',
+  assignedAt: 'assignedAt',
+  revokedByIdentityId: 'revokedByIdentityId',
+  revokedAt: 'revokedAt',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type IdentityRoleAssignmentScalarFieldEnum = (typeof IdentityRoleAssignmentScalarFieldEnum)[keyof typeof IdentityRoleAssignmentScalarFieldEnum]
+
+
+export const AuthorizationDecisionRecordScalarFieldEnum = {
+  authorizationReference: 'authorizationReference',
+  subjectIdentityId: 'subjectIdentityId',
+  permissionId: 'permissionId',
+  resourceClassification: 'resourceClassification',
+  decisionOutcome: 'decisionOutcome',
+  denialReason: 'denialReason',
+  sessionIdentifier: 'sessionIdentifier',
+  correlationId: 'correlationId',
+  decidedAt: 'decidedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type AuthorizationDecisionRecordScalarFieldEnum = (typeof AuthorizationDecisionRecordScalarFieldEnum)[keyof typeof AuthorizationDecisionRecordScalarFieldEnum]
 
 
 export const SortOrder = {

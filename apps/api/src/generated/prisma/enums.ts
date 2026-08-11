@@ -405,3 +405,48 @@ export const ApiIdempotencyProcessingState = {
 } as const
 
 export type ApiIdempotencyProcessingState = (typeof ApiIdempotencyProcessingState)[keyof typeof ApiIdempotencyProcessingState]
+
+
+export const RoleName = {
+  CUSTOMER: 'CUSTOMER',
+  SELLER: 'SELLER',
+  ADMIN: 'ADMIN',
+  SUPER_ADMIN: 'SUPER_ADMIN'
+} as const
+
+export type RoleName = (typeof RoleName)[keyof typeof RoleName]
+
+
+export const RoleState = {
+  CREATED: 'CREATED',
+  CONFIGURED: 'CONFIGURED',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  RETIRED: 'RETIRED'
+} as const
+
+export type RoleState = (typeof RoleState)[keyof typeof RoleState]
+
+
+export const IdentityRoleAssignmentState = {
+  ACTIVE: 'ACTIVE',
+  REVOKED: 'REVOKED'
+} as const
+
+export type IdentityRoleAssignmentState = (typeof IdentityRoleAssignmentState)[keyof typeof IdentityRoleAssignmentState]
+
+
+export const PermissionStatus = {
+  ACTIVE: 'ACTIVE',
+  RETIRED: 'RETIRED'
+} as const
+
+export type PermissionStatus = (typeof PermissionStatus)[keyof typeof PermissionStatus]
+
+
+export const AuthorizationDecisionOutcome = {
+  GRANTED: 'GRANTED',
+  DENIED: 'DENIED'
+} as const
+
+export type AuthorizationDecisionOutcome = (typeof AuthorizationDecisionOutcome)[keyof typeof AuthorizationDecisionOutcome]

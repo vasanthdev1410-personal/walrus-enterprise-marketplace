@@ -292,6 +292,36 @@ enum ApiIdempotencyProcessingState {
   COMPLETED
 }
 
+enum RoleName {
+  CUSTOMER
+  SELLER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum RoleState {
+  CREATED
+  CONFIGURED
+  ACTIVE
+  SUSPENDED
+  RETIRED
+}
+
+enum IdentityRoleAssignmentState {
+  ACTIVE
+  REVOKED
+}
+
+enum PermissionStatus {
+  ACTIVE
+  RETIRED
+}
+
+enum AuthorizationDecisionOutcome {
+  GRANTED
+  DENIED
+}
+
 model ApiIdempotencyRecord {
   apiIdempotencyId     String                        @id @map("api_idempotency_id") @db.Uuid
   identityOrClientScope String                       @map("identity_or_client_scope") @db.Text
@@ -818,3 +848,39 @@ model BasicAuditEventRecord {
   @@map("basic_audit_event_records")
 }
 
+model IdentityRoleAssignment {
+  assignmentId         String                      @id @map("assignment_id") @db.Uuid
+  identityId           String                      @map("identity_id") @db.Uuid
+  roleName             RoleName                    @map("role_name")
+  assignmentState      IdentityRoleAssignmentState @map("assignment_state")
+  assignedByIdentityId String                      @map("assigned_by_identity_id") @db.Uuid
+  assignedAt           DateTime                    @map("assigned_at") @db.Timestamptz(6)
+  revokedByIdentityId  String?                     @map("revoked_by_identity_id") @db.Uuid
+  revokedAt            DateTime?                   @map("revoked_at") @db.Timestamptz(6)
+  aggregateVersion     Int                         @map("aggregate_version")
+  createdAt            DateTime                    @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime                    @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([identityId, roleName])
+  @@index([identityId, assignmentState])
+  @@index([roleName, assignmentState])
+  @@map("identity_role_assignments")
+}
+
+model AuthorizationDecisionRecord {
+  authorizationReference  String                      @id @map("authorization_reference") @db.Text
+  subjectIdentityId       String                      @map("subject_identity_id") @db.Uuid
+  permissionId            String                      @map("permission_id") @db.Text
+  resourceClassification  String?                     @map("resource_classification") @db.Text
+  decisionOutcome         AuthorizationDecisionOutcome @map("decision_outcome")
+  denialReason            String?                     @map("denial_reason") @db.Text
+  sessionIdentifier       String?                     @map("session_identifier") @db.Text
+  correlationId           String?                     @map("correlation_id") @db.Uuid
+  decidedAt               DateTime                    @map("decided_at") @db.Timestamptz(6)
+  createdAt               DateTime                    @map("created_at") @db.Timestamptz(6)
+
+  @@index([subjectIdentityId, decidedAt(sort: Desc)])
+  @@index([permissionId, decidedAt(sort: Desc)])
+  @@index([decidedAt(sort: Desc)])
+  @@map("authorization_decision_records")
+}

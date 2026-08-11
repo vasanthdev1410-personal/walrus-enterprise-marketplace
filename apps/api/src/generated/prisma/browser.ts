@@ -152,3 +152,13 @@ export type NonProductionRateLimitRecord = Prisma.NonProductionRateLimitRecordMo
  * 
  */
 export type BasicAuditEventRecord = Prisma.BasicAuditEventRecordModel
+/**
+ * Model IdentityRoleAssignment
+ * 
+ */
+export type IdentityRoleAssignment = Prisma.IdentityRoleAssignmentModel
+/**
+ * Model AuthorizationDecisionRecord
+ * 
+ */
+export type AuthorizationDecisionRecord = Prisma.AuthorizationDecisionRecordModel

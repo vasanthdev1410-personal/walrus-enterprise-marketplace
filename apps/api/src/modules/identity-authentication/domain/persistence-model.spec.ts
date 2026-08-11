@@ -24,10 +24,10 @@ const protectedAuthenticationMigration = readFileSync(
 );
 
 describe('Module 01 Limited Phase 1 persistence model', () => {
-  it('contains the 24 Limited Phase 1 records plus the approved Phase 2 API idempotency, non-prod rate limit, and basic audit records', () => {
+  it('contains the 24 Limited Phase 1 records, the approved Phase 2 API idempotency, non-prod rate limit and basic audit records, and the approved Module 02 authorization records', () => {
     const models = [...schema.matchAll(/^model\s+(\w+)\s+\{/gm)].map((match) => match[1]);
 
-    expect(models).toHaveLength(27);
+    expect(models).toHaveLength(29);
     expect(models).toEqual(
       expect.arrayContaining([
         'Identity',
@@ -41,6 +41,9 @@ describe('Module 01 Limited Phase 1 persistence model', () => {
         'ApiIdempotencyRecord',
         'NonProductionRateLimitRecord',
         'BasicAuditEventRecord',
+        // Approved Module 02 (roles, permissions & authorization) records.
+        'IdentityRoleAssignment',
+        'AuthorizationDecisionRecord',
       ]),
     );
   });
