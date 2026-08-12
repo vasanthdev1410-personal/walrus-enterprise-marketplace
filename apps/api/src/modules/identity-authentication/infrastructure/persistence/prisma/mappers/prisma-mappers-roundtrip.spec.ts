@@ -398,6 +398,9 @@ describe('Prisma Domain mappers - Recovery', () => {
       terminalReason: null,
       idempotencyKey: null,
       correlationId: null,
+      requesterKind: null,
+      requesterReference: null,
+      requesterIdentityId: null,
     };
     const domainBase = recoveryRequestMapper.toDomain(base);
     expect(domainBase.properties.approvedAt).toBeUndefined();

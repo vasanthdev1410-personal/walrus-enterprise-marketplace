@@ -16,6 +16,8 @@ describe('validateEnvironment', () => {
     expect(environment.API_PORT).toBe(4000);
     expect(environment.DATABASE_SSL).toBe(true);
     expect(environment.METRICS_ENABLED).toBe(false);
+    expect(environment.INTERNAL_MTLS_ENABLED).toBe(false);
+    expect(environment.INTERNAL_MTLS_CA_PATHS).toBe('[]');
   });
 
   it('rejects missing secrets', () => {

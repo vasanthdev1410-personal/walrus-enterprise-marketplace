@@ -11,9 +11,16 @@ import { RequestContextMiddleware } from './platform/request-context/request-con
 import { SecurityHeadersMiddleware } from './platform/security/security-headers.middleware';
 import { IdentityAuthenticationModule } from './modules/identity-authentication/identity-authentication.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
+import { AuthorizationCoreModule } from './modules/authorization/authorization-core.module';
 
 @Module({
-  imports: [ConfigurationModule, PrismaModule, IdentityAuthenticationModule, AuthorizationModule],
+  imports: [
+    ConfigurationModule,
+    PrismaModule,
+    AuthorizationCoreModule,
+    IdentityAuthenticationModule,
+    AuthorizationModule,
+  ],
   controllers: [HealthController],
   providers: [
     HealthService,

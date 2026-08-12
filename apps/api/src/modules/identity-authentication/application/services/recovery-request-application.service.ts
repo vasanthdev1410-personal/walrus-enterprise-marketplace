@@ -130,6 +130,8 @@ export interface RecordApprovalDecisionCommand {
   readonly approvalReasonCode: string;
   /** Approver-declared UTC ISO-8601 expiry, validated and bounded by policy. */
   readonly approvalExpiresAt: string;
+  readonly sessionId?: string;
+  readonly assurance?: 'AAL2';
 }
 
 export interface RecoveryApprovalDecisionResult {
@@ -442,6 +444,8 @@ export class RecoveryRequestApplicationService {
       createdAt: now,
       updatedAt: now,
       idempotencyKey: command.idempotencyKey,
+      requesterKind: 'BOUND_RECOVERY_SESSION',
+      requesterReference: `rrp:${recoveryRequestId.value}`,
       ...(correlationId === undefined ? {} : { correlationId }),
     });
     await this.recoveryRequests.insert({
@@ -808,6 +812,12 @@ export class RecoveryRequestApplicationService {
     if (properties.recoveryState !== 'EVIDENCE_VERIFIED') {
       throw new RecoveryError('RECOVERY_STATE_CONFLICT');
     }
+    // M02-M4 (AM-05): requests created before immutable requester provenance
+    // existed have no requester principal and can never enter the
+    // approval-required path; they fail closed.
+    if (properties.requesterKind === undefined || properties.requesterReference === undefined) {
+      throw new RecoveryError('RECOVERY_STATE_CONFLICT');
+    }
     // The client can never select a weaker policy row (spec Part 5.5): the
     // submitted policy version must equal the authoritative approved version.
     if (command.recoveryPolicyVersion !== this.options.recoveryPolicyVersion) {
@@ -938,6 +948,15 @@ export class RecoveryRequestApplicationService {
     if (command.approverIdentityId.value === properties.identityId.value) {
       throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
     }
+    // M02-M4 (AM-05): legacy requests without immutable requester provenance
+    // cannot be approved; the requester principal is required for separation
+    // of duties and missing provenance fails closed. requestApproval already
+    // blocks provenance-less rows from entering APPROVAL_PENDING; this guard
+    // is defense-in-depth for rows already pending when the migration
+    // deploys.
+    if (properties.requesterKind === undefined || properties.requesterReference === undefined) {
+      throw new RecoveryError('RECOVERY_APPROVAL_INVALID');
+    }
 
     // Defense-in-depth: the identity bound to the request must still be an
     // eligible, VERIFIED, non-deleted identity (mirrors M01-REC-002/004).
@@ -952,11 +971,21 @@ export class RecoveryRequestApplicationService {
     // A current Module 02 authorization decision is obtained at decision time
     // through the approved boundary; the approver's session alone is never
     // sufficient to approve a recovery.
+    const effectiveClassification = snapshot.classificationAssignments.find(
+      (assignment) => assignment.properties.assignmentState === 'EFFECTIVE',
+    )?.properties.classification;
+    if (effectiveClassification === undefined) throw new RecoveryError('AUTHORIZATION_DENIED');
     const authorization = await this.approvalAuthorization.authorizeApprover({
       approverIdentityId: command.approverIdentityId,
       recoveryRequestId: command.recoveryRequestId,
       recoveredIdentityId: properties.identityId,
       operationClass: properties.operationClass,
+      recoveredClassification: effectiveClassification,
+      ...(properties.requesterIdentityId === undefined
+        ? {}
+        : { requesterIdentityId: properties.requesterIdentityId }),
+      ...(command.sessionId === undefined ? {} : { sessionId: command.sessionId }),
+      ...(command.assurance === undefined ? {} : { assurance: command.assurance }),
     });
     if (!authorization.authorized) {
       throw new RecoveryError('AUTHORIZATION_DENIED');

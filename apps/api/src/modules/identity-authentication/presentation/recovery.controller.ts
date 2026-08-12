@@ -377,6 +377,8 @@ export class RecoveryController {
             recoveryOperationClass: body.recoveryOperationClass,
             approvalReasonCode: body.approvalReasonCode,
             approvalExpiresAt: body.approvalExpiresAt,
+            sessionId: request.authentication.sessionId,
+            assurance: 'AAL2',
           }),
       });
       noStore(response);

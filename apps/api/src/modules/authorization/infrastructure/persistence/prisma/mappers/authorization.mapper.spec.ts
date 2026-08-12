@@ -33,6 +33,12 @@ describe('authorization mappers (M02 persistence)', () => {
         roleName: 'ADMIN',
         assignmentState: 'ACTIVE',
         assignedByIdentityId: ACTOR.value,
+        assignmentOriginType: 'HUMAN_ADMINISTRATION',
+        activatedAt: NOW,
+        assignedByWorkloadIdentity: null,
+        authorityEvidenceReference: null,
+        operationId: null,
+        auditCorrelationId: null,
         assignedAt: NOW,
         revokedByIdentityId: null,
         revokedAt: null,
@@ -46,9 +52,17 @@ describe('authorization mappers (M02 persistence)', () => {
       );
       expect(restored.properties).toEqual(entity.properties);
       expect(identityRoleAssignmentMapper.toPersistence(entity)).toEqual({
-        ...row,
-        revokedByIdentityId: undefined,
-        revokedAt: undefined,
+        assignmentId: ASSIGNMENT_ID.value,
+        identityId: IDENTITY_ID.value,
+        roleName: 'ADMIN',
+        assignmentState: 'ACTIVE',
+        assignedByIdentityId: ACTOR.value,
+        assignmentOriginType: 'HUMAN_ADMINISTRATION',
+        assignedAt: NOW,
+        activatedAt: NOW,
+        aggregateVersion: 1,
+        createdAt: NOW,
+        updatedAt: NOW,
       });
     });
 

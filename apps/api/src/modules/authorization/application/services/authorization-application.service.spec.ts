@@ -85,6 +85,7 @@ function createFixture(
     mutations,
     { now: () => NOW },
     identifiers,
+    { isEligible: jest.fn().mockResolvedValue(true) },
   );
   return {
     service,
@@ -178,26 +179,20 @@ describe('AuthorizationApplicationService (M02)', () => {
   });
 
   describe('assignRole (Part 6.2 §9, §7 administrative scope)', () => {
-    it('lets a SUPER_ADMIN assign the SUPER_ADMIN role', async () => {
+    it('denies direct SUPER_ADMIN assignment because M4 controlled provisioning owns it', async () => {
       const { service, findActiveByIdentityId, findByIdentityId, assignRoleWithAudit } =
         createFixture();
       findActiveByIdentityId.mockResolvedValue([assignment({ roleName: 'SUPER_ADMIN' })]);
       findByIdentityId.mockResolvedValue([]);
 
-      const result = await service.assignRole({
-        targetIdentityId: TARGET,
-        roleName: 'SUPER_ADMIN',
-        assignedByIdentityId: ACTOR,
-      });
-
-      expect(result.properties.roleName).toBe('SUPER_ADMIN');
-      expect(assignRoleWithAudit).toHaveBeenCalledTimes(1);
-      const audit = assignRoleWithAudit.mock.calls[0]?.[1] as
-        { properties?: Record<string, unknown> } | undefined;
-      expect(audit?.properties).toMatchObject({
-        actorIdentityId: ACTOR,
-        subjectIdentityId: TARGET,
-      });
+      await expect(
+        service.assignRole({
+          targetIdentityId: TARGET,
+          roleName: 'SUPER_ADMIN',
+          assignedByIdentityId: ACTOR,
+        }),
+      ).rejects.toMatchObject({ code: 'TARGET_OUTSIDE_ADMINISTRATIVE_SCOPE' });
+      expect(assignRoleWithAudit).not.toHaveBeenCalled();
     });
 
     it('lets an ADMIN assign a CUSTOMER role within administrative scope', async () => {
@@ -213,6 +208,32 @@ describe('AuthorizationApplicationService (M02)', () => {
       });
 
       expect(result.properties.roleName).toBe('CUSTOMER');
+      expect(assignRoleWithAudit).toHaveBeenCalledTimes(1);
+    });
+
+    it('creates a new assignment episode when the prior episode is revoked', async () => {
+      const { service, findActiveByIdentityId, findByIdentityId, assignRoleWithAudit } =
+        createFixture();
+      const historical = assignment({
+        roleName: 'CUSTOMER',
+        assignmentState: 'REVOKED',
+        revokedByIdentityId: ACTOR,
+        revokedAt: NOW,
+        aggregateVersion: new AggregateVersion(2),
+      });
+      findActiveByIdentityId.mockResolvedValue([assignment({ roleName: 'SUPER_ADMIN' })]);
+      findByIdentityId.mockResolvedValue([historical]);
+
+      const result = await service.assignRole({
+        targetIdentityId: TARGET,
+        roleName: 'CUSTOMER',
+        assignedByIdentityId: ACTOR,
+      });
+
+      expect(result.properties.assignmentId).toBe(NEW_ASSIGNMENT_ID);
+      expect(result.properties.assignmentId).not.toBe(historical.properties.assignmentId);
+      expect(result.properties.assignmentState).toBe('ACTIVE');
+      expect(historical.properties.assignmentState).toBe('REVOKED');
       expect(assignRoleWithAudit).toHaveBeenCalledTimes(1);
     });
 

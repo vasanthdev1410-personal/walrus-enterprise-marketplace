@@ -130,6 +130,9 @@ describe('Prisma Domain mappers', () => {
       terminalReason: null,
       idempotencyKey: null,
       correlationId: null,
+      requesterKind: null,
+      requesterReference: null,
+      requesterIdentityId: null,
     };
 
     const domain = recoveryRequestMapper.toDomain(record);

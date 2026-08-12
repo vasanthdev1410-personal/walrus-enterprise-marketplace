@@ -8,10 +8,12 @@ import type { AuthenticationSecurityClassification } from '../../domain/identity
 import { ClassificationTransitionError } from '../errors/classification-transition.error';
 import type { ClockPort, UuidV7GenerationPort } from '../ports/application-runtime.port';
 import type { ClassificationTransitionCoordinationPort } from '../ports/classification-transition-coordination.port';
+import type { VerifiedWorkloadContextV2 } from '../ports/verified-workload-context';
 
 export interface TransitionClassificationCommand {
   /** The service identity performing the internal call. */
-  readonly actorIdentityId: UuidV7;
+  readonly actorIdentityId?: UuidV7;
+  readonly workload?: VerifiedWorkloadContextV2;
   readonly targetIdentityId: UuidV7;
   readonly targetAuthenticationSecurityClassification: AuthenticationSecurityClassification;
   readonly reasonCode: string;
@@ -61,7 +63,10 @@ export class ClassificationTransitionApplicationService {
     }
 
     const contract = await this.coordinationContract.validateContract({
-      actorIdentityId: command.actorIdentityId,
+      ...(command.actorIdentityId === undefined
+        ? {}
+        : { actorIdentityId: command.actorIdentityId }),
+      ...(command.workload === undefined ? {} : { workload: command.workload }),
       targetIdentityId: command.targetIdentityId,
       targetAuthenticationSecurityClassification:
         command.targetAuthenticationSecurityClassification,

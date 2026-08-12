@@ -2,6 +2,8 @@ import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Server } from 'node:http';
 import request from 'supertest';
+import { DirectMtlsIngressService } from '../src/modules/authorization/infrastructure/trusted-workload/direct-mtls-ingress.service';
+import { SignedBoundaryEvidenceService } from '../src/modules/authorization/infrastructure/trusted-workload/signed-boundary-evidence.service';
 import { ProvisioningError } from '../src/modules/identity-authentication/application/errors/provisioning.error';
 import type { ApiIdempotencyService } from '../src/modules/identity-authentication/application/services/api-idempotency.service';
 import type { PrivilegedProvisioningApplicationService } from '../src/modules/identity-authentication/application/services/privileged-provisioning-application.service';
@@ -49,6 +51,23 @@ describe('Module 01 Bootstrap API (integration)', () => {
     const moduleFixture = await Test.createTestingModule({
       controllers: [BootstrapController],
       providers: [
+        {
+          provide: DirectMtlsIngressService,
+          useValue: {
+            verify: jest.fn().mockResolvedValue({
+              subject: 'urn:walrus:service:bootstrap-orchestrator',
+              environment: 'development',
+              operationId: '0191310f-789a-7123-8123-0000000000dd',
+              verificationReference: 'wiv:test',
+              requestDigest: 'digest',
+              expiresAt: new Date(Date.now() + 60_000),
+            }),
+          },
+        },
+        {
+          provide: SignedBoundaryEvidenceService,
+          useValue: { verifyBootstrap: jest.fn().mockResolvedValue('verified-bsv1-digest') },
+        },
         { provide: PRIVILEGED_PROVISIONING_APPLICATION_SERVICE, useValue: provisioning },
         { provide: API_IDEMPOTENCY, useValue: idempotency },
         { provide: RATE_LIMITER, useValue: rateLimiter },
@@ -88,6 +107,7 @@ describe('Module 01 Bootstrap API (integration)', () => {
       const response = await request(server)
         .post('/bootstrap/super-admin-identity')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Bootstrap-Assertion', 'test-bsv1')
         .send({
           bootstrapEvidence: 'M01-BOOTSTRAP-EVIDENCE-1',
           identifierType: 'EMAIL',
@@ -115,6 +135,7 @@ describe('Module 01 Bootstrap API (integration)', () => {
       await request(server)
         .post('/bootstrap/super-admin-identity')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Bootstrap-Assertion', 'test-bsv1')
         .send({
           bootstrapEvidence: 'M01-BOOTSTRAP-EVIDENCE-2',
           identifierType: 'EMAIL',
@@ -130,6 +151,7 @@ describe('Module 01 Bootstrap API (integration)', () => {
       await request(server)
         .post('/bootstrap/super-admin-identity')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Bootstrap-Assertion', 'test-bsv1')
         .send({
           bootstrapEvidence: 'M01-BOOTSTRAP-EVIDENCE-3',
           identifierType: 'EMAIL',
@@ -142,6 +164,7 @@ describe('Module 01 Bootstrap API (integration)', () => {
       await request(server)
         .post('/bootstrap/super-admin-identity')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Bootstrap-Assertion', 'test-bsv1')
         .send({
           bootstrapEvidence: 'M01-BOOTSTRAP-EVIDENCE-4',
           identifierType: 'EMAIL',
@@ -170,6 +193,7 @@ describe('Module 01 Bootstrap API (integration)', () => {
       await request(server)
         .post('/bootstrap/super-admin-identity')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Bootstrap-Assertion', 'test-bsv1')
         .send({
           bootstrapEvidence: 'M01-BOOTSTRAP-EVIDENCE-6',
           identifierType: 'EMAIL',

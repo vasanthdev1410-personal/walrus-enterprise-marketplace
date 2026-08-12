@@ -32,6 +32,8 @@ export interface ChangeIdentityStateCommand {
   readonly reasonCode: string;
   readonly sourceContractReference: string;
   readonly expectedIdentityVersion: number;
+  readonly sessionId?: string;
+  readonly assurance?: 'AAL2';
 }
 
 export interface IdentityStateChangeResult {
@@ -142,11 +144,20 @@ export class IdentityLifecycleApplicationService {
       throw new IdentityLifecycleError('RESOURCE_STATE_CONFLICT');
     }
 
+    const effectiveClassification = snapshot.classificationAssignments.find(
+      (assignment) => assignment.properties.assignmentState === 'EFFECTIVE',
+    )?.properties.classification;
+    if (effectiveClassification === undefined) {
+      throw new IdentityLifecycleError('AUTHORIZATION_DENIED');
+    }
     const authorization = await this.stateChangeAuthorization.authorizeStateChange({
       actorIdentityId: command.actorIdentityId,
       targetIdentityId: command.targetIdentityId,
       targetIdentityState: command.targetIdentityState,
       sourceContractReference: command.sourceContractReference,
+      targetClassification: effectiveClassification,
+      ...(command.sessionId === undefined ? {} : { sessionId: command.sessionId }),
+      ...(command.assurance === undefined ? {} : { assurance: command.assurance }),
     });
     if (!authorization.authorized) {
       throw new IdentityLifecycleError('AUTHORIZATION_DENIED');

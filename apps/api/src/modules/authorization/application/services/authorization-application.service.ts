@@ -5,6 +5,7 @@ import type {
   UuidV7GenerationPort,
 } from '../../../identity-authentication/application/ports/application-runtime.port';
 import type { AuthorizationMutationPort } from '../ports/authorization-mutation.port';
+import type { PrivilegedEligibilityPort } from '../ports/privileged-eligibility.port';
 import { OptimisticConcurrencyError } from '../../../identity-authentication/domain/shared/errors/optimistic-concurrency.error';
 import { AggregateVersion } from '../../../identity-authentication/domain/shared/value-objects/aggregate-version';
 import type { UuidV7 } from '../../../identity-authentication/domain/shared/value-objects/uuid-v7';
@@ -73,6 +74,7 @@ export class AuthorizationApplicationService {
     private readonly mutations: AuthorizationMutationPort,
     @Inject(CLOCK) private readonly clock: ClockPort,
     @Inject(UUID_V7_GENERATOR) private readonly identifiers: UuidV7GenerationPort,
+    private readonly privilegedEligibility?: PrivilegedEligibilityPort,
   ) {}
 
   public async authorize(command: AuthorizeCommand): Promise<AuthorizationDecision> {
@@ -80,6 +82,17 @@ export class AuthorizationApplicationService {
     const activeAssignments = await this.assignments.findActiveByIdentityId(
       command.subjectIdentityId,
     );
+    const eligibleAssignments = [];
+    for (const assignment of activeAssignments) {
+      const role = assignment.properties.roleName;
+      if (
+        (role === 'ADMIN' || role === 'SUPER_ADMIN') &&
+        (this.privilegedEligibility === undefined ||
+          !(await this.privilegedEligibility.isEligible(command.subjectIdentityId, role)))
+      )
+        continue;
+      eligibleAssignments.push(assignment);
+    }
     const decision = this.engine.evaluate(
       {
         decisionInstanceId: this.identifiers.next(),
@@ -89,7 +102,7 @@ export class AuthorizationApplicationService {
           ? {}
           : { resourceClassification: command.resourceClassification }),
       },
-      activeAssignments,
+      eligibleAssignments,
     );
     const correlationId = currentCorrelationId();
     await this.decisions.insert(
@@ -127,6 +140,12 @@ export class AuthorizationApplicationService {
     }
     if (role.properties.state !== 'ACTIVE') {
       throw new AuthorizationError('ROLE_NOT_ACTIVE');
+    }
+    // M02-M4 owns every privileged assignment. The generic M3 administration
+    // endpoint cannot bypass readiness, quorum, PRV1/BSV1 or eligibility by
+    // directly creating ADMIN/SUPER_ADMIN episodes.
+    if (command.roleName === 'ADMIN' || command.roleName === 'SUPER_ADMIN') {
+      throw new AuthorizationError('TARGET_OUTSIDE_ADMINISTRATIVE_SCOPE');
     }
 
     const actorAssignments = await this.assignments.findActiveByIdentityId(

@@ -78,7 +78,18 @@ function buildSnapshot(
       }),
     ],
     credentials: [],
-    classificationAssignments: [],
+    classificationAssignments: [
+      new AuthenticationSecurityClassificationAssignment({
+        classificationAssignmentId: new UuidV7('0191310f-789a-7123-8123-000000000011'),
+        identityId: new UuidV7(IDENTITY_ID),
+        classification: 'STANDARD_AUTHENTICATION',
+        effectiveAt: FIXED_NOW,
+        assignmentState: 'EFFECTIVE',
+        aggregateVersion: new AggregateVersion(1),
+        createdAt: FIXED_NOW,
+        updatedAt: FIXED_NOW,
+      }),
+    ],
     mfaEnrollments: [],
     mfaFactors: [],
   };
@@ -204,6 +215,11 @@ function buildRecoveryRequest(
     aggregateVersion: new AggregateVersion(1),
     createdAt: now,
     updatedAt: now,
+    // M02-M4 (AM-05): every persisted request carries immutable requester
+    // provenance; a legacy row without it must fail closed in the approval
+    // path (covered by dedicated tests below).
+    requesterKind: 'BOUND_RECOVERY_SESSION',
+    requesterReference: `rrp:${RECOVERY_REQUEST_ID}`,
     ...overrides,
   });
 }
@@ -241,6 +257,10 @@ describe('RecoveryRequestApplicationService (M01-REC-001)', () => {
       permittedOperation: { value: 'PASSWORD_RESET' },
       stateVersion: 1,
       idempotencyKey: IDEMPOTENCY_KEY,
+      // M02-M4 (AM-05): immutable requester provenance is persisted at
+      // creation so the approval path can enforce separation of duties.
+      requesterKind: 'BOUND_RECOVERY_SESSION',
+      requesterReference: `rrp:${RECOVERY_REQUEST_ID}`,
     });
     expect(changeSet?.evidence).toEqual([]);
     expect(changeSet?.notifications).toEqual([]);
@@ -871,6 +891,25 @@ describe('RecoveryRequestApplicationService.requestApproval (M01-REC-004)', () =
     expect(recoveryRequests.save).not.toHaveBeenCalled();
   });
 
+  it('fails closed for a legacy request without requester provenance', async () => {
+    const { service, recoveryRequests } = createFixture();
+    // A pre-amendment request has no immutable requester principal and can
+    // never enter the approval-required path (AM-05).
+    recoveryRequests.findById.mockResolvedValue(
+      legacyRequest({
+        recoveryState: 'EVIDENCE_VERIFIED',
+        recoveryAssurance: 'RA1',
+        stateVersion: 2,
+        aggregateVersion: new AggregateVersion(2),
+      }),
+    );
+
+    await expect(service.requestApproval(command)).rejects.toMatchObject({
+      code: 'RECOVERY_STATE_CONFLICT',
+    });
+    expect(recoveryRequests.save).not.toHaveBeenCalled();
+  });
+
   it('rejects a duplicate approval request once already pending', async () => {
     const { service, recoveryRequests } = createFixture();
     recoveryRequests.findById.mockResolvedValue(
@@ -964,6 +1003,20 @@ function approvalPendingRequest(): RecoveryRequest {
     stateVersion: 3,
     aggregateVersion: new AggregateVersion(3),
   });
+}
+
+/**
+ * A pre-amendment request without immutable requester provenance (AM-05). The
+ * entity only requires requester kind/reference to be complete together, so a
+ * request with neither is a valid legacy shape that must fail closed in the
+ * approval path.
+ */
+function legacyRequest(overrides: Partial<RecoveryRequest['properties']> = {}): RecoveryRequest {
+  const properties = buildRecoveryRequest(overrides).properties;
+  const legacy = { ...properties };
+  delete legacy.requesterKind;
+  delete legacy.requesterReference;
+  return new RecoveryRequest(legacy);
 }
 
 function buildApprovalRecord(
@@ -1121,6 +1174,28 @@ describe('RecoveryRequestApplicationService.recordApprovalDecision (M01-REC-005)
         approverIdentityId: new UuidV7(IDENTITY_ID),
       }),
     ).rejects.toMatchObject({
+      code: 'RECOVERY_APPROVAL_INVALID',
+    });
+    expect(approvalAuthorization.authorizeApprover).not.toHaveBeenCalled();
+    expect(recoveryRequests.recordApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it('fails closed for a legacy request without requester provenance', async () => {
+    const { service, identityRepository, recoveryRequests, approvalAuthorization } =
+      createFixture();
+    // A pre-amendment request has no immutable requester principal; it can
+    // never be approved even by an otherwise authorized approver (AM-05).
+    recoveryRequests.findById.mockResolvedValue(
+      legacyRequest({
+        recoveryState: 'APPROVAL_PENDING',
+        stateVersion: 3,
+        aggregateVersion: new AggregateVersion(3),
+      }),
+    );
+    identityRepository.findAuthenticationById.mockResolvedValue(buildSnapshot());
+    useAuthorizedApprover(approvalAuthorization);
+
+    await expect(service.recordApprovalDecision(command)).rejects.toMatchObject({
       code: 'RECOVERY_APPROVAL_INVALID',
     });
     expect(approvalAuthorization.authorizeApprover).not.toHaveBeenCalled();

@@ -1,5 +1,6 @@
 import type { IdentityState } from '../../domain/identity/value-objects/identity-state';
 import type { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
+import type { AuthenticationSecurityClassification } from '../../domain/identity/value-objects/authentication-security-classification';
 
 /**
  * M01-ID-004. The Module 02 authorization boundary for identity
@@ -18,6 +19,9 @@ export interface IdentityStateChangeAuthorizationCommand {
   readonly targetIdentityState: IdentityState;
   /** Approved source contract reference that motivates the change. */
   readonly sourceContractReference: string;
+  readonly targetClassification: AuthenticationSecurityClassification;
+  readonly sessionId?: string;
+  readonly assurance?: 'AAL2';
 }
 
 export interface IdentityStateChangeAuthorizationDecision {

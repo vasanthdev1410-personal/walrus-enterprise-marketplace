@@ -13,10 +13,18 @@ export interface IdentityRoleAssignmentProperties {
   readonly identityId: UuidV7;
   readonly roleName: RoleName;
   readonly assignmentState: IdentityRoleAssignmentState;
-  readonly assignedByIdentityId: UuidV7;
+  readonly assignedByIdentityId?: UuidV7;
+  readonly assignmentOriginType?:
+    'HUMAN_ADMINISTRATION' | 'PRIVILEGED_PROVISIONING' | 'CONTROLLED_BOOTSTRAP';
+  readonly assignedByWorkloadIdentity?: string;
+  readonly authorityEvidenceReference?: string;
+  readonly operationId?: UuidV7;
+  readonly auditCorrelationId?: UuidV7;
   readonly assignedAt: Date;
+  readonly activatedAt?: Date;
   readonly revokedByIdentityId?: UuidV7;
   readonly revokedAt?: Date;
+  readonly revocationReasonReference?: string;
   readonly aggregateVersion: AggregateVersion;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -26,13 +34,29 @@ export class IdentityRoleAssignment {
   public readonly properties: Readonly<IdentityRoleAssignmentProperties>;
 
   public constructor(properties: IdentityRoleAssignmentProperties) {
+    const origin = properties.assignmentOriginType ?? 'HUMAN_ADMINISTRATION';
+    if (origin === 'HUMAN_ADMINISTRATION' && properties.assignedByIdentityId === undefined) {
+      throw new Error('Human role assignment requires assignedByIdentityId');
+    }
+    if (
+      origin !== 'HUMAN_ADMINISTRATION' &&
+      (properties.assignedByWorkloadIdentity === undefined ||
+        properties.authorityEvidenceReference === undefined ||
+        properties.operationId === undefined)
+    ) {
+      throw new Error('Control-plane role assignment requires workload and evidence provenance');
+    }
     if (properties.assignmentState === 'REVOKED' && properties.revokedAt === undefined) {
       throw new Error('Revoked Identity Role Assignment requires revokedAt');
     }
     if (properties.assignmentState === 'REVOKED' && properties.revokedByIdentityId === undefined) {
       throw new Error('Revoked Identity Role Assignment requires revokedByIdentityId');
     }
-    this.properties = Object.freeze({ ...properties });
+    this.properties = Object.freeze({
+      ...properties,
+      assignmentOriginType: origin,
+      activatedAt: properties.activatedAt ?? properties.assignedAt,
+    });
     Object.freeze(this);
   }
 }

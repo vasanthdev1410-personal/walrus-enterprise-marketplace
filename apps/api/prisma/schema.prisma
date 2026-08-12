@@ -312,6 +312,12 @@ enum IdentityRoleAssignmentState {
   REVOKED
 }
 
+enum RoleAssignmentOriginType {
+  HUMAN_ADMINISTRATION
+  PRIVILEGED_PROVISIONING
+  CONTROLLED_BOOTSTRAP
+}
+
 enum PermissionStatus {
   ACTIVE
   RETIRED
@@ -322,17 +328,45 @@ enum AuthorizationDecisionOutcome {
   DENIED
 }
 
+enum M4AuthorityLifecycleState {
+  ISSUED
+  RESERVED
+  CONSUMED
+  INVALIDATED
+  EXPIRED
+  RECONCILIATION_REQUIRED
+}
+
+enum M4SagaState {
+  REQUESTED
+  IDENTITY_PREPARED
+  AWAITING_IDENTITY_ACTIVATION
+  IDENTITY_READY
+  ROLE_ASSIGNMENT_PENDING
+  ROLE_ASSIGNED
+  ELIGIBILITY_PENDING
+  COMPLETED
+  EXPIRED
+  CANCELLED
+  FAILED_RECONCILIATION
+}
+
+enum PrivilegedEligibilityState {
+  ELIGIBLE
+  NOT_ELIGIBLE
+}
+
 model ApiIdempotencyRecord {
-  apiIdempotencyId     String                        @id @map("api_idempotency_id") @db.Uuid
-  identityOrClientScope String                       @map("identity_or_client_scope") @db.Text
-  operationType        String                        @map("operation_type") @db.Text
-  idempotencyKey       String                        @map("idempotency_key") @db.Text
-  requestFingerprint   String                        @map("request_fingerprint") @db.Text
-  processingState      ApiIdempotencyProcessingState @map("processing_state")
-  responseReference    String?                       @map("response_reference") @db.Text
-  createdAt            DateTime                      @map("created_at") @db.Timestamptz(6)
-  completedAt          DateTime?                     @map("completed_at") @db.Timestamptz(6)
-  expiresAt            DateTime?                     @map("expires_at") @db.Timestamptz(6)
+  apiIdempotencyId      String                        @id @map("api_idempotency_id") @db.Uuid
+  identityOrClientScope String                        @map("identity_or_client_scope") @db.Text
+  operationType         String                        @map("operation_type") @db.Text
+  idempotencyKey        String                        @map("idempotency_key") @db.Text
+  requestFingerprint    String                        @map("request_fingerprint") @db.Text
+  processingState       ApiIdempotencyProcessingState @map("processing_state")
+  responseReference     String?                       @map("response_reference") @db.Text
+  createdAt             DateTime                      @map("created_at") @db.Timestamptz(6)
+  completedAt           DateTime?                     @map("completed_at") @db.Timestamptz(6)
+  expiresAt             DateTime?                     @map("expires_at") @db.Timestamptz(6)
 
   @@unique([identityOrClientScope, operationType, idempotencyKey])
   @@index([processingState, createdAt])
@@ -713,6 +747,9 @@ model RecoveryRequest {
   terminalReason        String?                      @map("terminal_reason") @db.Text
   idempotencyKey        String?                      @map("idempotency_key") @db.Text
   correlationId         String?                      @map("correlation_id") @db.Uuid
+  requesterKind         String?                      @map("requester_kind") @db.Text
+  requesterReference    String?                      @map("requester_reference") @db.Text
+  requesterIdentityId   String?                      @map("requester_identity_id") @db.Uuid
   identity              Identity                     @relation(fields: [identityId], references: [identityId], onDelete: Restrict)
   evidence              RecoveryEvidenceRecord[]
   approvals             RecoveryApprovalRecord[]
@@ -849,40 +886,292 @@ model BasicAuditEventRecord {
 }
 
 model IdentityRoleAssignment {
-  assignmentId         String                      @id @map("assignment_id") @db.Uuid
-  identityId           String                      @map("identity_id") @db.Uuid
-  roleName             RoleName                    @map("role_name")
-  assignmentState      IdentityRoleAssignmentState @map("assignment_state")
-  assignedByIdentityId String                      @map("assigned_by_identity_id") @db.Uuid
-  assignedAt           DateTime                    @map("assigned_at") @db.Timestamptz(6)
-  revokedByIdentityId  String?                     @map("revoked_by_identity_id") @db.Uuid
-  revokedAt            DateTime?                   @map("revoked_at") @db.Timestamptz(6)
-  aggregateVersion     Int                         @map("aggregate_version")
-  createdAt            DateTime                    @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime                    @map("updated_at") @db.Timestamptz(6)
+  assignmentId               String                      @id @map("assignment_id") @db.Uuid
+  identityId                 String                      @map("identity_id") @db.Uuid
+  roleName                   RoleName                    @map("role_name")
+  assignmentState            IdentityRoleAssignmentState @map("assignment_state")
+  assignedByIdentityId       String?                     @map("assigned_by_identity_id") @db.Uuid
+  assignmentOriginType       RoleAssignmentOriginType    @default(HUMAN_ADMINISTRATION) @map("assignment_origin_type")
+  assignedByWorkloadIdentity String?                     @map("assigned_by_workload_identity") @db.Text
+  authorityEvidenceReference String?                     @map("authority_evidence_reference") @db.Text
+  operationId                String?                     @map("operation_id") @db.Uuid
+  auditCorrelationId         String?                     @map("audit_correlation_id") @db.Uuid
+  assignedAt                 DateTime                    @map("assigned_at") @db.Timestamptz(6)
+  activatedAt                DateTime                    @map("activated_at") @db.Timestamptz(6)
+  revokedByIdentityId        String?                     @map("revoked_by_identity_id") @db.Uuid
+  revokedAt                  DateTime?                   @map("revoked_at") @db.Timestamptz(6)
+  revocationReasonReference  String?                     @map("revocation_reason_reference") @db.Text
+  aggregateVersion           Int                         @map("aggregate_version")
+  createdAt                  DateTime                    @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime                    @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([identityId, roleName])
   @@index([identityId, assignmentState])
   @@index([roleName, assignmentState])
+  @@index([operationId])
   @@map("identity_role_assignments")
 }
 
 model AuthorizationDecisionRecord {
-  authorizationReference  String                      @id @map("authorization_reference") @db.Text
-  actorIdentityId          String?                     @map("actor_identity_id") @db.Uuid
-  subjectIdentityId       String                      @map("subject_identity_id") @db.Uuid
-  permissionId            String                      @map("permission_id") @db.Text
-  resourceClassification  String?                     @map("resource_classification") @db.Text
-  decisionOutcome         AuthorizationDecisionOutcome @map("decision_outcome")
-  denialReason            String?                     @map("denial_reason") @db.Text
-  sessionIdentifier       String?                     @map("session_identifier") @db.Text
-  correlationId           String?                     @map("correlation_id") @db.Uuid
-  decidedAt               DateTime                    @map("decided_at") @db.Timestamptz(6)
-  createdAt               DateTime                    @map("created_at") @db.Timestamptz(6)
+  authorizationReference String                       @id @map("authorization_reference") @db.Text
+  actorIdentityId        String?                      @map("actor_identity_id") @db.Uuid
+  subjectIdentityId      String                       @map("subject_identity_id") @db.Uuid
+  permissionId           String                       @map("permission_id") @db.Text
+  resourceClassification String?                      @map("resource_classification") @db.Text
+  decisionOutcome        AuthorizationDecisionOutcome @map("decision_outcome")
+  denialReason           String?                      @map("denial_reason") @db.Text
+  sessionIdentifier      String?                      @map("session_identifier") @db.Text
+  correlationId          String?                      @map("correlation_id") @db.Uuid
+  decidedAt              DateTime                     @map("decided_at") @db.Timestamptz(6)
+  createdAt              DateTime                     @map("created_at") @db.Timestamptz(6)
+  schemaVersion          String?                      @map("schema_version") @db.Text
+  targetIdentityId       String?                      @map("target_identity_id") @db.Uuid
+  workloadIdentity       String?                      @map("workload_identity") @db.Text
+  action                 String?                      @map("action") @db.Text
+  evaluatedRoleNames     RoleName[]                   @default([]) @map("evaluated_role_names")
+  resourceType           String?                      @map("resource_type") @db.Text
+  resourceReference      String?                      @map("resource_reference") @db.Text
+  reasonCode             String?                      @map("reason_code") @db.Text
+  policyVersion          String?                      @map("policy_version") @db.Text
+  contractVersion        String?                      @map("contract_version") @db.Text
+  assurance              String?                      @map("assurance") @db.Text
+  environment            String?                      @map("environment") @db.Text
 
   @@index([subjectIdentityId, decidedAt(sort: Desc)])
   @@index([actorIdentityId, decidedAt(sort: Desc)])
   @@index([permissionId, decidedAt(sort: Desc)])
   @@index([decidedAt(sort: Desc)])
   @@map("authorization_decision_records")
+}
+
+model TrustedWorkloadReplayRecord {
+  replayRecordId        String   @id @map("replay_record_id") @db.Uuid
+  environment           String   @map("environment") @db.Text
+  jwtId                 String   @map("jwt_id") @db.Uuid
+  workloadSubject       String   @map("workload_subject") @db.Text
+  boundary              String   @map("boundary") @db.Text
+  assertionDigest       String   @map("assertion_digest") @db.Text
+  requestDigest         String   @map("request_digest") @db.Text
+  certificateThumbprint String   @map("certificate_thumbprint") @db.Text
+  operationId           String   @map("operation_id") @db.Uuid
+  expiresAt             DateTime @map("expires_at") @db.Timestamptz(6)
+  consumedAt            DateTime @map("consumed_at") @db.Timestamptz(6)
+  auditReference        String   @map("audit_reference") @db.Text
+  createdAt             DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@unique([environment, jwtId])
+  @@index([expiresAt])
+  @@map("trusted_workload_replay_records")
+}
+
+model AuthorizationApprovalRecord {
+  approvalRecordId   String   @id @map("approval_record_id") @db.Uuid
+  operationId        String   @map("operation_id") @db.Uuid
+  authorityType      String   @map("authority_type") @db.Text
+  authorityId        String   @map("authority_id") @db.Text
+  approverIdentityId String?  @map("approver_identity_id") @db.Uuid
+  sessionId          String?  @map("session_id") @db.Text
+  assurance          String   @map("assurance") @db.Text
+  decision           String   @map("decision") @db.Text
+  evidenceDigest     String   @map("evidence_digest") @db.Text
+  policyVersion      String   @map("policy_version") @db.Text
+  approvedAt         DateTime @map("approved_at") @db.Timestamptz(6)
+  expiresAt          DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt          DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@unique([operationId, authorityType, authorityId])
+  @@index([operationId, expiresAt])
+  @@map("authorization_approval_records")
+}
+
+model ProvisioningAuthorityRecord {
+  provisioningRecordId    String                    @id @map("provisioning_record_id") @db.Uuid
+  operationId             String                    @unique @map("operation_id") @db.Uuid
+  environment             String                    @map("environment") @db.Text
+  targetIdentityId        String                    @map("target_identity_id") @db.Uuid
+  requestedRole           RoleName                  @map("requested_role")
+  requestedClassification String                    @map("requested_classification") @db.Text
+  operationType           String                    @map("operation_type") @db.Text
+  jwtId                   String                    @map("jwt_id") @db.Uuid
+  evidenceDigest          String                    @map("evidence_digest") @db.Text
+  lookupReferenceDigest   String                    @map("lookup_reference_digest") @db.Text
+  policyVersion           String                    @map("policy_version") @db.Text
+  lifecycleState          M4AuthorityLifecycleState @map("lifecycle_state")
+  reservedByOperationId   String?                   @map("reserved_by_operation_id") @db.Uuid
+  issuedAt                DateTime                  @map("issued_at") @db.Timestamptz(6)
+  expiresAt               DateTime                  @map("expires_at") @db.Timestamptz(6)
+  consumedAt              DateTime?                 @map("consumed_at") @db.Timestamptz(6)
+  aggregateVersion        Int                       @map("aggregate_version")
+  createdAt               DateTime                  @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                  @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([environment, jwtId])
+  @@index([lifecycleState, expiresAt])
+  @@map("provisioning_authority_records")
+}
+
+model BootstrapControlRecord {
+  bootstrapRecordId     String                    @id @map("bootstrap_record_id") @db.Uuid
+  environment           String                    @unique @map("environment") @db.Text
+  operationId           String                    @unique @map("operation_id") @db.Uuid
+  intendedIdentityId    String                    @map("intended_identity_id") @db.Uuid
+  jwtId                 String                    @map("jwt_id") @db.Uuid
+  evidenceDigest        String                    @map("evidence_digest") @db.Text
+  securityAuthorityId   String                    @map("security_authority_id") @db.Text
+  operationsAuthorityId String                    @map("operations_authority_id") @db.Text
+  lifecycleState        M4AuthorityLifecycleState @map("lifecycle_state")
+  permanentlyClosed     Boolean                   @default(false) @map("permanently_closed")
+  issuedAt              DateTime                  @map("issued_at") @db.Timestamptz(6)
+  expiresAt             DateTime                  @map("expires_at") @db.Timestamptz(6)
+  completedAt           DateTime?                 @map("completed_at") @db.Timestamptz(6)
+  aggregateVersion      Int                       @map("aggregate_version")
+  createdAt             DateTime                  @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                  @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([environment, jwtId])
+  @@map("bootstrap_control_records")
+}
+
+model PrivilegedActivationSaga {
+  sagaId                  String      @id @map("saga_id") @db.Uuid
+  operationId             String      @map("operation_id") @db.Uuid
+  requestId               String      @map("request_id") @db.Uuid
+  sagaType                String      @map("saga_type") @db.Text
+  targetIdentityId        String      @map("target_identity_id") @db.Uuid
+  requestedRole           RoleName    @map("requested_role")
+  requestedClassification String      @map("requested_classification") @db.Text
+  environment             String      @map("environment") @db.Text
+  sagaState               M4SagaState @map("saga_state")
+  completedSteps          String[]    @default([]) @map("completed_steps")
+  authorityReference      String      @map("authority_reference") @db.Text
+  readinessReference      String?     @map("readiness_reference") @db.Text
+  roleAssignmentId        String?     @map("role_assignment_id") @db.Uuid
+  eligibilityReference    String?     @map("eligibility_reference") @db.Text
+  failureReason           String?     @map("failure_reason") @db.Text
+  reconciliationReason    String?     @map("reconciliation_reason") @db.Text
+  expiresAt               DateTime    @map("expires_at") @db.Timestamptz(6)
+  aggregateVersion        Int         @map("aggregate_version")
+  createdAt               DateTime    @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime    @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([environment, operationId])
+  @@index([sagaState, expiresAt])
+  @@map("privileged_activation_sagas")
+}
+
+model IdentityReadinessAttestation {
+  attestationId           String    @id @map("attestation_id") @db.Uuid
+  environment             String    @map("environment") @db.Text
+  jwtId                   String    @map("jwt_id") @db.Uuid
+  sagaId                  String    @map("saga_id") @db.Uuid
+  operationId             String    @map("operation_id") @db.Uuid
+  targetIdentityId        String    @map("target_identity_id") @db.Uuid
+  requestedRole           RoleName  @map("requested_role")
+  effectiveClassification String    @map("effective_classification") @db.Text
+  identityVersion         Int       @map("identity_version")
+  readinessControlVersion Int       @map("readiness_control_version")
+  attestationDigest       String    @map("attestation_digest") @db.Text
+  verificationReference   String    @map("verification_reference") @db.Text
+  issuedAt                DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt               DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt              DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt               DateTime  @map("created_at") @db.Timestamptz(6)
+
+  @@unique([environment, jwtId])
+  @@unique([sagaId, attestationDigest])
+  @@map("identity_readiness_attestations")
+}
+
+model IdentityReadinessInbox {
+  inboxId               String    @id @map("inbox_id") @db.Uuid
+  environment           String    @map("environment") @db.Text
+  messageId             String    @map("message_id") @db.Uuid
+  sagaId                String    @map("saga_id") @db.Uuid
+  attestationDigest     String    @map("attestation_digest") @db.Text
+  verificationReference String    @map("verification_reference") @db.Text
+  observedSagaVersion   Int       @map("observed_saga_version")
+  resultingSagaVersion  Int?      @map("resulting_saga_version")
+  result                String    @map("result") @db.Text
+  receivedAt            DateTime  @map("received_at") @db.Timestamptz(6)
+  processedAt           DateTime? @map("processed_at") @db.Timestamptz(6)
+
+  @@unique([environment, messageId])
+  @@unique([environment, sagaId, attestationDigest])
+  @@map("identity_readiness_inbox")
+}
+
+model IdentityReadinessOutbox {
+  outboxId           String   @id @map("outbox_id") @db.Uuid
+  messageId          String   @unique @map("message_id") @db.Uuid
+  environment        String   @map("environment") @db.Text
+  operationId        String   @map("operation_id") @db.Uuid
+  sagaId             String   @map("saga_id") @db.Uuid
+  attestationDigest  String   @map("attestation_digest") @db.Text
+  protectedReference String   @map("protected_reference") @db.Text
+  ownerVersion       Int      @map("owner_version")
+  deliveryState      String   @map("delivery_state") @db.Text
+  retryCount         Int      @default(0) @map("retry_count")
+  nextAttemptAt      DateTime @map("next_attempt_at") @db.Timestamptz(6)
+  expiresAt          DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt          DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([environment, sagaId, attestationDigest])
+  @@index([deliveryState, nextAttemptAt])
+  @@map("identity_readiness_outbox")
+}
+
+model PrivilegedEligibilityInvalidationOutbox {
+  outboxId      String   @id @map("outbox_id") @db.Uuid
+  ownerEventId  String   @unique @map("owner_event_id") @db.Uuid
+  environment   String   @map("environment") @db.Text
+  identityId    String   @map("identity_id") @db.Uuid
+  changedFact   String   @map("changed_fact") @db.Text
+  ownerVersion  Int      @map("owner_version")
+  deliveryState String   @map("delivery_state") @db.Text
+  retryCount    Int      @default(0) @map("retry_count")
+  nextAttemptAt DateTime @map("next_attempt_at") @db.Timestamptz(6)
+  createdAt     DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @map("updated_at") @db.Timestamptz(6)
+
+  @@index([deliveryState, nextAttemptAt])
+  @@map("privileged_eligibility_invalidation_outbox")
+}
+
+model AuthorizationAuditParticipant {
+  auditParticipantId     String   @id @map("audit_participant_id") @db.Uuid
+  authorizationReference String   @map("authorization_reference") @db.Text
+  participantOrder       Int      @map("participant_order")
+  authorityType          String   @map("authority_type") @db.Text
+  authorityId            String   @map("authority_id") @db.Text
+  assurance              String?  @map("assurance") @db.Text
+  evidenceReference      String   @map("evidence_reference") @db.Text
+  recordedAt             DateTime @map("recorded_at") @db.Timestamptz(6)
+
+  @@unique([authorizationReference, participantOrder])
+  @@map("authorization_audit_participants")
+}
+
+model PrivilegedAccessEligibilityRecord {
+  eligibilityRecordId  String                     @id @map("eligibility_record_id") @db.Uuid
+  identityId           String                     @map("identity_id") @db.Uuid
+  roleName             RoleName                   @map("role_name")
+  classification       String                     @map("classification") @db.Text
+  environment          String                     @map("environment") @db.Text
+  sagaId               String                     @map("saga_id") @db.Uuid
+  assignmentId         String?                    @map("assignment_id") @db.Uuid
+  attestationReference String?                    @map("attestation_reference") @db.Text
+  auditReference       String                     @map("audit_reference") @db.Text
+  eligibilityState     PrivilegedEligibilityState @map("eligibility_state")
+  reasonCode           String                     @map("reason_code") @db.Text
+  identityVersion      Int                        @map("identity_version")
+  aggregateVersion     Int                        @map("aggregate_version")
+  evaluatedAt          DateTime                   @map("evaluated_at") @db.Timestamptz(6)
+  invalidatedAt        DateTime?                  @map("invalidated_at") @db.Timestamptz(6)
+  createdAt            DateTime                   @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime                   @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([environment, sagaId])
+  @@index([environment, identityId, roleName, evaluatedAt(sort: Desc)])
+  @@index([eligibilityState, identityId])
+  @@map("privileged_access_eligibility_records")
 }

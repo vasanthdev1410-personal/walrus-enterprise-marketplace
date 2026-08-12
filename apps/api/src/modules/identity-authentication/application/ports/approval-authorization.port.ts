@@ -1,5 +1,6 @@
 import type { RecoveryOperationClass } from '../../domain/recovery/value-objects/recovery-operation-class';
 import type { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
+import type { AuthenticationSecurityClassification } from '../../domain/identity/value-objects/authentication-security-classification';
 
 /**
  * M01-REC-005. The Module 02 authorization boundary. The approval-decision
@@ -13,6 +14,10 @@ export interface ApproverAuthorizationCommand {
   readonly recoveryRequestId: UuidV7;
   readonly recoveredIdentityId: UuidV7;
   readonly operationClass: RecoveryOperationClass;
+  readonly recoveredClassification: AuthenticationSecurityClassification;
+  readonly requesterIdentityId?: UuidV7;
+  readonly sessionId?: string;
+  readonly assurance?: 'AAL2';
 }
 
 export interface ApprovalAuthorizationDecision {

@@ -1,5 +1,6 @@
 import type { AuthenticationSecurityClassification } from '../../domain/identity/value-objects/authentication-security-classification';
 import type { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
+import type { VerifiedWorkloadContextV2 } from './verified-workload-context';
 
 /**
  * M01-CLS-001. The approved internal coordination-contract boundary for
@@ -13,7 +14,8 @@ import type { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
  */
 export interface ClassificationTransitionCoordinationCommand {
   /** The service identity performing the internal call. */
-  readonly actorIdentityId: UuidV7;
+  readonly actorIdentityId?: UuidV7;
+  readonly workload?: VerifiedWorkloadContextV2;
   readonly targetIdentityId: UuidV7;
   readonly targetAuthenticationSecurityClassification: AuthenticationSecurityClassification;
   readonly sourceContractReference: string;

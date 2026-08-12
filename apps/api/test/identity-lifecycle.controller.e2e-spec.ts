@@ -23,6 +23,7 @@ import {
   RATE_LIMITER,
 } from '../src/modules/identity-authentication/presentation/authentication.tokens';
 import { AuthoritativeSessionGuard } from '../src/modules/identity-authentication/presentation/guards/authoritative-session.guard';
+import { Aal2SessionGuard } from '../src/modules/identity-authentication/presentation/guards/aal2-session.guard';
 import { NonProductionRateLimiterGuard } from '../src/modules/identity-authentication/presentation/guards/non-production-rate-limiter.guard';
 import { BasicAuditInterceptor } from '../src/modules/identity-authentication/presentation/interceptors/basic-audit.interceptor';
 import { JWT_CRYPTOGRAPHY } from '../src/modules/identity-authentication/identity-authentication.tokens';
@@ -30,6 +31,8 @@ import {
   IDENTITY_REPOSITORY,
   SESSION_REPOSITORY,
 } from '../src/modules/identity-authentication/infrastructure/persistence/prisma/prisma.module';
+import { DirectMtlsIngressService } from '../src/modules/authorization/infrastructure/trusted-workload/direct-mtls-ingress.service';
+import { SignedBoundaryEvidenceService } from '../src/modules/authorization/infrastructure/trusted-workload/signed-boundary-evidence.service';
 
 const identityId = '0191310f-789a-7123-8123-000000000001';
 const sessionId = '0191310f-789a-7123-8123-000000000003';
@@ -84,6 +87,16 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
   const auditLogger = {
     logEvent: jest.fn().mockResolvedValue(undefined),
   };
+  const trustedIngress = {
+    verify: jest.fn().mockResolvedValue({
+      subject: 'urn:walrus:service:test',
+      environment: 'development',
+      operationId: '0191310f-789a-7123-8123-0000000000dd',
+      verificationReference: 'wiv:test',
+      requestDigest: 'digest',
+      expiresAt: new Date(Date.now() + 60_000),
+    }),
+  };
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -104,7 +117,13 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
         { provide: JWT_CRYPTOGRAPHY, useValue: jwt },
         { provide: SESSION_REPOSITORY, useValue: sessions },
         { provide: IDENTITY_REPOSITORY, useValue: identities },
+        { provide: DirectMtlsIngressService, useValue: trustedIngress },
+        {
+          provide: SignedBoundaryEvidenceService,
+          useValue: { verifyProvisioning: jest.fn().mockResolvedValue('verified-prv1-digest') },
+        },
         AuthoritativeSessionGuard,
+        Aal2SessionGuard,
         NonProductionRateLimiterGuard,
         BasicAuditInterceptor,
       ],
@@ -136,8 +155,8 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
       audience: 'audience',
       issuedAt: new Date(),
       expiresAt: new Date(Date.now() + 60_000),
-      authenticationMethods: ['PASSWORD'],
-      authenticationAssurance: 'AAL1',
+      authenticationMethods: ['PASSWORD', 'TOTP'],
+      authenticationAssurance: 'AAL2',
       sessionVersion: 1,
     });
     sessions.findById.mockResolvedValue({
@@ -148,6 +167,8 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
         sessionVersion: { value: 1 },
         idleExpiresAt: new Date(Date.now() + 60_000),
         absoluteExpiresAt: new Date(Date.now() + 120_000),
+        authenticationAssurance: 'AAL2',
+        mfaVerifiedAt: new Date(),
       },
     } as never);
     identities.findById.mockResolvedValue({
@@ -207,6 +228,7 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
         .post(`/internal/identities/${identityId}/state-transitions`)
         .set('Authorization', 'Bearer valid-jwt-token')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Provisioning-Assertion', 'test-prv1')
         .set('If-Match', `"identity:${identityId}:v3"`)
         .send({
           targetIdentityState: 'LOCKED',
@@ -398,6 +420,7 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
         .post('/internal/identities/provisioning')
         .set('Authorization', 'Bearer valid-jwt-token')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Provisioning-Assertion', 'test-prv1')
         .send({
           provisioningReference: 'M02-PROVISIONING-REF-1',
           identifierType: 'EMAIL',
@@ -413,7 +436,7 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
       });
       expect(response.headers['cache-control']).toBe('no-store');
       const command = provisionPrivilegedIdentity.mock.calls[0]?.[0];
-      expect(command?.actorIdentityId.value).toBe(identityId);
+      expect(command?.workload?.subject).toBe('urn:walrus:service:test');
       expect(command?.provisioningReference).toBe('M02-PROVISIONING-REF-1');
       expect(command?.targetAuthenticationSecurityClassification).toBe(
         'PRIVILEGED_ADMIN_AUTHENTICATION',
@@ -428,6 +451,7 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
         .post('/internal/identities/provisioning')
         .set('Authorization', 'Bearer valid-jwt-token')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Provisioning-Assertion', 'test-prv1')
         .send({
           provisioningReference: 'M02-PROVISIONING-REF-2',
           identifierType: 'EMAIL',
@@ -442,6 +466,7 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
         .post('/internal/identities/provisioning')
         .set('Authorization', 'Bearer valid-jwt-token')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Provisioning-Assertion', 'test-prv1')
         .send({
           provisioningReference: 'M02-PROVISIONING-REF-3',
           identifierType: 'EMAIL',
@@ -460,6 +485,7 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
         .post('/internal/identities/provisioning')
         .set('Authorization', 'Bearer valid-jwt-token')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Provisioning-Assertion', 'test-prv1')
         .send({
           provisioningReference: 'M02-PROVISIONING-REF-4',
           identifierType: 'EMAIL',
@@ -469,17 +495,21 @@ describe('Module 01 Identity Lifecycle API (integration)', () => {
         .expect(409);
     });
 
-    it('returns 401 Unauthorized when the access token is missing', async () => {
+    it('does not use a public bearer token as workload authority', async () => {
+      provisionPrivilegedIdentity.mockRejectedValueOnce(
+        new ProvisioningError('AUTHORIZATION_DENIED'),
+      );
       await request(server)
         .post('/internal/identities/provisioning')
         .set('Idempotency-Key', idempotencyKey)
+        .set('Walrus-Provisioning-Assertion', 'test-prv1')
         .send({
           provisioningReference: 'M02-PROVISIONING-REF-5',
           identifierType: 'EMAIL',
           identifier: 'admin@example.com',
           targetAuthenticationSecurityClassification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
         })
-        .expect(401);
+        .expect(403);
     });
 
     it('returns 400 when the Idempotency-Key is missing', async () => {

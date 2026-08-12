@@ -46,6 +46,12 @@ export const recoveryRequestMapper = {
           record.correlationId === null
             ? undefined
             : new CorrelationIdentifier(record.correlationId),
+        requesterKind:
+          (record.requesterKind as 'AUTHENTICATED_IDENTITY' | 'BOUND_RECOVERY_SESSION' | null) ??
+          undefined,
+        requesterReference: record.requesterReference ?? undefined,
+        requesterIdentityId:
+          record.requesterIdentityId === null ? undefined : new UuidV7(record.requesterIdentityId),
       }),
     );
   },
@@ -70,6 +76,9 @@ export const recoveryRequestMapper = {
       terminalReason: value.terminalReason,
       idempotencyKey: value.idempotencyKey,
       correlationId: value.correlationId?.value,
+      requesterKind: value.requesterKind,
+      requesterReference: value.requesterReference,
+      requesterIdentityId: value.requesterIdentityId?.value,
     });
   },
 };

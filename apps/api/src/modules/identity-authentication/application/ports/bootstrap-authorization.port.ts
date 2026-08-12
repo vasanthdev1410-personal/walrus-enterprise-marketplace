@@ -13,6 +13,8 @@
 export interface BootstrapAuthorizationCommand {
   /** Non-sensitive reference to the approved controlled bootstrap command. */
   readonly bootstrapEvidence: string;
+  readonly workload?: VerifiedWorkloadContextV2;
+  readonly bootstrapAssertionDigest?: string;
 }
 
 export interface BootstrapAuthorizationDecision {
@@ -22,10 +24,25 @@ export interface BootstrapAuthorizationDecision {
    * BOOTSTRAP_UNAVAILABLE (fail closed) rather than provisionable.
    */
   readonly available: boolean;
+  readonly intendedIdentityId?: UuidV7;
+  readonly operationId?: string;
+  readonly authorizationReference?: string;
+  readonly authorityExpiresAt?: Date;
 }
 
 export interface BootstrapAuthorizationPort {
   authorizeBootstrap(
     command: BootstrapAuthorizationCommand,
   ): Promise<BootstrapAuthorizationDecision>;
+  completeBootstrapPreparation?(command: {
+    readonly operationId: string;
+    readonly identityId: UuidV7;
+    readonly authorizationReference: string;
+  }): Promise<void>;
+  markBootstrapFailure?(command: {
+    readonly operationId: string;
+    readonly reasonCode: string;
+  }): Promise<void>;
 }
+import type { UuidV7 } from '../../domain/shared/value-objects/uuid-v7';
+import type { VerifiedWorkloadContextV2 } from './verified-workload-context';

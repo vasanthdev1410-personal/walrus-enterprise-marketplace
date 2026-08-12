@@ -14,6 +14,7 @@ import type { ClockPort, UuidV7GenerationPort } from '../ports/application-runti
 import type { BootstrapAuthorizationPort } from '../ports/bootstrap-authorization.port';
 import type { IdentifierLookupCryptographicPort } from '../ports/identifier-lookup-cryptographic.port';
 import type { PrivilegedProvisioningAuthorizationPort } from '../ports/privileged-provisioning-authorization.port';
+import type { VerifiedWorkloadContextV2 } from '../ports/verified-workload-context';
 
 /**
  * M01-ADM-001. Provision a privileged Identity (Admin) through the approved
@@ -31,7 +32,9 @@ import type { PrivilegedProvisioningAuthorizationPort } from '../ports/privilege
  */
 export interface ProvisionPrivilegedIdentityCommand {
   /** The service identity performing the internal call. */
-  readonly actorIdentityId: UuidV7;
+  readonly actorIdentityId?: UuidV7;
+  readonly workload?: VerifiedWorkloadContextV2;
+  readonly provisioningAssertionDigest?: string;
   readonly provisioningReference: string;
   readonly identifierType: IdentifierType;
   readonly identifier: string;
@@ -59,6 +62,8 @@ export interface BootstrapSuperAdminIdentityCommand {
   readonly bootstrapEvidence: string;
   readonly identifierType: IdentifierType;
   readonly identifier: string;
+  readonly workload?: VerifiedWorkloadContextV2;
+  readonly bootstrapAssertionDigest?: string;
 }
 
 export interface BootstrapSuperAdminIdentityResult {
@@ -94,21 +99,49 @@ export class PrivilegedProvisioningApplicationService {
     }
     const authorization = await this.provisioningAuthorization.authorizeProvisioning({
       provisioningReference: command.provisioningReference,
-      actorIdentityId: command.actorIdentityId,
+      ...(command.actorIdentityId === undefined
+        ? {}
+        : { actorIdentityId: command.actorIdentityId }),
+      ...(command.workload === undefined ? {} : { workload: command.workload }),
+      ...(command.provisioningAssertionDigest === undefined
+        ? {}
+        : { provisioningAssertionDigest: command.provisioningAssertionDigest }),
     });
     if (!authorization.authorized) {
       throw new ProvisioningError('AUTHORIZATION_DENIED');
     }
 
-    const identityId = this.identifiers.next();
-    await this.insertProvisionedIdentity({
-      identityId,
-      identifierType: command.identifierType,
-      identifier: command.identifier,
-      classification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
-      sourceContractReference: command.provisioningReference,
-      reasonCode: 'PRIVILEGED_PROVISIONING',
-    });
+    if (
+      command.workload !== undefined &&
+      (authorization.intendedIdentityId === undefined ||
+        authorization.operationId === undefined ||
+        authorization.authorizationReference === undefined)
+    )
+      throw new ProvisioningError('AUTHORIZATION_DENIED');
+    const identityId = authorization.intendedIdentityId ?? this.identifiers.next();
+    try {
+      await this.insertProvisionedIdentity({
+        identityId,
+        identifierType: command.identifierType,
+        identifier: command.identifier,
+        classification: 'PRIVILEGED_ADMIN_AUTHENTICATION',
+        sourceContractReference: command.provisioningReference,
+        reasonCode: 'PRIVILEGED_PROVISIONING',
+      });
+      if (authorization.operationId && authorization.authorizationReference)
+        await this.provisioningAuthorization.completeProvisioning?.({
+          operationId: authorization.operationId,
+          identityId,
+          authorizationReference: authorization.authorizationReference,
+        });
+    } catch (error) {
+      if (authorization.operationId)
+        await this.provisioningAuthorization.markProvisioningFailure?.({
+          operationId: authorization.operationId,
+          reasonCode: 'MODULE_01_PREPARATION_FAILED',
+        });
+      throw error;
+    }
 
     return {
       operationId: identityId.value,
@@ -121,22 +154,48 @@ export class PrivilegedProvisioningApplicationService {
   ): Promise<BootstrapSuperAdminIdentityResult> {
     const bootstrap = await this.bootstrapAuthorization.authorizeBootstrap({
       bootstrapEvidence: command.bootstrapEvidence,
+      ...(command.workload === undefined ? {} : { workload: command.workload }),
+      ...(command.bootstrapAssertionDigest === undefined
+        ? {}
+        : { bootstrapAssertionDigest: command.bootstrapAssertionDigest }),
     });
     if (!bootstrap.available) {
       throw new ProvisioningError('BOOTSTRAP_UNAVAILABLE');
     }
 
-    const identityId = this.identifiers.next();
-    await this.insertProvisionedIdentity({
-      identityId,
-      identifierType: command.identifierType,
-      identifier: command.identifier,
-      // The Super Admin classification is server-fixed by the bootstrap and is
-      // never client-selectable; Module 02 still owns the Super Admin role.
-      classification: 'SUPER_ADMIN_AUTHENTICATION',
-      sourceContractReference: command.bootstrapEvidence,
-      reasonCode: 'SUPER_ADMIN_BOOTSTRAP',
-    });
+    if (
+      command.workload !== undefined &&
+      (bootstrap.intendedIdentityId === undefined ||
+        bootstrap.operationId === undefined ||
+        bootstrap.authorizationReference === undefined)
+    )
+      throw new ProvisioningError('BOOTSTRAP_UNAVAILABLE');
+    const identityId = bootstrap.intendedIdentityId ?? this.identifiers.next();
+    try {
+      await this.insertProvisionedIdentity({
+        identityId,
+        identifierType: command.identifierType,
+        identifier: command.identifier,
+        // The Super Admin classification is server-fixed by the bootstrap and is
+        // never client-selectable; Module 02 still owns the Super Admin role.
+        classification: 'SUPER_ADMIN_AUTHENTICATION',
+        sourceContractReference: command.bootstrapEvidence,
+        reasonCode: 'SUPER_ADMIN_BOOTSTRAP',
+      });
+      if (bootstrap.operationId && bootstrap.authorizationReference)
+        await this.bootstrapAuthorization.completeBootstrapPreparation?.({
+          operationId: bootstrap.operationId,
+          identityId,
+          authorizationReference: bootstrap.authorizationReference,
+        });
+    } catch (error) {
+      if (bootstrap.operationId)
+        await this.bootstrapAuthorization.markBootstrapFailure?.({
+          operationId: bootstrap.operationId,
+          reasonCode: 'MODULE_01_PREPARATION_FAILED',
+        });
+      throw error;
+    }
 
     return {
       identityId: identityId.value,

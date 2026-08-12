@@ -26,6 +26,9 @@ export interface RecoveryRequestProperties {
   terminalReason?: string;
   idempotencyKey?: string;
   correlationId?: CorrelationIdentifier;
+  requesterKind?: 'AUTHENTICATED_IDENTITY' | 'BOUND_RECOVERY_SESSION';
+  requesterReference?: string;
+  requesterIdentityId?: UuidV7;
 }
 
 export class RecoveryRequest {
@@ -37,6 +40,12 @@ export class RecoveryRequest {
     }
     if (properties.expiresAt <= properties.createdAt) {
       throw new Error('Recovery Request must expire after creation');
+    }
+    if (
+      (properties.requesterKind === undefined) !==
+      (properties.requesterReference === undefined)
+    ) {
+      throw new Error('Recovery requester provenance must be complete');
     }
     this.properties = Object.freeze({ ...properties });
     Object.freeze(this);

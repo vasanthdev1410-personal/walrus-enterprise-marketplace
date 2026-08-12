@@ -19,6 +19,10 @@ import {
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
+import type { Request } from 'express';
+import { createHash } from 'node:crypto';
+import { DirectMtlsIngressService } from '../../authorization/infrastructure/trusted-workload/direct-mtls-ingress.service';
+import { SignedBoundaryEvidenceService } from '../../authorization/infrastructure/trusted-workload/signed-boundary-evidence.service';
 import { ClassificationTransitionError } from '../application/errors/classification-transition.error';
 import { IdentityLifecycleError } from '../application/errors/identity-lifecycle.error';
 import { ProvisioningError } from '../application/errors/provisioning.error';
@@ -37,7 +41,7 @@ import {
 import { ClassificationTransitionRequestDto } from './dto/classification-transition.dto';
 import { IdentityStateTransitionRequestDto } from './dto/identity-lifecycle.dto';
 import { ProvisionPrivilegedIdentityRequestDto } from './dto/provisioning.dto';
-import { AuthoritativeSessionGuard } from './guards/authoritative-session.guard';
+import { Aal2SessionGuard } from './guards/aal2-session.guard';
 import { NonProductionRateLimiterGuard } from './guards/non-production-rate-limiter.guard';
 import { assertIdempotencyKey, etagVersion, noStore, success } from './http-contract';
 import { BasicAuditInterceptor } from './interceptors/basic-audit.interceptor';
@@ -56,6 +60,8 @@ export class InternalIdentityController {
     @Inject(PRIVILEGED_PROVISIONING_APPLICATION_SERVICE)
     private readonly provisioning: PrivilegedProvisioningApplicationService,
     @Inject(API_IDEMPOTENCY) private readonly idempotency: ApiIdempotencyService,
+    private readonly trustedIngress: DirectMtlsIngressService,
+    private readonly signedEvidence: SignedBoundaryEvidenceService,
   ) {}
 
   /**
@@ -70,7 +76,7 @@ export class InternalIdentityController {
   @Post(':identityId/state-transitions')
   @HttpCode(HttpStatus.OK)
   @RateLimit({ limit: 10, windowSeconds: 60 })
-  @UseGuards(AuthoritativeSessionGuard)
+  @UseGuards(Aal2SessionGuard)
   @ApiOperation({ operationId: 'M01-ID-004', summary: 'Transition identity state' })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   @ApiHeader({ name: 'If-Match', required: true })
@@ -104,6 +110,8 @@ export class InternalIdentityController {
             reasonCode: body.reasonCode,
             sourceContractReference: body.sourceContractReference,
             expectedIdentityVersion,
+            sessionId: claims.sessionId,
+            assurance: 'AAL2',
           }),
       });
       noStore(response);
@@ -133,7 +141,6 @@ export class InternalIdentityController {
   @Post(':identityId/authentication-classification-transitions')
   @HttpCode(HttpStatus.OK)
   @RateLimit({ limit: 10, windowSeconds: 60 })
-  @UseGuards(AuthoritativeSessionGuard)
   @ApiOperation({ operationId: 'M01-CLS-001', summary: 'Transition authentication classification' })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   @ApiHeader({ name: 'If-Match', required: true })
@@ -142,14 +149,28 @@ export class InternalIdentityController {
     @Body() body: ClassificationTransitionRequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Headers('if-match') ifMatch: string | undefined,
-    @Req() request: AuthenticatedRequest,
+    @Req() request: Request,
     @Res() response: Response,
   ): Promise<void> {
     assertIdempotencyKey(idempotencyKey);
     const targetIdentityId = parseIdentityId(identityId);
     const expectedIdentityVersion = etagVersion(ifMatch, `identity:${identityId}`);
-    const claims = request.authentication;
     try {
+      const workload = await this.trustedIngress
+        .verify(request, 'CLASSIFICATION_TRANSITION', {
+          version: 'walrus.request-binding.v1',
+          httpMethod: 'POST',
+          routeTemplate:
+            '/api/v1/internal/identities/:identityId/authentication-classification-transitions',
+          contractVersion: 'wemp.m01-m02.authorization.v2',
+          body,
+          targetReferences: [identityId],
+          expectedAggregateVersion: expectedIdentityVersion,
+          idempotencyKeyDigest: digest(idempotencyKey),
+        })
+        .catch(() => {
+          throw new ClassificationTransitionError('CONTRACT_INVALID');
+        });
       const result = await this.idempotency.execute({
         scope: `identity:${identityId}`,
         operationType: 'M01-CLS-001',
@@ -162,7 +183,7 @@ export class InternalIdentityController {
         },
         execute: () =>
           this.classifications.transitionClassification({
-            actorIdentityId: new UuidV7(claims.subject),
+            workload,
             targetIdentityId,
             targetAuthenticationSecurityClassification:
               body.targetAuthenticationSecurityClassification,
@@ -199,20 +220,51 @@ export class InternalIdentityController {
   @Post('provisioning')
   @HttpCode(HttpStatus.ACCEPTED)
   @RateLimit({ limit: 3, windowSeconds: 900 })
-  @UseGuards(AuthoritativeSessionGuard)
   @ApiOperation({ operationId: 'M01-ADM-001', summary: 'Provision privileged identity' })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   public async provisionPrivilegedIdentity(
     @Body() body: ProvisionPrivilegedIdentityRequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Req() request: AuthenticatedRequest,
+    @Headers('walrus-provisioning-assertion') provisioningAssertion: string | undefined,
+    @Req() request: Request,
     @Res() response: Response,
   ): Promise<void> {
     assertIdempotencyKey(idempotencyKey);
-    const claims = request.authentication;
+    const compactProvisioningAssertion = requiredAssertion(provisioningAssertion);
+    const provisioningAssertionDigest = digest(compactProvisioningAssertion);
     try {
+      const workload = await this.trustedIngress
+        .verify(request, 'PRIVILEGED_PROVISIONING', {
+          version: 'walrus.request-binding.v1',
+          httpMethod: 'POST',
+          routeTemplate: '/api/v1/internal/identities/provisioning',
+          contractVersion: 'wemp.m01-m02.authorization.v2',
+          body: {
+            provisioningReference: body.provisioningReference,
+            identifierType: body.identifierType,
+            identifier: body.identifier,
+            targetAuthenticationSecurityClassification:
+              body.targetAuthenticationSecurityClassification,
+            provisioningAssertionDigest,
+          },
+          targetReferences: [body.provisioningReference],
+          idempotencyKeyDigest: digest(idempotencyKey),
+        })
+        .catch(() => {
+          throw new ProvisioningError('AUTHORIZATION_DENIED');
+        });
+      await this.signedEvidence
+        .verifyProvisioning({
+          compact: compactProvisioningAssertion,
+          environment: workload.environment,
+          operationId: workload.operationId,
+          now: new Date(),
+        })
+        .catch(() => {
+          throw new ProvisioningError('AUTHORIZATION_DENIED');
+        });
       const result = await this.idempotency.execute({
-        scope: `internal:provisioning:${claims.subject}`,
+        scope: `internal:provisioning:${workload.subject}`,
         operationType: 'M01-ADM-001',
         idempotencyKey,
         request: {
@@ -224,7 +276,8 @@ export class InternalIdentityController {
         },
         execute: () =>
           this.provisioning.provisionPrivilegedIdentity({
-            actorIdentityId: new UuidV7(claims.subject),
+            workload,
+            provisioningAssertionDigest,
             provisioningReference: body.provisioningReference,
             identifierType: body.identifierType,
             identifier: body.identifier,
@@ -296,4 +349,13 @@ function parseIdentityId(value: string): UuidV7 {
     // the response stays uniform and identity state is never enumerable.
     throw new NotFoundException('RESOURCE_NOT_AVAILABLE');
   }
+}
+
+function digest(value: string): string {
+  return createHash('sha256').update(value, 'utf8').digest('base64url');
+}
+
+function requiredAssertion(value: string | undefined): string {
+  if (!value || value.includes(',')) throw new ForbiddenException('AUTHORIZATION_DENIED');
+  return value;
 }

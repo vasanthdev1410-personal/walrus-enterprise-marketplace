@@ -251,14 +251,11 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     // M01-REC-005 Module 02 authorization boundary. Module 02 is not
     // implemented yet, so the adapter fails closed: every approval decision is
     // denied until the approved Module 02 contract is integrated.
-    { provide: APPROVAL_AUTHORIZATION, useClass: NonProductionApprovalAuthorizationAdapter },
+    NonProductionApprovalAuthorizationAdapter,
     // M01-ID-004 Module 02 authorization boundary. Module 02 is not
     // implemented yet, so the adapter fails closed: every identity state
     // transition is denied until the approved Module 02 contract is integrated.
-    {
-      provide: IDENTITY_STATE_CHANGE_AUTHORIZATION,
-      useClass: NonProductionIdentityStateChangeAuthorizationAdapter,
-    },
+    NonProductionIdentityStateChangeAuthorizationAdapter,
     {
       provide: IDENTITY_LIFECYCLE_APPLICATION_SERVICE,
       inject: [
@@ -287,26 +284,17 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     // internal coordination contract is integrated yet, so the adapter fails
     // closed: every classification transition is rejected with CONTRACT_INVALID
     // until the approved contract is integrated.
-    {
-      provide: CLASSIFICATION_TRANSITION_COORDINATION,
-      useClass: NonProductionClassificationTransitionCoordinationAdapter,
-    },
+    NonProductionClassificationTransitionCoordinationAdapter,
     // M01-ADM-001 internal-service authorization boundary. No approved service
     // authorization contract is integrated yet, so the adapter fails closed:
     // every privileged provisioning request is denied with AUTHORIZATION_DENIED
     // until the approved Module 02/coordination contract is integrated.
-    {
-      provide: PRIVILEGED_PROVISIONING_AUTHORIZATION,
-      useClass: NonProductionPrivilegedProvisioningAuthorizationAdapter,
-    },
+    NonProductionPrivilegedProvisioningAuthorizationAdapter,
     // M01-ADM-002 controlled-bootstrap boundary. No approved controlled
     // bootstrap contract is integrated yet, so the adapter fails closed: the
     // bootstrap route is BOOTSTRAP_UNAVAILABLE until the approved controlled
     // deployment contract is integrated.
-    {
-      provide: BOOTSTRAP_AUTHORIZATION,
-      useClass: NonProductionBootstrapAuthorizationAdapter,
-    },
+    NonProductionBootstrapAuthorizationAdapter,
     {
       provide: PRIVILEGED_PROVISIONING_APPLICATION_SERVICE,
       inject: [
