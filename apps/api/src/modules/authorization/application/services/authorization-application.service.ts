@@ -92,11 +92,7 @@ export type SellerRoleAssignmentOutcome =
 export const SELLER_LIFECYCLE_WORKLOAD_IDENTITY = 'walrus.module-03.seller-lifecycle';
 
 /** The seller states a SELLER role may legitimately be assigned in. */
-const ASSIGNABLE_SELLER_STATES: ReadonlySet<string> = new Set([
-  'APPROVED',
-  'ACTIVE',
-  'SUSPENDED',
-]);
+const ASSIGNABLE_SELLER_STATES: ReadonlySet<string> = new Set(['APPROVED', 'ACTIVE', 'SUSPENDED']);
 
 /**
  * Part 6.1 §5 / Part 6.2 §9 / Part 6.5 §22 (Module 02 source material).
@@ -407,7 +403,10 @@ export class AuthorizationApplicationService {
     }
     let scope;
     try {
-      scope = await resolver.resolveSellerScope(command.subjectIdentityId, command.resourceReference);
+      scope = await resolver.resolveSellerScope(
+        command.subjectIdentityId,
+        command.resourceReference,
+      );
     } catch {
       return this.denyAndRecord(command, now, 'SCOPE_RESOLUTION_UNAVAILABLE');
     }
@@ -600,10 +599,7 @@ export class AuthorizationApplicationService {
   }
 
   private referenceFor(source: string): string {
-    return `azr:${createHash('sha256')
-      .update(source)
-      .digest('hex')
-      .slice(0, 24)}`;
+    return `azr:${createHash('sha256').update(source).digest('hex').slice(0, 24)}`;
   }
 }
 

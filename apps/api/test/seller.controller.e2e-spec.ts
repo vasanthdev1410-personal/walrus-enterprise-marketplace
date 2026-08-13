@@ -93,9 +93,7 @@ describe('Module 03 seller self-service API (integration)', () => {
     getVerificationStatus: jest.fn().mockResolvedValue({
       sellerProfileId,
       complianceState: 'IN_PROGRESS',
-      verifications: [
-        { verificationType: 'GST', state: 'SUBMITTED', generation: 1 },
-      ],
+      verifications: [{ verificationType: 'GST', state: 'SUBMITTED', generation: 1 }],
     }),
   };
   const read = {
@@ -396,11 +394,12 @@ describe('Module 03 seller self-service API (integration)', () => {
 
       expect(envelopeOf(response).data?.seller).toMatchObject({ state: 'DRAFT', version: 1 });
       const command = firstCallArg(onboarding.requestSellerProfileCreation) as
-        {
-          identityId?: { value?: string };
-          registrationLookupDigest?: string;
-          registrationNumber?: string;
-        } | undefined;
+        | {
+            identityId?: { value?: string };
+            registrationLookupDigest?: string;
+            registrationNumber?: string;
+          }
+        | undefined;
       expect(command?.identityId?.value).toBe(identityId);
       // The digest is derived server-side from the raw registration number —
       // the client never supplies it.
@@ -556,10 +555,7 @@ describe('Module 03 seller self-service API (integration)', () => {
       useAal2Session();
       authorization.authorize.mockResolvedValue({ granted: false });
 
-      const response = await request(server)
-        .get('/seller/warehouses')
-        .set(authHeader)
-        .expect(403);
+      const response = await request(server).get('/seller/warehouses').set(authHeader).expect(403);
 
       expect(envelopeOf(response).message).toBe('AUTHORIZATION_DENIED');
       expect(read.listWarehouses).not.toHaveBeenCalled();
@@ -568,13 +564,16 @@ describe('Module 03 seller self-service API (integration)', () => {
     it('grants GET /seller/warehouses when the SELLER role holds the org-scoped permission', async () => {
       useAal2Session();
       read.listWarehouses.mockResolvedValue([
-        { warehouseId: '0191310f-789a-7123-8123-000000000005', name: 'W1', state: 'ACTIVE', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        {
+          warehouseId: '0191310f-789a-7123-8123-000000000005',
+          name: 'W1',
+          state: 'ACTIVE',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
       ]);
 
-      const response = await request(server)
-        .get('/seller/warehouses')
-        .set(authHeader)
-        .expect(200);
+      const response = await request(server).get('/seller/warehouses').set(authHeader).expect(200);
 
       expect(envelopeOf(response).data?.warehouses).toHaveLength(1);
       // The service receives the session-resolved seller scope, never a client id.
@@ -673,7 +672,13 @@ describe('Module 03 seller self-service API (integration)', () => {
           sellerProfileId,
           expectedVersion: 2,
           verificationType: 'GST',
-          evidence: [{ evidenceType: 'GST_CERTIFICATE', evidenceReference: 'r', evidenceDigest: 'not-a-digest' }],
+          evidence: [
+            {
+              evidenceType: 'GST_CERTIFICATE',
+              evidenceReference: 'r',
+              evidenceDigest: 'not-a-digest',
+            },
+          ],
         })
         .expect(400);
       expect(verification.submitVerification).not.toHaveBeenCalled();
@@ -778,10 +783,11 @@ describe('Module 03 seller self-service API (integration)', () => {
 
       expect(envelopeOf(response).data?.member?.associationState).toBe('REMOVED');
       const command = firstCallArg(members.removeMember) as
-        {
-          sellerProfileId?: { value?: string };
-          memberIdentityId?: { value?: string };
-        } | undefined;
+        | {
+            sellerProfileId?: { value?: string };
+            memberIdentityId?: { value?: string };
+          }
+        | undefined;
       expect(command?.sellerProfileId?.value).toBe(sellerProfileId);
       expect(command?.memberIdentityId?.value).toBe('0191310f-789a-7123-8123-000000000006');
     });
@@ -800,9 +806,7 @@ describe('Module 03 seller self-service API (integration)', () => {
 
     it('surfaces an add-member app-layer denial as a non-enumerating 409', async () => {
       useAal2Session();
-      members.addMember.mockRejectedValue(
-        new SellerApplicationError('SELLER_DUPLICATE_DETECTED'),
-      );
+      members.addMember.mockRejectedValue(new SellerApplicationError('SELLER_DUPLICATE_DETECTED'));
 
       const response = await request(server)
         .post('/seller/members')
@@ -819,10 +823,7 @@ describe('Module 03 seller self-service API (integration)', () => {
     it('returns the own onboarding status for a pre-approval caller (GET /seller/onboarding)', async () => {
       useAal2Session();
 
-      const response = await request(server)
-        .get('/seller/onboarding')
-        .set(authHeader)
-        .expect(200);
+      const response = await request(server).get('/seller/onboarding').set(authHeader).expect(200);
 
       expect(envelopeOf(response).data?.seller?.sellerProfileId).toBe(sellerProfileId);
       expect(read.getOwnOnboardingStatus).toHaveBeenCalledWith(expect.anything());
@@ -833,10 +834,7 @@ describe('Module 03 seller self-service API (integration)', () => {
       useAal2Session();
       read.getOwnOnboardingStatus.mockRejectedValue(new SellerApplicationError('SELLER_NOT_FOUND'));
 
-      const response = await request(server)
-        .get('/seller/onboarding')
-        .set(authHeader)
-        .expect(404);
+      const response = await request(server).get('/seller/onboarding').set(authHeader).expect(404);
 
       expect(envelopeOf(response).message).toBe('SELLER_NOT_FOUND');
     });
@@ -918,8 +916,7 @@ describe('Module 03 seller self-service API (integration)', () => {
         .expect(200);
 
       expect(envelopeOf(response).data?.seller?.state).toBe('DRAFT');
-      const command = firstCallArg(onboarding.updateProfile) as
-        { legalName?: string } | undefined;
+      const command = firstCallArg(onboarding.updateProfile) as { legalName?: string } | undefined;
       expect(command?.legalName).toBe('Walrus Retail Pvt Ltd');
     });
 
@@ -1004,10 +1001,7 @@ describe('Module 03 seller self-service API (integration)', () => {
       useAal2Session();
       read.listWarehouses.mockRejectedValue(new SellerApplicationError('SELLER_NOT_FOUND'));
 
-      const response = await request(server)
-        .get('/seller/warehouses')
-        .set(authHeader)
-        .expect(404);
+      const response = await request(server).get('/seller/warehouses').set(authHeader).expect(404);
 
       expect(envelopeOf(response).message).toBe('SELLER_NOT_FOUND');
     });
@@ -1042,10 +1036,7 @@ describe('Module 03 seller self-service API (integration)', () => {
         },
       ]);
 
-      const response = await request(server)
-        .get('/seller/agreements')
-        .set(authHeader)
-        .expect(200);
+      const response = await request(server).get('/seller/agreements').set(authHeader).expect(200);
 
       expect(envelopeOf(response).data?.agreements).toHaveLength(1);
     });

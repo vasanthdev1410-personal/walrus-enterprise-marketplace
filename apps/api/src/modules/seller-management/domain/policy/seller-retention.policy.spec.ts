@@ -28,9 +28,9 @@ describe('SellerRetentionPolicy (D-03, WEMP-M03-SPEC-001)', () => {
     it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
       'fails closed on invalid retention window %p',
       (retentionDays) => {
-        expect(() =>
-          policy.evaluateRule({ category: 'GST_CERTIFICATE', retentionDays }),
-        ).toThrow(new SellerDomainError('SELLER_RETENTION_CONFIG_INVALID'));
+        expect(() => policy.evaluateRule({ category: 'GST_CERTIFICATE', retentionDays })).toThrow(
+          new SellerDomainError('SELLER_RETENTION_CONFIG_INVALID'),
+        );
       },
     );
   });

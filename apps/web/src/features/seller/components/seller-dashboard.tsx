@@ -12,13 +12,7 @@ import { WarehousesPanel } from './seller-surface';
 import { AgreementsPanel } from './seller-surface';
 
 type SellerSection =
-  | 'dashboard'
-  | 'profile'
-  | 'business'
-  | 'verification'
-  | 'warehouses'
-  | 'agreements'
-  | 'members';
+  'dashboard' | 'profile' | 'business' | 'verification' | 'warehouses' | 'agreements' | 'members';
 
 const NAV: readonly { readonly id: SellerSection; readonly label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -50,7 +44,9 @@ export function SellerDashboard(): ReactNode {
             key={entry.id}
             type="button"
             className={entry.id === section ? 'nav-active' : undefined}
-            onClick={() => { setSection(entry.id); }}
+            onClick={() => {
+              setSection(entry.id);
+            }}
           >
             {entry.label}
           </button>

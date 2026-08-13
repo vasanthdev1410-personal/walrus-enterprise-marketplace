@@ -133,8 +133,9 @@ describe('SellerAuthorizationApplicationService (M03-M4, D-11 role assignment li
       repository.findById.mockResolvedValue(profile('SUBMITTED', 2));
       repository.findAssociations.mockResolvedValue([ownerAssociation()]);
 
-      await expect(service.activateApprovedSeller({ sellerProfileId: SELLER, expectedVersion: 2 }))
-        .rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
+      await expect(
+        service.activateApprovedSeller({ sellerProfileId: SELLER, expectedVersion: 2 }),
+      ).rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
       expect(module02.requestSellerRoleAssignment).not.toHaveBeenCalled();
       expect(repository.save).not.toHaveBeenCalled();
     });
@@ -277,9 +278,9 @@ describe('SellerAuthorizationApplicationService (M03-M4, D-11 role assignment li
     it('rejects suspension without a reason reference', async () => {
       const { service, repository } = harness();
 
-      await expect(
-        service.suspendSeller({ ...command, reasonReference: '  ' }),
-      ).rejects.toEqual(new SellerApplicationError('SELLER_PRECONDITION_FAILED'));
+      await expect(service.suspendSeller({ ...command, reasonReference: '  ' })).rejects.toEqual(
+        new SellerApplicationError('SELLER_PRECONDITION_FAILED'),
+      );
       expect(repository.save).not.toHaveBeenCalled();
     });
 
@@ -287,9 +288,9 @@ describe('SellerAuthorizationApplicationService (M03-M4, D-11 role assignment li
       const { service, repository } = harness();
       repository.findById.mockResolvedValue(profile('SUSPENDED', 6));
 
-      await expect(
-        service.suspendSeller({ ...command, expectedVersion: 6 }),
-      ).rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
+      await expect(service.suspendSeller({ ...command, expectedVersion: 6 })).rejects.toEqual(
+        new SellerApplicationError('SELLER_STATE_CONFLICT'),
+      );
     });
   });
 
@@ -393,7 +394,10 @@ describe('SellerAuthorizationApplicationService (M03-M4, D-11 role assignment li
       const { service, repository, module02 } = harness();
       repository.findById.mockResolvedValue(profile('ACTIVE', 5));
       repository.findAssociations.mockResolvedValue([ownerAssociation()]);
-      module02.revokeSellerRole.mockResolvedValue({ outcome: 'FAILED', reason: 'REVOCATION_FAILED' });
+      module02.revokeSellerRole.mockResolvedValue({
+        outcome: 'FAILED',
+        reason: 'REVOCATION_FAILED',
+      });
 
       await expect(service.revokeSellerAuthorization(command)).rejects.toEqual(
         new SellerApplicationError('SELLER_ROLE_REVOCATION_FAILED'),

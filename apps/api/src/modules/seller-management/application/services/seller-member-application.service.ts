@@ -65,7 +65,10 @@ export class SellerMemberApplicationService {
     if (!rateLimit.allowed) {
       throw new SellerApplicationError('SELLER_PRECONDITION_FAILED');
     }
-    const profile = await this.requireOwnerProfile(command.sellerProfileId, command.actorIdentityId);
+    const profile = await this.requireOwnerProfile(
+      command.sellerProfileId,
+      command.actorIdentityId,
+    );
     if (profile.properties.aggregateVersion.value !== command.expectedVersion) {
       throw new SellerApplicationError('SELLER_STATE_CONFLICT');
     }
@@ -146,7 +149,10 @@ export class SellerMemberApplicationService {
     if (!rateLimit.allowed) {
       throw new SellerApplicationError('SELLER_PRECONDITION_FAILED');
     }
-    const profile = await this.requireOwnerProfile(command.sellerProfileId, command.actorIdentityId);
+    const profile = await this.requireOwnerProfile(
+      command.sellerProfileId,
+      command.actorIdentityId,
+    );
     if (profile.properties.aggregateVersion.value !== command.expectedVersion) {
       throw new SellerApplicationError('SELLER_STATE_CONFLICT');
     }

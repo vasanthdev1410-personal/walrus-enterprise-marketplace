@@ -91,9 +91,7 @@ function organization(): SellerOrganization {
   });
 }
 
-function changeSet(
-  profile: SellerProfile = draftProfile(),
-): SellerAggregateChangeSet {
+function changeSet(profile: SellerProfile = draftProfile()): SellerAggregateChangeSet {
   return {
     sellerProfile: profile,
     organization: organization(),
@@ -331,9 +329,9 @@ describe('PrismaSellerProfileRepository (M03 persistence)', () => {
       },
     } as unknown as PrismaService;
 
-    const profile = await new PrismaSellerProfileRepository(prisma).findProfileByAssociatedIdentityId(
-      IDENTITY_ID,
-    );
+    const profile = await new PrismaSellerProfileRepository(
+      prisma,
+    ).findProfileByAssociatedIdentityId(IDENTITY_ID);
 
     expect(findFirst).toHaveBeenCalledWith({
       where: { identityId: IDENTITY_ID.value, state: 'ACTIVE' },
@@ -349,9 +347,9 @@ describe('PrismaSellerProfileRepository (M03 persistence)', () => {
       },
     } as unknown as PrismaService;
 
-    const profile = await new PrismaSellerProfileRepository(prisma).findProfileByAssociatedIdentityId(
-      IDENTITY_ID,
-    );
+    const profile = await new PrismaSellerProfileRepository(
+      prisma,
+    ).findProfileByAssociatedIdentityId(IDENTITY_ID);
 
     expect(profile).toBeNull();
   });
@@ -460,9 +458,9 @@ describe('PrismaSellerProfileRepository (M03 persistence)', () => {
       ),
     } as unknown as PrismaService);
 
-    await expect(
-      repository.save(changeSet(), new AggregateVersion(1)),
-    ).rejects.toBeInstanceOf(OptimisticConcurrencyError);
+    await expect(repository.save(changeSet(), new AggregateVersion(1))).rejects.toBeInstanceOf(
+      OptimisticConcurrencyError,
+    );
     expect(createTransition).not.toHaveBeenCalled();
   });
 });

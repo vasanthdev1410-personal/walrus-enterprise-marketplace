@@ -111,9 +111,14 @@ describe('SellerLifecycle (M03-M1 state machine, WEMP-M03-SPEC-001 §4)', () => 
     it('permits the reviewer to request corrections with a reason', () => {
       expect(
         lifecycle.transition(
-          command(profile('UNDER_REVIEW'), 'CORRECTIONS_REQUESTED', actor(REVIEWER, 'ADMIN_REVIEWER'), {
-            reasonReference: 'crv:missing-pan-document',
-          }),
+          command(
+            profile('UNDER_REVIEW'),
+            'CORRECTIONS_REQUESTED',
+            actor(REVIEWER, 'ADMIN_REVIEWER'),
+            {
+              reasonReference: 'crv:missing-pan-document',
+            },
+          ),
         ).properties.toState,
       ).toBe('CORRECTIONS_REQUESTED');
     });
@@ -121,7 +126,11 @@ describe('SellerLifecycle (M03-M1 state machine, WEMP-M03-SPEC-001 §4)', () => 
     it('requires a reason reference (fail closed)', () => {
       expect(() =>
         lifecycle.transition(
-          command(profile('UNDER_REVIEW'), 'CORRECTIONS_REQUESTED', actor(REVIEWER, 'ADMIN_REVIEWER')),
+          command(
+            profile('UNDER_REVIEW'),
+            'CORRECTIONS_REQUESTED',
+            actor(REVIEWER, 'ADMIN_REVIEWER'),
+          ),
         ),
       ).toThrow('SELLER_REASON_REQUIRED');
     });
@@ -254,9 +263,8 @@ describe('SellerLifecycle (M03-M1 state machine, WEMP-M03-SPEC-001 §4)', () => 
 
     it('permits an admin to reactivate a suspended seller', () => {
       expect(
-        lifecycle.transition(
-          command(profile('SUSPENDED'), 'ACTIVE', actor(ADMIN, 'ADMIN')),
-        ).properties.toState,
+        lifecycle.transition(command(profile('SUSPENDED'), 'ACTIVE', actor(ADMIN, 'ADMIN')))
+          .properties.toState,
       ).toBe('ACTIVE');
     });
   });
@@ -378,7 +386,9 @@ describe('SellerLifecycle (M03-M1 state machine, WEMP-M03-SPEC-001 §4)', () => 
 
     it('canTransition returns false instead of throwing for denied transitions', () => {
       expect(
-        lifecycle.canTransition(command(profile('DRAFT'), 'SUBMITTED', actor(OWNER, 'SELLER_OWNER'))),
+        lifecycle.canTransition(
+          command(profile('DRAFT'), 'SUBMITTED', actor(OWNER, 'SELLER_OWNER')),
+        ),
       ).toBe(false);
       expect(
         lifecycle.canTransition(

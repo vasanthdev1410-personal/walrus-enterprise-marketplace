@@ -196,7 +196,11 @@ describe('SellerOnboardingApplicationService (M03-M3, WEMP-M03-SPEC-001 §4/§7)
       const { service, repository, idempotencyRepository } = harness();
       const result = await service.requestSellerProfileCreation(command);
       expect(typeof result.sellerProfileId).toBe('string');
-      expect(result).toEqual({ sellerProfileId: result.sellerProfileId, state: 'DRAFT', version: 1 });
+      expect(result).toEqual({
+        sellerProfileId: result.sellerProfileId,
+        state: 'DRAFT',
+        version: 1,
+      });
       expect(repository.insert).toHaveBeenCalledTimes(1);
       const changeSet = repository.insert.mock.calls[0]?.[0];
       expect(changeSet?.sellerProfile.properties.state).toBe('DRAFT');
@@ -315,18 +319,18 @@ describe('SellerOnboardingApplicationService (M03-M3, WEMP-M03-SPEC-001 §4/§7)
     it('rejects a stale version (optimistic concurrency)', async () => {
       const { service, repository } = harness();
       repository.findById.mockResolvedValue(submittedProfile());
-      await expect(
-        service.submitOnboarding({ ...command, expectedVersion: 1 }),
-      ).rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
+      await expect(service.submitOnboarding({ ...command, expectedVersion: 1 })).rejects.toEqual(
+        new SellerApplicationError('SELLER_STATE_CONFLICT'),
+      );
       expect(repository.save).not.toHaveBeenCalled();
     });
 
     it('rejects an invalid lifecycle state', async () => {
       const { service, repository } = harness();
       repository.findById.mockResolvedValue(submittedProfile());
-      await expect(
-        service.submitOnboarding({ ...command, expectedVersion: 2 }),
-      ).rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
+      await expect(service.submitOnboarding({ ...command, expectedVersion: 2 })).rejects.toEqual(
+        new SellerApplicationError('SELLER_STATE_CONFLICT'),
+      );
     });
 
     it('denies an ineligible identity at submission', async () => {

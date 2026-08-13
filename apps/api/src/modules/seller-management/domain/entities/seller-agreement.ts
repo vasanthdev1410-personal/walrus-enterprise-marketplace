@@ -29,7 +29,10 @@ export class SellerAgreement {
     if (properties.reference.trim().length === 0) {
       throw new Error('Agreement reference is required');
     }
-    if (properties.effectiveTo !== undefined && properties.effectiveTo <= properties.effectiveFrom) {
+    if (
+      properties.effectiveTo !== undefined &&
+      properties.effectiveTo <= properties.effectiveFrom
+    ) {
       throw new Error('Agreement effectiveTo must be after effectiveFrom');
     }
     if (properties.updatedAt < properties.createdAt) {

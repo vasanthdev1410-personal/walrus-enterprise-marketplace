@@ -42,9 +42,9 @@ describe('Module02SellerRoleAssignmentAdapter (D-11)', () => {
     );
 
     expect(await adapter.isSellerRoleGranted(IDENTITY_ID)).toBe(true);
-    expect(await adapter.isSellerRoleGranted(new UuidV7('0191310f-789a-7123-8123-0000000000aa'))).toBe(
-      false,
-    );
+    expect(
+      await adapter.isSellerRoleGranted(new UuidV7('0191310f-789a-7123-8123-0000000000aa')),
+    ).toBe(false);
   });
 
   it('forwards the role-assignment request to the Module 02 service', async () => {

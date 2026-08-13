@@ -14,14 +14,14 @@ WEMP-M03-CONTRACT-001, WEMP-M03-AUTHZ-001, WEMP-M03-DECISIONS-001
 
 ## 1. Document index
 
-| Document | File | ID |
-| -------- | ---- | -- |
-| Formal specification | `docs/module-03/formal-specification-review-draft.md` | WEMP-M03-SPEC-001 |
-| Implementation plan | `docs/module-03/implementation-plan-review-draft.md` | WEMP-M03-PLAN-001 |
-| Cross-module contracts | `docs/module-03/cross-module-contracts-review-draft.md` | WEMP-M03-CONTRACT-001 |
-| SELLER role proposal | `docs/module-03/authorization-seller-role-review-draft.md` | WEMP-M03-AUTHZ-001 |
-| Decision/approval register | `docs/module-03/decision-register-review-draft.md` | WEMP-M03-DECISIONS-001 |
-| ADR draft | `docs/architecture/decisions/ADR-M03-001-seller-management-architecture-review-draft.md` | ADR-M03-001 |
+| Document                   | File                                                                                     | ID                     |
+| -------------------------- | ---------------------------------------------------------------------------------------- | ---------------------- |
+| Formal specification       | `docs/module-03/formal-specification-review-draft.md`                                    | WEMP-M03-SPEC-001      |
+| Implementation plan        | `docs/module-03/implementation-plan-review-draft.md`                                     | WEMP-M03-PLAN-001      |
+| Cross-module contracts     | `docs/module-03/cross-module-contracts-review-draft.md`                                  | WEMP-M03-CONTRACT-001  |
+| SELLER role proposal       | `docs/module-03/authorization-seller-role-review-draft.md`                               | WEMP-M03-AUTHZ-001     |
+| Decision/approval register | `docs/module-03/decision-register-review-draft.md`                                       | WEMP-M03-DECISIONS-001 |
+| ADR draft                  | `docs/architecture/decisions/ADR-M03-001-seller-management-architecture-review-draft.md` | ADR-M03-001            |
 
 ## 2. Decision resolution summary (WEMP-M03-DECISIONS-001 §2)
 
@@ -37,6 +37,7 @@ auto-suspend).
 
 **OWNER / not resolvable from repository authority (conditions on later
 milestones, never silently assumed):**
+
 - D-03 retention/expiry window — **APPROVED by the owner on 2026-08-12** for
   the configurable retention architecture (recorded in
   WEMP-M03-DECISIONS-001). Jurisdiction-specific final durations remain
@@ -54,14 +55,14 @@ milestones, never silently assumed):**
 
 ## 3. Milestone gating after approval
 
-| Milestone | Gate |
-| --------- | ---- |
-| M03-M1 Domain | Authorized by §4 approval |
-| M03-M2 Persistence | Authorized by §4 approval |
-| M03-M3 Onboarding & Verification | §4 approval + D-03 retention architecture approved (owner, 2026-08-12) |
-| M03-M4 Authorization & Integration | D-11 approved by Module 02 owner + ADR-M03-001 |
-| M03-M5 APIs | D-10 rate-limit policy approved (Security/Platform) |
-| M03-M6 Web/Mobile | D-05 commission terms confirmed (Finance) + D-06 scope |
+| Milestone                          | Gate                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| M03-M1 Domain                      | Authorized by §4 approval                                              |
+| M03-M2 Persistence                 | Authorized by §4 approval                                              |
+| M03-M3 Onboarding & Verification   | §4 approval + D-03 retention architecture approved (owner, 2026-08-12) |
+| M03-M4 Authorization & Integration | D-11 approved by Module 02 owner + ADR-M03-001                         |
+| M03-M5 APIs                        | D-10 rate-limit policy approved (Security/Platform)                    |
+| M03-M6 Web/Mobile                  | D-05 commission terms confirmed (Finance) + D-06 scope                 |
 
 ## 4. Final owner approval statement (sign to authorize)
 

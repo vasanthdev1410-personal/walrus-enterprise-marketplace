@@ -115,7 +115,9 @@ export class SellerWarehouseApplicationService {
                 actorIdentityId: command.actorIdentityId,
                 occurredAt: now,
                 createdAt: now,
-                ...(command.correlationId !== undefined ? { correlationId: command.correlationId } : {}),
+                ...(command.correlationId !== undefined
+                  ? { correlationId: command.correlationId }
+                  : {}),
               }),
             ],
           },
@@ -186,7 +188,9 @@ export class SellerWarehouseApplicationService {
             actorIdentityId: command.actorIdentityId,
             occurredAt: now,
             createdAt: now,
-            ...(command.correlationId !== undefined ? { correlationId: command.correlationId } : {}),
+            ...(command.correlationId !== undefined
+              ? { correlationId: command.correlationId }
+              : {}),
           }),
         ],
       },
@@ -199,10 +203,7 @@ export class SellerWarehouseApplicationService {
     };
   }
 
-  private async assertOwnerActor(
-    sellerProfileId: UuidV7,
-    actorIdentityId: UuidV7,
-  ): Promise<void> {
+  private async assertOwnerActor(sellerProfileId: UuidV7, actorIdentityId: UuidV7): Promise<void> {
     const associations = await this.repository.findAssociations(sellerProfileId);
     this.associations.assertValidAssociations(associations);
     const association = this.associations.findActiveAssociation(

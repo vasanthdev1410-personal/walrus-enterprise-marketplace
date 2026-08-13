@@ -27,11 +27,7 @@ export type SellerState =
   | 'CLOSED';
 
 export type ComplianceState =
-  | 'NOT_STARTED'
-  | 'IN_PROGRESS'
-  | 'VERIFICATION_REQUIRED'
-  | 'COMPLIANT'
-  | 'NON_COMPLIANT';
+  'NOT_STARTED' | 'IN_PROGRESS' | 'VERIFICATION_REQUIRED' | 'COMPLIANT' | 'NON_COMPLIANT';
 
 export type VerificationType = 'GST' | 'PAN' | 'BANK' | 'ADDRESS';
 
@@ -180,11 +176,7 @@ export interface RemoveMemberInput {
   readonly expectedVersion: number;
 }
 
-export type AdminReviewAction =
-  | 'CLAIM_REVIEW'
-  | 'REQUEST_CORRECTIONS'
-  | 'APPROVE'
-  | 'REJECT';
+export type AdminReviewAction = 'CLAIM_REVIEW' | 'REQUEST_CORRECTIONS' | 'APPROVE' | 'REJECT';
 
 export interface AdminReviewInput {
   readonly sellerProfileId: string;
@@ -278,13 +270,25 @@ export class SellerApiClient {
 
   // ----- Seller self-service (pre-approval surface) -----
 
-  public async createOnboarding(input: CreateOnboardingInput): Promise<{ state: SellerState; version: number }> {
-    const data = await this.request<{ seller: { state: SellerState; version: number } }>('POST', '/seller/onboarding', { body: input });
+  public async createOnboarding(
+    input: CreateOnboardingInput,
+  ): Promise<{ state: SellerState; version: number }> {
+    const data = await this.request<{ seller: { state: SellerState; version: number } }>(
+      'POST',
+      '/seller/onboarding',
+      { body: input },
+    );
     return data.seller;
   }
 
-  public async submitOnboarding(input: SubmitOnboardingInput): Promise<{ state: SellerState; version: number }> {
-    const data = await this.request<{ seller: { state: SellerState; version: number } }>('POST', '/seller/onboarding/submit', { body: input });
+  public async submitOnboarding(
+    input: SubmitOnboardingInput,
+  ): Promise<{ state: SellerState; version: number }> {
+    const data = await this.request<{ seller: { state: SellerState; version: number } }>(
+      'POST',
+      '/seller/onboarding/submit',
+      { body: input },
+    );
     return data.seller;
   }
 
@@ -298,8 +302,14 @@ export class SellerApiClient {
     return data.profile;
   }
 
-  public async updateProfile(input: UpdateProfileInput): Promise<{ state: SellerState; version: number }> {
-    const data = await this.request<{ seller: { state: SellerState; version: number } }>('PATCH', '/seller/profile', { body: input });
+  public async updateProfile(
+    input: UpdateProfileInput,
+  ): Promise<{ state: SellerState; version: number }> {
+    const data = await this.request<{ seller: { state: SellerState; version: number } }>(
+      'PATCH',
+      '/seller/profile',
+      { body: input },
+    );
     return data.seller;
   }
 
@@ -308,57 +318,103 @@ export class SellerApiClient {
     return data.business;
   }
 
-  public async updateBusiness(input: UpdateProfileInput): Promise<{ state: SellerState; version: number }> {
-    const data = await this.request<{ seller: { state: SellerState; version: number } }>('PATCH', '/seller/business', { body: input });
+  public async updateBusiness(
+    input: UpdateProfileInput,
+  ): Promise<{ state: SellerState; version: number }> {
+    const data = await this.request<{ seller: { state: SellerState; version: number } }>(
+      'PATCH',
+      '/seller/business',
+      { body: input },
+    );
     return data.seller;
   }
 
-  public async submitVerification(input: SubmitVerificationInput): Promise<{ state: string; generation: number }> {
-    const data = await this.request<{ verification: { state: string; generation: number } }>('POST', '/seller/verification', { body: input });
+  public async submitVerification(
+    input: SubmitVerificationInput,
+  ): Promise<{ state: string; generation: number }> {
+    const data = await this.request<{ verification: { state: string; generation: number } }>(
+      'POST',
+      '/seller/verification',
+      { body: input },
+    );
     return data.verification;
   }
 
   public async getVerificationStatus(): Promise<VerificationStatus> {
-    const data = await this.request<{ verification: VerificationStatus }>('GET', '/seller/verification');
+    const data = await this.request<{ verification: VerificationStatus }>(
+      'GET',
+      '/seller/verification',
+    );
     return data.verification;
   }
 
   public async listWarehouses(): Promise<readonly WarehouseSummary[]> {
-    const data = await this.request<{ warehouses: readonly WarehouseSummary[] }>('GET', '/seller/warehouses');
+    const data = await this.request<{ warehouses: readonly WarehouseSummary[] }>(
+      'GET',
+      '/seller/warehouses',
+    );
     return data.warehouses;
   }
 
-  public async createWarehouse(input: CreateWarehouseInput): Promise<{ state: 'ACTIVE' | 'CLOSED' }> {
-    const data = await this.request<{ warehouse: { state: 'ACTIVE' | 'CLOSED' } }>('POST', '/seller/warehouses', { body: input });
+  public async createWarehouse(
+    input: CreateWarehouseInput,
+  ): Promise<{ state: 'ACTIVE' | 'CLOSED' }> {
+    const data = await this.request<{ warehouse: { state: 'ACTIVE' | 'CLOSED' } }>(
+      'POST',
+      '/seller/warehouses',
+      { body: input },
+    );
     return data.warehouse;
   }
 
   public async closeWarehouse(input: CloseWarehouseInput): Promise<{ state: 'ACTIVE' | 'CLOSED' }> {
-    const data = await this.request<{ warehouse: { state: 'ACTIVE' | 'CLOSED' } }>('POST', `/seller/warehouses/${input.warehouseId}/close`, {
-      body: { expectedVersion: input.expectedVersion, warehouseId: input.warehouseId },
-    });
+    const data = await this.request<{ warehouse: { state: 'ACTIVE' | 'CLOSED' } }>(
+      'POST',
+      `/seller/warehouses/${input.warehouseId}/close`,
+      {
+        body: { expectedVersion: input.expectedVersion, warehouseId: input.warehouseId },
+      },
+    );
     return data.warehouse;
   }
 
   public async listAgreements(): Promise<readonly AgreementSummary[]> {
-    const data = await this.request<{ agreements: readonly AgreementSummary[] }>('GET', '/seller/agreements');
+    const data = await this.request<{ agreements: readonly AgreementSummary[] }>(
+      'GET',
+      '/seller/agreements',
+    );
     return data.agreements;
   }
 
   public async listMembers(): Promise<readonly MemberSummary[]> {
-    const data = await this.request<{ members: readonly MemberSummary[] }>('GET', '/seller/members');
+    const data = await this.request<{ members: readonly MemberSummary[] }>(
+      'GET',
+      '/seller/members',
+    );
     return data.members;
   }
 
-  public async addMember(input: AddMemberInput): Promise<{ associationState: 'ACTIVE' | 'REMOVED' }> {
-    const data = await this.request<{ member: { associationState: 'ACTIVE' | 'REMOVED' } }>('POST', '/seller/members', { body: input });
+  public async addMember(
+    input: AddMemberInput,
+  ): Promise<{ associationState: 'ACTIVE' | 'REMOVED' }> {
+    const data = await this.request<{ member: { associationState: 'ACTIVE' | 'REMOVED' } }>(
+      'POST',
+      '/seller/members',
+      { body: input },
+    );
     return data.member;
   }
 
-  public async removeMember(input: RemoveMemberInput): Promise<{ associationState: 'ACTIVE' | 'REMOVED' }> {
-    const data = await this.request<{ member: { associationState: 'ACTIVE' | 'REMOVED' } }>('DELETE', `/seller/members/${input.identityId}`, {
-      body: { expectedVersion: input.expectedVersion },
-    });
+  public async removeMember(
+    input: RemoveMemberInput,
+  ): Promise<{ associationState: 'ACTIVE' | 'REMOVED' }> {
+    const data = await this.request<{ member: { associationState: 'ACTIVE' | 'REMOVED' } }>(
+      'DELETE',
+      `/seller/members/${input.identityId}`,
+      {
+        body: { expectedVersion: input.expectedVersion },
+      },
+    );
     return data.member;
   }
 
@@ -366,42 +422,73 @@ export class SellerApiClient {
 
   public async listSellers(state?: SellerState): Promise<readonly AdminSellerListEntry[]> {
     const query = state === undefined ? '' : `?state=${encodeURIComponent(state)}`;
-    const data = await this.request<{ sellers: readonly AdminSellerListEntry[] }>('GET', `/admin/sellers${query}`);
+    const data = await this.request<{ sellers: readonly AdminSellerListEntry[] }>(
+      'GET',
+      `/admin/sellers${query}`,
+    );
     return data.sellers;
   }
 
   public async getSellerDetail(sellerProfileId: string): Promise<OwnProfile> {
-    const data = await this.request<{ seller: OwnProfile }>('GET', `/admin/sellers/${sellerProfileId}`);
+    const data = await this.request<{ seller: OwnProfile }>(
+      'GET',
+      `/admin/sellers/${sellerProfileId}`,
+    );
     return data.seller;
   }
 
-  public async reviewSeller(input: AdminReviewInput): Promise<{ state: SellerState; version: number }> {
-    const data = await this.request<{ seller: { state: SellerState; version: number } }>('POST', `/admin/sellers/${input.sellerProfileId}/review`, {
-      body: {
-        action: input.action,
-        expectedVersion: input.expectedVersion,
-        ...(input.reasonReference === undefined ? {} : { reasonReference: input.reasonReference }),
+  public async reviewSeller(
+    input: AdminReviewInput,
+  ): Promise<{ state: SellerState; version: number }> {
+    const data = await this.request<{ seller: { state: SellerState; version: number } }>(
+      'POST',
+      `/admin/sellers/${input.sellerProfileId}/review`,
+      {
+        body: {
+          action: input.action,
+          expectedVersion: input.expectedVersion,
+          ...(input.reasonReference === undefined
+            ? {}
+            : { reasonReference: input.reasonReference }),
+        },
       },
-    });
+    );
     return data.seller;
   }
 
-  public async suspendSeller(input: AdminSuspendInput): Promise<{ state: SellerState; version: number }> {
-    const data = await this.request<{ seller: { state: SellerState; version: number } }>('POST', `/admin/sellers/${input.sellerProfileId}/suspend`, {
-      body: { expectedVersion: input.expectedVersion, reasonReference: input.reasonReference },
-    });
+  public async suspendSeller(
+    input: AdminSuspendInput,
+  ): Promise<{ state: SellerState; version: number }> {
+    const data = await this.request<{ seller: { state: SellerState; version: number } }>(
+      'POST',
+      `/admin/sellers/${input.sellerProfileId}/suspend`,
+      {
+        body: { expectedVersion: input.expectedVersion, reasonReference: input.reasonReference },
+      },
+    );
     return data.seller;
   }
 
-  public async reactivateSeller(input: AdminReactivateInput): Promise<{ state: SellerState; version: number }> {
-    const data = await this.request<{ seller: { state: SellerState; version: number } }>('POST', `/admin/sellers/${input.sellerProfileId}/reactivate`, {
-      body: { expectedVersion: input.expectedVersion },
-    });
+  public async reactivateSeller(
+    input: AdminReactivateInput,
+  ): Promise<{ state: SellerState; version: number }> {
+    const data = await this.request<{ seller: { state: SellerState; version: number } }>(
+      'POST',
+      `/admin/sellers/${input.sellerProfileId}/reactivate`,
+      {
+        body: { expectedVersion: input.expectedVersion },
+      },
+    );
     return data.seller;
   }
 
-  public async getEvidenceMetadata(sellerProfileId: string): Promise<readonly EvidenceMetadataEntry[]> {
-    const data = await this.request<{ evidence: readonly EvidenceMetadataEntry[] }>('GET', `/admin/sellers/${sellerProfileId}/evidence`);
+  public async getEvidenceMetadata(
+    sellerProfileId: string,
+  ): Promise<readonly EvidenceMetadataEntry[]> {
+    const data = await this.request<{ evidence: readonly EvidenceMetadataEntry[] }>(
+      'GET',
+      `/admin/sellers/${sellerProfileId}/evidence`,
+    );
     return data.evidence;
   }
 

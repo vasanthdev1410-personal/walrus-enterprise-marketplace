@@ -26,14 +26,15 @@ import type {
  *   records an explicit permission for legal-hold management. This preserves
  *   the M03-M3 fail-closed behavior for that action.
  */
-const ADMIN_ACTION_TO_PERMISSION: Readonly<Record<SellerAdminAction, string | null>> = Object.freeze({
-  'seller.review.claim': 'seller.review.decide',
-  'seller.review.decide': 'seller.review.decide',
-  'seller.suspend.manage': 'seller.suspend.manage',
-  'seller.evidence.read': 'seller.evidence.read',
-  'seller.audit.view': 'seller.audit.view',
-  'seller.legalhold.manage': null,
-});
+const ADMIN_ACTION_TO_PERMISSION: Readonly<Record<SellerAdminAction, string | null>> =
+  Object.freeze({
+    'seller.review.claim': 'seller.review.decide',
+    'seller.review.decide': 'seller.review.decide',
+    'seller.suspend.manage': 'seller.suspend.manage',
+    'seller.evidence.read': 'seller.evidence.read',
+    'seller.audit.view': 'seller.audit.view',
+    'seller.legalhold.manage': null,
+  });
 
 @Injectable()
 export class Module02SellerAdminAuthorizationAdapter implements SellerAdminAuthorizationPort {

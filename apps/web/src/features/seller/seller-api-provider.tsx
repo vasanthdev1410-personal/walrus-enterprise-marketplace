@@ -24,10 +24,7 @@ const SellerApiContext = createContext<SellerApiClient | null>(null);
  * access — the server remains authoritative.
  */
 export function SellerApiProvider({ children, client }: SellerApiProviderProps): ReactNode {
-  const value = useMemo<SellerApiClient>(
-    () => client ?? createDefaultClient(),
-    [client],
-  );
+  const value = useMemo<SellerApiClient>(() => client ?? createDefaultClient(), [client]);
   return <SellerApiContext.Provider value={value}>{children}</SellerApiContext.Provider>;
 }
 

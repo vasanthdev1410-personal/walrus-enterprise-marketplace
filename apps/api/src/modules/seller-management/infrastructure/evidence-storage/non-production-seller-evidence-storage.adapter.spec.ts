@@ -13,15 +13,13 @@ describe('NonProductionSellerEvidenceStorageAdapter (M03-M5, D-03 evidence bound
   });
 
   it('rejects an empty reference (fail closed)', async () => {
-    await expect(
-      adapter.verifyEvidenceIntegrity('   ', 'a'.repeat(64)),
-    ).resolves.toBe(false);
+    await expect(adapter.verifyEvidenceIntegrity('   ', 'a'.repeat(64))).resolves.toBe(false);
   });
 
   it('rejects an over-length reference (fail closed)', async () => {
-    await expect(
-      adapter.verifyEvidenceIntegrity('x'.repeat(1025), 'a'.repeat(64)),
-    ).resolves.toBe(false);
+    await expect(adapter.verifyEvidenceIntegrity('x'.repeat(1025), 'a'.repeat(64))).resolves.toBe(
+      false,
+    );
   });
 
   it('rejects a non-SHA-256 digest (fail closed)', async () => {

@@ -213,19 +213,19 @@ export class SellerRetentionApplicationService {
         );
         evidenceExpired += 1;
         auditEvents.push(
-            new SellerBusinessAuditRecord({
-              auditEventId: this.identifiers.next(),
-              sellerProfileId: command.sellerProfileId,
-              eventType: 'SELLER_EVIDENCE_RETENTION_EXPIRED',
-              actorIdentityId: command.triggeredByIdentityId,
-              occurredAt: now,
-              createdAt: now,
-              ...(command.correlationId !== undefined
-                ? { correlationId: command.correlationId }
-                : {}),
-              evidenceDigest: item.properties.evidenceDigest,
-            }),
-          );
+          new SellerBusinessAuditRecord({
+            auditEventId: this.identifiers.next(),
+            sellerProfileId: command.sellerProfileId,
+            eventType: 'SELLER_EVIDENCE_RETENTION_EXPIRED',
+            actorIdentityId: command.triggeredByIdentityId,
+            occurredAt: now,
+            createdAt: now,
+            ...(command.correlationId !== undefined
+              ? { correlationId: command.correlationId }
+              : {}),
+            evidenceDigest: item.properties.evidenceDigest,
+          }),
+        );
       }
     }
     if (auditEvents.length > 0) {
@@ -271,15 +271,15 @@ export class SellerRetentionApplicationService {
         warehousesToAppend: [],
         agreementsToAppend: [],
         auditRecordsToAppend: [
-        new SellerBusinessAuditRecord({
-          auditEventId: this.identifiers.next(),
-          sellerProfileId,
-          eventType,
-          actorIdentityId,
-          occurredAt: now,
-          createdAt: now,
-          ...(correlationId !== undefined ? { correlationId } : {}),
-        }),
+          new SellerBusinessAuditRecord({
+            auditEventId: this.identifiers.next(),
+            sellerProfileId,
+            eventType,
+            actorIdentityId,
+            occurredAt: now,
+            createdAt: now,
+            ...(correlationId !== undefined ? { correlationId } : {}),
+          }),
         ],
       },
       profile.properties.aggregateVersion,

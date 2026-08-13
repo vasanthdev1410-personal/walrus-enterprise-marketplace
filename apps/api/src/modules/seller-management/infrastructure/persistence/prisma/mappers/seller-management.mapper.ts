@@ -304,7 +304,9 @@ export const sellerBusinessAuditRecordMapper = {
       }),
     );
   },
-  toPersistence(entity: SellerBusinessAuditRecord): Prisma.SellerBusinessAuditRecordUncheckedCreateInput {
+  toPersistence(
+    entity: SellerBusinessAuditRecord,
+  ): Prisma.SellerBusinessAuditRecordUncheckedCreateInput {
     const value = entity.properties;
     return compactProperties({
       auditEventId: value.auditEventId.value,
@@ -339,7 +341,9 @@ export const sellerEvidenceLegalHoldMapper = {
       }),
     );
   },
-  toPersistence(entity: SellerEvidenceLegalHold): Prisma.SellerEvidenceLegalHoldUncheckedCreateInput {
+  toPersistence(
+    entity: SellerEvidenceLegalHold,
+  ): Prisma.SellerEvidenceLegalHoldUncheckedCreateInput {
     const value = entity.properties;
     return compactProperties({
       legalHoldId: value.legalHoldId.value,
@@ -374,8 +378,7 @@ export const sellerStateTransitionMapper = {
           record.correlationId === null
             ? undefined
             : new CorrelationIdentifier(record.correlationId),
-        causationId:
-          record.causationId === null ? undefined : new UuidV7(record.causationId),
+        causationId: record.causationId === null ? undefined : new UuidV7(record.causationId),
         sourceReference: record.sourceReference ?? undefined,
       }),
     );

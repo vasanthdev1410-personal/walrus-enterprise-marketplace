@@ -33,12 +33,12 @@ describe('mapSellerError (M03-M5 presentation error mapping)', () => {
   }
 
   describe('application errors', () => {
-    it.each([
-      ['SELLER_NOT_FOUND'],
-      ['SELLER_OWNERSHIP_DENIED'],
-    ] as const)('maps %s to a non-enumerating 404', (code: SellerApplicationErrorCode) => {
-      expectMappedTo(new SellerApplicationError(code), NotFoundException, 'SELLER_NOT_FOUND');
-    });
+    it.each([['SELLER_NOT_FOUND'], ['SELLER_OWNERSHIP_DENIED']] as const)(
+      'maps %s to a non-enumerating 404',
+      (code: SellerApplicationErrorCode) => {
+        expectMappedTo(new SellerApplicationError(code), NotFoundException, 'SELLER_NOT_FOUND');
+      },
+    );
 
     it.each([
       ['SELLER_STATE_CONFLICT'],
@@ -68,7 +68,11 @@ describe('mapSellerError (M03-M5 presentation error mapping)', () => {
       ['SELLER_LEGAL_HOLD_CONFLICT'],
       ['SELLER_IDEMPOTENCY_CONFLICT'],
     ] as const)('maps %s to a generic 400', (code: SellerApplicationErrorCode) => {
-      expectMappedTo(new SellerApplicationError(code), BadRequestException, 'SELLER_PRECONDITION_FAILED');
+      expectMappedTo(
+        new SellerApplicationError(code),
+        BadRequestException,
+        'SELLER_PRECONDITION_FAILED',
+      );
     });
   });
 
@@ -83,11 +87,12 @@ describe('mapSellerError (M03-M5 presentation error mapping)', () => {
       expectMappedTo(new SellerDomainError(code), ConflictException, 'SELLER_STATE_CONFLICT');
     });
 
-    it.each([
-      ['SELLER_SOD_VIOLATION'],
-    ] as const)('maps %s to a generic 403', (code: SellerDomainErrorCode) => {
-      expectMappedTo(new SellerDomainError(code), ForbiddenException, 'AUTHORIZATION_DENIED');
-    });
+    it.each([['SELLER_SOD_VIOLATION']] as const)(
+      'maps %s to a generic 403',
+      (code: SellerDomainErrorCode) => {
+        expectMappedTo(new SellerDomainError(code), ForbiddenException, 'AUTHORIZATION_DENIED');
+      },
+    );
 
     it.each([
       ['SELLER_STATE_CONFLICT'],
@@ -99,7 +104,11 @@ describe('mapSellerError (M03-M5 presentation error mapping)', () => {
       ['SELLER_RETENTION_CONFIG_MISSING'],
       ['SELLER_RETENTION_CONFIG_INVALID'],
     ] as const)('maps %s to a generic 400', (code: SellerDomainErrorCode) => {
-      expectMappedTo(new SellerDomainError(code), BadRequestException, 'SELLER_PRECONDITION_FAILED');
+      expectMappedTo(
+        new SellerDomainError(code),
+        BadRequestException,
+        'SELLER_PRECONDITION_FAILED',
+      );
     });
   });
 

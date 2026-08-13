@@ -25,7 +25,10 @@ import {
   sellerWarehouseMapper,
 } from '../mappers/seller-management.mapper';
 import { PrismaService } from '../../../../../identity-authentication/infrastructure/persistence/prisma/prisma.service';
-import { assertVersionUpdated, type TransactionClient } from '../../../../../identity-authentication/infrastructure/persistence/prisma/repositories/repository-support';
+import {
+  assertVersionUpdated,
+  type TransactionClient,
+} from '../../../../../identity-authentication/infrastructure/persistence/prisma/repositories/repository-support';
 
 /**
  * WEMP-M03-PLAN-001 M03-M2. Prisma implementation of the Module 03 seller
@@ -85,9 +88,7 @@ export class PrismaSellerProfileRepository implements SellerProfileRepository {
     return records.map((record) => sellerVerificationEvidenceMapper.toDomain(record));
   }
 
-  public async findTransitions(
-    sellerProfileId: UuidV7,
-  ): Promise<readonly SellerStateTransition[]> {
+  public async findTransitions(sellerProfileId: UuidV7): Promise<readonly SellerStateTransition[]> {
     const records = await this.prisma.sellerStateTransition.findMany({
       where: { sellerProfileId: sellerProfileId.value },
       orderBy: { stateVersion: 'asc' },

@@ -154,9 +154,9 @@ describe('SellerMemberApplicationService (M03-M5, D-01)', () => {
       repository.findById.mockResolvedValue(profile(6));
       repository.findAssociations.mockResolvedValue([association(OWNER, 'OWNER')]);
 
-      await expect(
-        service.addMember({ ...command, expectedVersion: 5 }),
-      ).rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
+      await expect(service.addMember({ ...command, expectedVersion: 5 })).rejects.toEqual(
+        new SellerApplicationError('SELLER_STATE_CONFLICT'),
+      );
     });
   });
 
@@ -184,7 +184,9 @@ describe('SellerMemberApplicationService (M03-M5, D-01)', () => {
         identityId: MEMBER,
         state: 'REMOVED',
       });
-      expect(changeSet?.auditRecordsToAppend[0]?.properties.eventType).toBe('SELLER_MEMBER_REMOVED');
+      expect(changeSet?.auditRecordsToAppend[0]?.properties.eventType).toBe(
+        'SELLER_MEMBER_REMOVED',
+      );
     });
 
     it('never removes the OWNER (exactly one owner per seller)', async () => {
@@ -192,9 +194,9 @@ describe('SellerMemberApplicationService (M03-M5, D-01)', () => {
       repository.findById.mockResolvedValue(profile(5));
       repository.findAssociations.mockResolvedValue([association(OWNER, 'OWNER')]);
 
-      await expect(
-        service.removeMember({ ...command, memberIdentityId: OWNER }),
-      ).rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
+      await expect(service.removeMember({ ...command, memberIdentityId: OWNER })).rejects.toEqual(
+        new SellerApplicationError('SELLER_STATE_CONFLICT'),
+      );
       expect(repository.save).not.toHaveBeenCalled();
     });
 

@@ -468,7 +468,11 @@ describe('AuthorizationApplicationService (M02)', () => {
     };
 
     it('grants an org-scoped seller permission when the SELLER role and ACTIVE association scope both pass', async () => {
-      const { service, findActiveByIdentityId, recordInsert } = createFixture(undefined, undefined, resolver);
+      const { service, findActiveByIdentityId, recordInsert } = createFixture(
+        undefined,
+        undefined,
+        resolver,
+      );
       findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
       resolver.resolveSellerScope.mockResolvedValue(scope());
 
@@ -490,7 +494,11 @@ describe('AuthorizationApplicationService (M02)', () => {
     });
 
     it('denies a SELLER accessing another seller (SCOPE_NOT_ASSOCIATED)', async () => {
-      const { service, findActiveByIdentityId, recordInsert } = createFixture(undefined, undefined, resolver);
+      const { service, findActiveByIdentityId, recordInsert } = createFixture(
+        undefined,
+        undefined,
+        resolver,
+      );
       findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
       resolver.resolveSellerScope.mockResolvedValue(null);
 
@@ -620,7 +628,11 @@ describe('AuthorizationApplicationService (M02)', () => {
     };
 
     it('grants the SELLER role for an APPROVED seller with an ACTIVE association', async () => {
-      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(
+        undefined,
+        undefined,
+        resolver,
+      );
       findActiveByIdentityId.mockResolvedValue([]);
       resolver.resolveSellerScope.mockResolvedValue(scope({ sellerState: 'APPROVED' }));
 
@@ -652,7 +664,11 @@ describe('AuthorizationApplicationService (M02)', () => {
     });
 
     it('denies assignment for a seller that was never approved (SELLER_STATE_INELIGIBLE)', async () => {
-      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(
+        undefined,
+        undefined,
+        resolver,
+      );
       findActiveByIdentityId.mockResolvedValue([]);
       resolver.resolveSellerScope.mockResolvedValue(scope({ sellerState: 'DRAFT' }));
 
@@ -709,7 +725,11 @@ describe('AuthorizationApplicationService (M02)', () => {
     });
 
     it('is idempotent: an existing ACTIVE SELLER assignment resolves to GRANTED', async () => {
-      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(
+        undefined,
+        undefined,
+        resolver,
+      );
       findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
       resolver.resolveSellerScope.mockResolvedValue(scope({ sellerState: 'APPROVED' }));
 
@@ -724,10 +744,16 @@ describe('AuthorizationApplicationService (M02)', () => {
     });
 
     it('fails with STALE_VERSION on an optimistic-concurrency conflict (concurrent activation)', async () => {
-      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(
+        undefined,
+        undefined,
+        resolver,
+      );
       findActiveByIdentityId.mockResolvedValue([]);
       resolver.resolveSellerScope.mockResolvedValue(scope({ sellerState: 'APPROVED' }));
-      assignRoleWithAudit.mockRejectedValue(new OptimisticConcurrencyError('IdentityRoleAssignment'));
+      assignRoleWithAudit.mockRejectedValue(
+        new OptimisticConcurrencyError('IdentityRoleAssignment'),
+      );
 
       const result = await service.assignSellerRoleForActivation({
         targetIdentityId: TARGET,
@@ -745,7 +771,11 @@ describe('AuthorizationApplicationService (M02)', () => {
     };
 
     it('revokes every ACTIVE SELLER assignment with audit provenance', async () => {
-      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(
+        undefined,
+        undefined,
+        resolver,
+      );
       findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
 
       const result = await service.revokeSellerRole({
@@ -774,7 +804,11 @@ describe('AuthorizationApplicationService (M02)', () => {
     });
 
     it('revokes a control-plane assignment without a human revoker (compensation)', async () => {
-      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(
+        undefined,
+        undefined,
+        resolver,
+      );
       findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
 
       const result = await service.revokeSellerRole({
@@ -794,7 +828,11 @@ describe('AuthorizationApplicationService (M02)', () => {
     });
 
     it('is idempotent when there is nothing to revoke', async () => {
-      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(
+        undefined,
+        undefined,
+        resolver,
+      );
       findActiveByIdentityId.mockResolvedValue([assignment({ roleName: 'CUSTOMER' })]);
 
       const result = await service.revokeSellerRole({ identityId: TARGET });
@@ -804,9 +842,15 @@ describe('AuthorizationApplicationService (M02)', () => {
     });
 
     it('fails with STALE_VERSION on a concurrent revocation conflict', async () => {
-      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(
+        undefined,
+        undefined,
+        resolver,
+      );
       findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
-      revokeRoleWithAudit.mockRejectedValue(new OptimisticConcurrencyError('IdentityRoleAssignment'));
+      revokeRoleWithAudit.mockRejectedValue(
+        new OptimisticConcurrencyError('IdentityRoleAssignment'),
+      );
 
       const result = await service.revokeSellerRole({ identityId: TARGET });
 

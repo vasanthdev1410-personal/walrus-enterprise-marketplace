@@ -19,13 +19,23 @@ export default function AdminPortalPage(): ReactNode {
     <PortalShell title="Admin portal">
       <SellerApiProvider>
         {selectedSellerId === null ? (
-          <AdminSellerList onSelect={(sellerProfileId: string) => { setSelectedSellerId(sellerProfileId); }} />
+          <AdminSellerList
+            onSelect={(sellerProfileId: string) => {
+              setSelectedSellerId(sellerProfileId);
+            }}
+          />
         ) : (
           <AdminSellerDetail sellerProfileId={selectedSellerId} />
         )}
         {selectedSellerId !== null && (
           <div className="actions">
-            <button type="button" className="btn" onClick={() => { setSelectedSellerId(null); }}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                setSelectedSellerId(null);
+              }}
+            >
               Back to seller list
             </button>
           </div>

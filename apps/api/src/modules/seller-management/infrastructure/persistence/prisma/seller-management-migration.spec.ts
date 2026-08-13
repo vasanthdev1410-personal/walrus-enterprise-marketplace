@@ -59,13 +59,13 @@ describe('M03 seller management migration (WEMP-M03-SPEC-001 §3/§9)', () => {
   });
 
   it('enforces unique verification generations per type', () => {
-    expect(sql).toContain(
-      'seller_business_verifications_seller_profile_id_verificat_key',
-    );
+    expect(sql).toContain('seller_business_verifications_seller_profile_id_verificat_key');
   });
 
   it('enforces append-only lifecycle episodes by unique state version per profile', () => {
-    expect(sql).toContain('CREATE UNIQUE INDEX "seller_state_transitions_seller_profile_id_state_version_key"');
+    expect(sql).toContain(
+      'CREATE UNIQUE INDEX "seller_state_transitions_seller_profile_id_state_version_key"',
+    );
     expect(sql).toContain('ON "seller_state_transitions"("seller_profile_id", "state_version")');
   });
 });

@@ -9,7 +9,5 @@ import { createHash } from 'node:crypto';
  * the digest itself and never controls duplicate prevention.
  */
 export function sellerRegistrationLookupDigest(registrationNumber: string): string {
-  return createHash('sha256')
-    .update(registrationNumber.trim().toUpperCase(), 'utf8')
-    .digest('hex');
+  return createHash('sha256').update(registrationNumber.trim().toUpperCase(), 'utf8').digest('hex');
 }

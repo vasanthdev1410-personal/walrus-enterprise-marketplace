@@ -59,10 +59,7 @@ export function OnboardingDashboard({ onNavigate }: OnboardingDashboardProps): R
       }}
     />
   ) : (
-    <StatusView
-      status={status}
-      {...(onNavigate === undefined ? {} : { onNavigate })}
-    />
+    <StatusView status={status} {...(onNavigate === undefined ? {} : { onNavigate })} />
   );
 }
 
@@ -71,8 +68,8 @@ function OnboardingCreatePrompt({ onStart }: { readonly onStart: () => void }): 
     <div className="panel">
       <h2>Start seller onboarding</h2>
       <p className="muted">
-        You are not yet associated with a seller profile. Begin onboarding to
-        request a seller profile for your business.
+        You are not yet associated with a seller profile. Begin onboarding to request a seller
+        profile for your business.
       </p>
       <div className="actions">
         <button type="button" className="btn btn-primary" onClick={onStart}>
@@ -110,7 +107,9 @@ function OnboardingCreateForm(): ReactNode {
           Legal name
           <input
             value={legalName}
-            onChange={(event) => { setLegalName(event.target.value); }}
+            onChange={(event) => {
+              setLegalName(event.target.value);
+            }}
             required
             minLength={1}
             maxLength={256}
@@ -121,7 +120,9 @@ function OnboardingCreateForm(): ReactNode {
           Trade name
           <input
             value={tradeName}
-            onChange={(event) => { setTradeName(event.target.value); }}
+            onChange={(event) => {
+              setTradeName(event.target.value);
+            }}
             required
             minLength={1}
             maxLength={256}
@@ -132,7 +133,9 @@ function OnboardingCreateForm(): ReactNode {
           Registration number
           <input
             value={registrationNumber}
-            onChange={(event) => { setRegistrationNumber(event.target.value); }}
+            onChange={(event) => {
+              setRegistrationNumber(event.target.value);
+            }}
             required
             minLength={1}
             maxLength={64}
@@ -146,7 +149,9 @@ function OnboardingCreateForm(): ReactNode {
           Business address
           <input
             value={businessAddress}
-            onChange={(event) => { setBusinessAddress(event.target.value); }}
+            onChange={(event) => {
+              setBusinessAddress(event.target.value);
+            }}
             required
             minLength={1}
             maxLength={512}
@@ -178,7 +183,11 @@ async function createOnboarding(
   setSaving(true);
   try {
     await client.createOnboarding(values);
-    setNotice(<div className="notice" role="status">Onboarding created.</div>);
+    setNotice(
+      <div className="notice" role="status">
+        Onboarding created.
+      </div>,
+    );
   } catch (error) {
     setNotice(<ErrorNotice kind={toKind(error)} />);
   } finally {
@@ -210,22 +219,17 @@ function PreApprovalView({
       <p>
         Status: <SellerStateBadge state={status.state} />
       </p>
-      <p className="muted">
-        Compliance: {COMPLIANCE_STATE_LABELS[status.complianceState]}
-      </p>
+      <p className="muted">Compliance: {COMPLIANCE_STATE_LABELS[status.complianceState]}</p>
       {status.state === 'CORRECTIONS_REQUESTED' && (
         <div className="notice" role="status">
-          An administrator requested corrections. Review your details, update
-          them, and resubmit.
+          An administrator requested corrections. Review your details, update them, and resubmit.
         </div>
       )}
       <div className="muted detail-list">
         <p>Legal name: {status.organization.legalName}</p>
         <p>Trade name: {status.organization.tradeName}</p>
         <p>Business address: {status.organization.businessAddress}</p>
-        {status.submittedAt !== undefined && (
-          <p>Submitted: {formatDate(status.submittedAt)}</p>
-        )}
+        {status.submittedAt !== undefined && <p>Submitted: {formatDate(status.submittedAt)}</p>}
       </div>
 
       {status.verifications.length > 0 && (
@@ -233,7 +237,7 @@ function PreApprovalView({
           <h3>Verification summary</h3>
           <ul className="plain-list">
             {status.verifications.map((item) => (
-              <li              key={`${item.verificationType}-${String(item.generation)}`}>
+              <li key={`${item.verificationType}-${String(item.generation)}`}>
                 {VERIFICATION_TYPE_LABELS[item.verificationType]}: {item.state}
               </li>
             ))}
@@ -259,16 +263,16 @@ function PreApprovalView({
             void submitOnboarding(status, client, setSubmitting, setNotice, onChanged);
           }}
         >
-          {status.state === 'CORRECTIONS_REQUESTED'
-            ? 'Resubmit for review'
-            : 'Submit for review'}
+          {status.state === 'CORRECTIONS_REQUESTED' ? 'Resubmit for review' : 'Submit for review'}
         </button>
       </div>
 
       {editing && (
         <EditDetailsForm
           status={status}
-          onSaved={() => { setEditing(false); }}
+          onSaved={() => {
+            setEditing(false);
+          }}
         />
       )}
       {notice}
@@ -289,7 +293,11 @@ async function submitOnboarding(
       sellerProfileId: status.sellerProfileId,
       expectedVersion: status.version,
     });
-    setNotice(<div className="notice" role="status">Submitted for review.</div>);
+    setNotice(
+      <div className="notice" role="status">
+        Submitted for review.
+      </div>,
+    );
     // The server dispatched the transition — refetch so the view reflects the
     // new lifecycle state instead of guessing it client-side.
     onChanged();
@@ -310,9 +318,7 @@ function EditDetailsForm({
   const client = useSellerApi();
   const [legalName, setLegalName] = useState(status.organization.legalName);
   const [tradeName, setTradeName] = useState(status.organization.tradeName);
-  const [businessAddress, setBusinessAddress] = useState(
-    status.organization.businessAddress,
-  );
+  const [businessAddress, setBusinessAddress] = useState(status.organization.businessAddress);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<ReactNode>(null);
 
@@ -397,7 +403,11 @@ async function saveDetails(
       tradeName: values.tradeName,
       businessAddress: values.businessAddress,
     });
-    setNotice(<div className="notice" role="status">Details saved.</div>);
+    setNotice(
+      <div className="notice" role="status">
+        Details saved.
+      </div>,
+    );
     onSaved();
   } catch (error) {
     setNotice(<ErrorNotice kind={toKind(error)} />);
@@ -424,8 +434,8 @@ function StatusView({
             Status: <SellerStateBadge state={status.state} />
           </p>
           <p className="muted">
-            Your onboarding was submitted and is being reviewed. No further
-            action is needed from you at this time.
+            Your onboarding was submitted and is being reviewed. No further action is needed from
+            you at this time.
           </p>
         </div>
       );
@@ -437,17 +447,14 @@ function StatusView({
             Status: <SellerStateBadge state={status.state} />
           </p>
           <p className="muted">
-            Your seller profile is approved. Access to seller capabilities is
-            granted by the platform when your role is activated.
+            Your seller profile is approved. Access to seller capabilities is granted by the
+            platform when your role is activated.
           </p>
         </div>
       );
     case 'ACTIVE':
       return (
-        <ActiveDashboard
-          status={status}
-          {...(onNavigate === undefined ? {} : { onNavigate })}
-        />
+        <ActiveDashboard status={status} {...(onNavigate === undefined ? {} : { onNavigate })} />
       );
     case 'SUSPENDED':
       return (
@@ -457,8 +464,8 @@ function StatusView({
             Status: <SellerStateBadge state={status.state} />
           </p>
           <p className="muted">
-            Your seller account is currently suspended. Contact the platform
-            support team for assistance.
+            Your seller account is currently suspended. Contact the platform support team for
+            assistance.
           </p>
         </div>
       );
@@ -471,8 +478,8 @@ function StatusView({
             Status: <SellerStateBadge state={status.state} />
           </p>
           <p className="muted">
-            This seller profile is no longer active. If you believe this is an
-            error, contact the platform support team.
+            This seller profile is no longer active. If you believe this is an error, contact the
+            platform support team.
           </p>
         </div>
       );
@@ -507,9 +514,7 @@ function ActiveDashboard({
       <p>
         Status: <SellerStateBadge state={status.state} />
       </p>
-      <p className="muted">
-        Compliance: {COMPLIANCE_STATE_LABELS[status.complianceState]}
-      </p>
+      <p className="muted">Compliance: {COMPLIANCE_STATE_LABELS[status.complianceState]}</p>
       <ul className="plain-list">
         {sections.map((section) => (
           <li key={section.path}>
@@ -519,7 +524,9 @@ function ActiveDashboard({
               <button
                 type="button"
                 className="link"
-                onClick={() => { onNavigate(section.path); }}
+                onClick={() => {
+                  onNavigate(section.path);
+                }}
               >
                 {section.label}
               </button>

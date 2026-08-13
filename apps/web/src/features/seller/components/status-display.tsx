@@ -1,11 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import type {
-  ComplianceState,
-  SellerState,
-  VerificationType,
-} from '@/src/lib/seller-api';
+import type { ComplianceState, SellerState, VerificationType } from '@/src/lib/seller-api';
 
 /** Presentational state vocabulary — never authorization logic. */
 export const SELLER_STATE_LABELS: Readonly<Record<SellerState, string>> = {

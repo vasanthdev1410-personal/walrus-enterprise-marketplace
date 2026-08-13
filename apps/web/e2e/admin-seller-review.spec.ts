@@ -25,7 +25,11 @@ const sellerDetail = {
   version: 2,
   createdAt: '2026-08-01T00:00:00.000Z',
   updatedAt: '2026-08-01T00:00:00.000Z',
-  organization: { legalName: 'Walrus Retail', tradeName: 'Walrus', businessAddress: '1 Market Street' },
+  organization: {
+    legalName: 'Walrus Retail',
+    tradeName: 'Walrus',
+    businessAddress: '1 Market Street',
+  },
   members: [],
 };
 
@@ -36,11 +40,26 @@ async function mockAdminApi(page: Page, reviewState: Record<string, unknown>): P
 
     if (request.method() === 'GET' && path === '/admin/sellers') {
       await route.fulfill(
-        ok({ sellers: [{ sellerProfileId: sellerDetail.sellerProfileId, state: 'SUBMITTED', complianceState: 'IN_PROGRESS', version: 2, createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z' }] }),
+        ok({
+          sellers: [
+            {
+              sellerProfileId: sellerDetail.sellerProfileId,
+              state: 'SUBMITTED',
+              complianceState: 'IN_PROGRESS',
+              version: 2,
+              createdAt: '2026-08-01T00:00:00.000Z',
+              updatedAt: '2026-08-01T00:00:00.000Z',
+            },
+          ],
+        }),
       );
       return;
     }
-    if (request.method() === 'GET' && path.startsWith('/admin/sellers/') && path.endsWith('/evidence')) {
+    if (
+      request.method() === 'GET' &&
+      path.startsWith('/admin/sellers/') &&
+      path.endsWith('/evidence')
+    ) {
       await route.fulfill(
         ok({
           evidence: [
@@ -78,8 +97,13 @@ test('admin reviews a submitted seller through to APPROVED', async ({ page }) =>
   await mockAdminApi(page, state);
 
   await page.goto('/admin');
-  await expect(page.getByRole('button', { name: /0191310f-789a-7123-8123-000000000003/ }).first()).toBeVisible();
-  await page.getByRole('button', { name: /0191310f-789a-7123-8123-000000000003/ }).first().click();
+  await expect(
+    page.getByRole('button', { name: /0191310f-789a-7123-8123-000000000003/ }).first(),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: /0191310f-789a-7123-8123-000000000003/ })
+    .first()
+    .click();
   await expect(page.getByRole('heading', { name: /Seller 0191310f/ })).toBeVisible();
 
   // Evidence metadata renders metadata only — never the raw reference.
@@ -95,9 +119,7 @@ test('admin sees the generic access-denied state when the grant is missing', asy
     await route.fulfill(error(403, 'AUTHORIZATION_DENIED'));
   });
   await page.goto('/admin');
-  await expect(
-    page.getByText('You do not have permission to perform this action.'),
-  ).toBeVisible();
+  await expect(page.getByText('You do not have permission to perform this action.')).toBeVisible();
 });
 
 test('admin suspension requires a reason before calling the API', async ({ page }) => {
@@ -107,11 +129,26 @@ test('admin suspension requires a reason before calling the API', async ({ page 
     const path = new URL(request.url()).pathname.replace('/api/v1', '');
     if (request.method() === 'GET' && path === '/admin/sellers') {
       await route.fulfill(
-        ok({ sellers: [{ sellerProfileId: detail.sellerProfileId, state: 'ACTIVE', complianceState: 'COMPLIANT', version: 5, createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z' }] }),
+        ok({
+          sellers: [
+            {
+              sellerProfileId: detail.sellerProfileId,
+              state: 'ACTIVE',
+              complianceState: 'COMPLIANT',
+              version: 5,
+              createdAt: '2026-08-01T00:00:00.000Z',
+              updatedAt: '2026-08-01T00:00:00.000Z',
+            },
+          ],
+        }),
       );
       return;
     }
-    if (request.method() === 'GET' && path.startsWith('/admin/sellers/') && !path.endsWith('/evidence')) {
+    if (
+      request.method() === 'GET' &&
+      path.startsWith('/admin/sellers/') &&
+      !path.endsWith('/evidence')
+    ) {
       await route.fulfill(ok({ seller: detail }));
       return;
     }
@@ -123,8 +160,13 @@ test('admin suspension requires a reason before calling the API', async ({ page 
   });
 
   await page.goto('/admin');
-  await page.getByRole('button', { name: /0191310f/ }).first().click();
+  await page
+    .getByRole('button', { name: /0191310f/ })
+    .first()
+    .click();
   await page.getByRole('button', { name: 'Suspend' }).click();
   // No reason supplied → the API is not called; a validation notice appears.
-  await expect(page.getByText('The request could not be completed. Check the entered details and try again.')).toBeVisible();
+  await expect(
+    page.getByText('The request could not be completed. Check the entered details and try again.'),
+  ).toBeVisible();
 });

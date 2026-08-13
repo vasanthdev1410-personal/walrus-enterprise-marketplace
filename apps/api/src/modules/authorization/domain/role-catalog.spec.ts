@@ -96,8 +96,12 @@ describe('RoleCatalog (M02 domain core)', () => {
         expect(role?.properties.grantedPermissionIds).toContain('identity.privileged.provision');
         expect(role?.properties.grantedPermissionIds).toContain('identity.superadmin.bootstrap');
       } else {
-        expect(role?.properties.grantedPermissionIds).not.toContain('identity.privileged.provision');
-        expect(role?.properties.grantedPermissionIds).not.toContain('identity.superadmin.bootstrap');
+        expect(role?.properties.grantedPermissionIds).not.toContain(
+          'identity.privileged.provision',
+        );
+        expect(role?.properties.grantedPermissionIds).not.toContain(
+          'identity.superadmin.bootstrap',
+        );
       }
     }
   });

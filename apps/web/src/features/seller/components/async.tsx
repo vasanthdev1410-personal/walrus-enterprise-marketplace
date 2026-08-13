@@ -16,10 +16,7 @@ export type AsyncState<T> =
  * to be stable (`useCallback`) so the effect re-runs only when the loader or
  * dependencies change. All API failures are normalized to safe client states.
  */
-export function useAsync<T>(
-  load: () => Promise<T>,
-  deps: readonly unknown[],
-): AsyncState<T> {
+export function useAsync<T>(load: () => Promise<T>, deps: readonly unknown[]): AsyncState<T> {
   const [state, setState] = useState<AsyncState<T>>({ status: 'loading' });
 
   useEffect(() => {
@@ -31,8 +28,7 @@ export function useAsync<T>(
       },
       (error: unknown) => {
         if (cancelled) return;
-        const kind: SellerApiErrorKind =
-          error instanceof SellerApiError ? error.kind : 'SERVER';
+        const kind: SellerApiErrorKind = error instanceof SellerApiError ? error.kind : 'SERVER';
         setState({ status: 'error', kind });
       },
     );
@@ -48,7 +44,11 @@ export function useAsync<T>(
 }
 
 export function LoadingNotice(): ReactNode {
-  return <p className="notice" aria-live="polite">Loading…</p>;
+  return (
+    <p className="notice" aria-live="polite">
+      Loading…
+    </p>
+  );
 }
 
 export function ErrorNotice({ kind }: { readonly kind: SellerApiErrorKind }): ReactNode {

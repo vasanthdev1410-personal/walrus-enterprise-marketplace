@@ -24,21 +24,19 @@ const ok = (data: Record<string, unknown>): Response =>
 describe('AdminSellerList', () => {
   it('renders seller summary rows without evidence or registration data', async () => {
     const onSelect = vi.fn();
-    renderPanel(
-      <AdminSellerList onSelect={onSelect} />,
-      () =>
-        ok({
-          sellers: [
-            {
-              sellerProfileId: '0191310f-789a-7123-8123-000000000003',
-              state: 'SUBMITTED',
-              complianceState: 'IN_PROGRESS',
-              version: 2,
-              createdAt: '2026-08-01T00:00:00.000Z',
-              updatedAt: '2026-08-01T00:00:00.000Z',
-            },
-          ],
-        }),
+    renderPanel(<AdminSellerList onSelect={onSelect} />, () =>
+      ok({
+        sellers: [
+          {
+            sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+            state: 'SUBMITTED',
+            complianceState: 'IN_PROGRESS',
+            version: 2,
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z',
+          },
+        ],
+      }),
     );
     expect(
       (await screen.findAllByText(/0191310f-789a-7123-8123-000000000003/)).length,
@@ -48,10 +46,7 @@ describe('AdminSellerList', () => {
   });
 
   it('renders a non-enumerating empty state when no sellers match', async () => {
-    renderPanel(
-      <AdminSellerList onSelect={vi.fn()} />,
-      () => ok({ sellers: [] }),
-    );
+    renderPanel(<AdminSellerList onSelect={vi.fn()} />, () => ok({ sellers: [] }));
     expect(await screen.findByText('No sellers found.')).toBeInTheDocument();
   });
 
@@ -59,10 +54,18 @@ describe('AdminSellerList', () => {
     renderPanel(
       <AdminSellerList onSelect={vi.fn()} />,
       () =>
-        new Response(JSON.stringify({ success: false, message: 'AUTHORIZATION_DENIED', errorCode: 'UNEXPECTED_ERROR', errors: [] }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            success: false,
+            message: 'AUTHORIZATION_DENIED',
+            errorCode: 'UNEXPECTED_ERROR',
+            errors: [],
+          }),
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
     );
     expect(
       await screen.findByText('You do not have permission to perform this action.'),
@@ -78,7 +81,11 @@ describe('AdminSellerDetail', () => {
     version: 2,
     createdAt: '2026-08-01T00:00:00.000Z',
     updatedAt: '2026-08-01T00:00:00.000Z',
-    organization: { legalName: 'Walrus Retail', tradeName: 'Walrus', businessAddress: '1 Market Street' },
+    organization: {
+      legalName: 'Walrus Retail',
+      tradeName: 'Walrus',
+      businessAddress: '1 Market Street',
+    },
     members: [],
   };
 
@@ -86,30 +93,28 @@ describe('AdminSellerDetail', () => {
     const client = new SellerApiClient({
       baseUrl: 'http://api.test',
       getAccessToken: () => 'token',
-      fetchImpl: vi
-        .fn()
-        .mockImplementation((url: string) =>
-          Promise.resolve(
-            url.includes('/evidence')
-              ? ok({
-                  evidence: [
-                    {
-                      verificationId: '0191310f-789a-7123-8123-000000000004',
-                      verificationType: 'GST',
-                      verificationState: 'SUBMITTED',
-                      generation: 1,
-                      evidenceId: '0191310f-789a-7123-8123-000000000008',
-                      evidenceType: 'GST_CERTIFICATE',
-                      evidenceReference: 'ref:object:opaque',
-                      evidenceDigest: 'a'.repeat(64),
-                      uploadedByIdentityId: '0191310f-789a-7123-8123-000000000001',
-                      uploadedAt: '2026-08-01T00:00:00.000Z',
-                    },
-                  ],
-                })
-              : ok({ seller: detail }),
-          ),
-        ) as typeof fetch,
+      fetchImpl: vi.fn().mockImplementation((url: string) =>
+        Promise.resolve(
+          url.includes('/evidence')
+            ? ok({
+                evidence: [
+                  {
+                    verificationId: '0191310f-789a-7123-8123-000000000004',
+                    verificationType: 'GST',
+                    verificationState: 'SUBMITTED',
+                    generation: 1,
+                    evidenceId: '0191310f-789a-7123-8123-000000000008',
+                    evidenceType: 'GST_CERTIFICATE',
+                    evidenceReference: 'ref:object:opaque',
+                    evidenceDigest: 'a'.repeat(64),
+                    uploadedByIdentityId: '0191310f-789a-7123-8123-000000000001',
+                    uploadedAt: '2026-08-01T00:00:00.000Z',
+                  },
+                ],
+              })
+            : ok({ seller: detail }),
+        ),
+      ) as typeof fetch,
     });
     render(
       <SellerApiProvider client={client}>
@@ -125,11 +130,15 @@ describe('AdminSellerDetail', () => {
   });
 
   it('shows a validation notice when a reason is missing for REJECT', async () => {
-    renderPanel(<AdminSellerDetail sellerProfileId={detail.sellerProfileId} />, () => ok({ seller: detail, evidence: [] }));
+    renderPanel(<AdminSellerDetail sellerProfileId={detail.sellerProfileId} />, () =>
+      ok({ seller: detail, evidence: [] }),
+    );
     await screen.findByRole('button', { name: 'Reject' });
     fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
     expect(
-      await screen.findByText('The request could not be completed. Check the entered details and try again.'),
+      await screen.findByText(
+        'The request could not be completed. Check the entered details and try again.',
+      ),
     ).toBeInTheDocument();
   });
 
@@ -137,15 +146,29 @@ describe('AdminSellerDetail', () => {
     const client = new SellerApiClient({
       baseUrl: 'http://api.test',
       getAccessToken: () => 'token',
-      fetchImpl: vi
-        .fn()
-        .mockImplementation((url: string, init?: RequestInit) =>
-          Promise.resolve(
-            init?.method === 'POST'
-              ? new Response(JSON.stringify({ success: false, message: 'SELLER_STATE_CONFLICT', errorCode: 'UNEXPECTED_ERROR', errors: [] }), { status: 409, headers: { 'Content-Type': 'application/json' } })
-              : new Response(JSON.stringify({ data: { ...(url.includes('/evidence') ? { evidence: [] } : { seller: detail }) }, correlationId: 'c1' }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
-          ),
-        ) as typeof fetch,
+      fetchImpl: vi.fn().mockImplementation((url: string, init?: RequestInit) =>
+        Promise.resolve(
+          init?.method === 'POST'
+            ? new Response(
+                JSON.stringify({
+                  success: false,
+                  message: 'SELLER_STATE_CONFLICT',
+                  errorCode: 'UNEXPECTED_ERROR',
+                  errors: [],
+                }),
+                { status: 409, headers: { 'Content-Type': 'application/json' } },
+              )
+            : new Response(
+                JSON.stringify({
+                  data: {
+                    ...(url.includes('/evidence') ? { evidence: [] } : { seller: detail }),
+                  },
+                  correlationId: 'c1',
+                }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } },
+              ),
+        ),
+      ) as typeof fetch,
     });
     render(
       <SellerApiProvider client={client}>
@@ -155,7 +178,9 @@ describe('AdminSellerDetail', () => {
     await screen.findByRole('button', { name: 'Approve' });
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
     expect(
-      await screen.findByText('This action conflicts with the current state. Refresh and try again.'),
+      await screen.findByText(
+        'This action conflicts with the current state. Refresh and try again.',
+      ),
     ).toBeInTheDocument();
   });
 });

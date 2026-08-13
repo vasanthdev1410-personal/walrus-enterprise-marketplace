@@ -43,9 +43,9 @@ describe('SellerAssociationPolicy (M03-M1, WEMP-M03-CONTRACT-001 §A.2)', () => 
   });
 
   it('rejects a seller with no owner (fail closed)', () => {
-    expect(() =>
-      policy.assertValidAssociations([association(1, MEMBER_A, 'MEMBER')]),
-    ).toThrow('SELLER_OWNER_CONFLICT');
+    expect(() => policy.assertValidAssociations([association(1, MEMBER_A, 'MEMBER')])).toThrow(
+      'SELLER_OWNER_CONFLICT',
+    );
   });
 
   it('rejects a seller with multiple owners', () => {

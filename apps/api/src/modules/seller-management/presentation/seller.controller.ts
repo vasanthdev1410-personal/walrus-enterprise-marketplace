@@ -238,9 +238,7 @@ export class SellerController {
         expectedVersion: body.expectedVersion,
         ...(body.legalName === undefined ? {} : { legalName: body.legalName }),
         ...(body.tradeName === undefined ? {} : { tradeName: body.tradeName }),
-        ...(body.businessAddress === undefined
-          ? {}
-          : { businessAddress: body.businessAddress }),
+        ...(body.businessAddress === undefined ? {} : { businessAddress: body.businessAddress }),
         ...correlationField(),
       });
       noStore(response);
@@ -308,9 +306,7 @@ export class SellerController {
         expectedVersion: body.expectedVersion,
         ...(body.legalName === undefined ? {} : { legalName: body.legalName }),
         ...(body.tradeName === undefined ? {} : { tradeName: body.tradeName }),
-        ...(body.businessAddress === undefined
-          ? {}
-          : { businessAddress: body.businessAddress }),
+        ...(body.businessAddress === undefined ? {} : { businessAddress: body.businessAddress }),
         ...correlationField(),
       });
       noStore(response);

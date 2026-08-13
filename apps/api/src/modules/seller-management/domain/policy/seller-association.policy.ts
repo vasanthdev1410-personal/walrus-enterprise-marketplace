@@ -16,9 +16,7 @@ export class SellerAssociationPolicy {
   public assertValidAssociations(
     associations: readonly SellerIdentityAssociation[],
   ): SellerIdentityAssociation {
-    const active = associations.filter(
-      (association) => association.properties.state === 'ACTIVE',
-    );
+    const active = associations.filter((association) => association.properties.state === 'ACTIVE');
     const owners = active.filter(
       (association) => association.properties.associationRole === 'OWNER',
     );
@@ -34,7 +32,9 @@ export class SellerAssociationPolicy {
     if (owner.properties.associationId.value !== primaryOwner.properties.associationId.value) {
       throw new SellerDomainError('SELLER_OWNER_CONFLICT');
     }
-    const identityIds = new Set(active.map((association) => association.properties.identityId.value));
+    const identityIds = new Set(
+      active.map((association) => association.properties.identityId.value),
+    );
     if (identityIds.size !== active.length) {
       throw new SellerDomainError('SELLER_ASSOCIATION_CONFLICT');
     }

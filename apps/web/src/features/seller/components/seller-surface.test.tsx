@@ -27,32 +27,30 @@ const ok = (data: Record<string, unknown>): Response =>
 
 describe('VerificationPanel (evidence privacy)', () => {
   it('renders verification states without any evidence references or digests', async () => {
-    renderPanel(
-      <VerificationPanel />,
-      () =>
-        ok({
-          verification: {
-            sellerProfileId: '0191310f-789a-7123-8123-000000000003',
-            complianceState: 'IN_PROGRESS',
-            verifications: [{ verificationType: 'GST', state: 'SUBMITTED', generation: 1 }],
-          },
-        }),
+    renderPanel(<VerificationPanel />, () =>
+      ok({
+        verification: {
+          sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+          complianceState: 'IN_PROGRESS',
+          verifications: [{ verificationType: 'GST', state: 'SUBMITTED', generation: 1 }],
+        },
+      }),
     );
     expect(await screen.findByText('GST: SUBMITTED')).toBeInTheDocument();
-    expect(screen.queryByText(/evidenceReference|evidenceDigest|ref:object/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/evidenceReference|evidenceDigest|ref:object/i),
+    ).not.toBeInTheDocument();
   });
 
   it('shows an empty state when no verification records exist', async () => {
-    renderPanel(
-      <VerificationPanel />,
-      () =>
-        ok({
-          verification: {
-            sellerProfileId: '0191310f-789a-7123-8123-000000000003',
-            complianceState: 'NOT_STARTED',
-            verifications: [],
-          },
-        }),
+    renderPanel(<VerificationPanel />, () =>
+      ok({
+        verification: {
+          sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+          complianceState: 'NOT_STARTED',
+          verifications: [],
+        },
+      }),
     );
     expect(await screen.findByText('No verification records yet.')).toBeInTheDocument();
   });
@@ -60,22 +58,20 @@ describe('VerificationPanel (evidence privacy)', () => {
 
 describe('AgreementsPanel (D-05 record display only)', () => {
   it('renders agreement record fields but never rates or terms', async () => {
-    renderPanel(
-      <AgreementsPanel />,
-      () =>
-        ok({
-          agreements: [
-            {
-              agreementId: '0191310f-789a-7123-8123-000000000007',
-              agreementType: 'COMMISSION',
-              reference: 'cmv:commission/2026/001',
-              state: 'ACTIVE',
-              effectiveFrom: '2026-01-01T00:00:00.000Z',
-              effectiveTo: '2026-12-31T00:00:00.000Z',
-              signedAt: '2026-01-15T00:00:00.000Z',
-            },
-          ],
-        }),
+    renderPanel(<AgreementsPanel />, () =>
+      ok({
+        agreements: [
+          {
+            agreementId: '0191310f-789a-7123-8123-000000000007',
+            agreementType: 'COMMISSION',
+            reference: 'cmv:commission/2026/001',
+            state: 'ACTIVE',
+            effectiveFrom: '2026-01-01T00:00:00.000Z',
+            effectiveTo: '2026-12-31T00:00:00.000Z',
+            signedAt: '2026-01-15T00:00:00.000Z',
+          },
+        ],
+      }),
     );
     expect(await screen.findByText('COMMISSION')).toBeInTheDocument();
     expect(screen.getByText(/Reference: cmv:commission\/2026\/001/)).toBeInTheDocument();
@@ -92,21 +88,23 @@ describe('AgreementsPanel (D-05 record display only)', () => {
 
 describe('ProfilePanel', () => {
   it('renders the own profile without registration numbers', async () => {
-    renderPanel(
-      <ProfilePanel />,
-      () =>
-        ok({
-          profile: {
-            sellerProfileId: '0191310f-789a-7123-8123-000000000003',
-            state: 'ACTIVE',
-            complianceState: 'COMPLIANT',
-            version: 5,
-            createdAt: '2026-08-01T00:00:00.000Z',
-            updatedAt: '2026-08-01T00:00:00.000Z',
-            organization: { legalName: 'Walrus Retail', tradeName: 'Walrus', businessAddress: 'Addr' },
-            members: [],
+    renderPanel(<ProfilePanel />, () =>
+      ok({
+        profile: {
+          sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+          state: 'ACTIVE',
+          complianceState: 'COMPLIANT',
+          version: 5,
+          createdAt: '2026-08-01T00:00:00.000Z',
+          updatedAt: '2026-08-01T00:00:00.000Z',
+          organization: {
+            legalName: 'Walrus Retail',
+            tradeName: 'Walrus',
+            businessAddress: 'Addr',
           },
-        }),
+          members: [],
+        },
+      }),
     );
     expect(await screen.findByText('Seller profile')).toBeInTheDocument();
     expect(screen.queryByText(/registration|GSTIN|PAN/i)).not.toBeInTheDocument();
@@ -115,20 +113,18 @@ describe('ProfilePanel', () => {
 
 describe('WarehousesPanel', () => {
   it('lists warehouses', async () => {
-    renderPanel(
-      <WarehousesPanel />,
-      () =>
-        ok({
-          warehouses: [
-            {
-              warehouseId: '0191310f-789a-7123-8123-000000000005',
-              name: 'Main',
-              state: 'ACTIVE',
-              createdAt: '2026-08-01T00:00:00.000Z',
-              updatedAt: '2026-08-01T00:00:00.000Z',
-            },
-          ],
-        }),
+    renderPanel(<WarehousesPanel />, () =>
+      ok({
+        warehouses: [
+          {
+            warehouseId: '0191310f-789a-7123-8123-000000000005',
+            name: 'Main',
+            state: 'ACTIVE',
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z',
+          },
+        ],
+      }),
     );
     expect(await screen.findByText(/Main — ACTIVE/)).toBeInTheDocument();
   });
@@ -136,20 +132,18 @@ describe('WarehousesPanel', () => {
 
 describe('MembersPanel', () => {
   it('shows owner and member roles without PII', async () => {
-    renderPanel(
-      <MembersPanel />,
-      () =>
-        ok({
-          members: [
-            {
-              identityId: '0191310f-789a-7123-8123-000000000001',
-              associationRole: 'OWNER',
-              isPrimary: true,
-              state: 'ACTIVE',
-              addedAt: '2026-08-01T00:00:00.000Z',
-            },
-          ],
-        }),
+    renderPanel(<MembersPanel />, () =>
+      ok({
+        members: [
+          {
+            identityId: '0191310f-789a-7123-8123-000000000001',
+            associationRole: 'OWNER',
+            isPrimary: true,
+            state: 'ACTIVE',
+            addedAt: '2026-08-01T00:00:00.000Z',
+          },
+        ],
+      }),
     );
     expect(await screen.findByText(/Owner — 0191310f/)).toBeInTheDocument();
   });
@@ -160,10 +154,18 @@ describe('shared async states', () => {
     renderPanel(
       <ProfilePanel />,
       () =>
-        new Response(JSON.stringify({ success: false, message: 'An unexpected error occurred.', errorCode: 'UNEXPECTED_ERROR', errors: [] }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            success: false,
+            message: 'An unexpected error occurred.',
+            errorCode: 'UNEXPECTED_ERROR',
+            errors: [],
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
     );
     expect(
       await screen.findByText('An unexpected error occurred. Please try again shortly.'),
@@ -174,13 +176,23 @@ describe('shared async states', () => {
     renderPanel(
       <BusinessPanel />,
       () =>
-        new Response(JSON.stringify({ success: false, message: 'SELLER_PRECONDITION_FAILED', errorCode: 'VALIDATION_ERROR', errors: [] }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            success: false,
+            message: 'SELLER_PRECONDITION_FAILED',
+            errorCode: 'VALIDATION_ERROR',
+            errors: [],
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
     );
     expect(
-      await screen.findByText('The request could not be completed. Check the entered details and try again.'),
+      await screen.findByText(
+        'The request could not be completed. Check the entered details and try again.',
+      ),
     ).toBeInTheDocument();
   });
 });
@@ -189,10 +201,7 @@ describe('AsyncBoundary empty callback (present data)', () => {
   it('renders the data children when the empty callback returns null', async () => {
     const { AsyncBoundary } = await import('./async');
     render(
-      <AsyncBoundary
-        state={{ status: 'ready', data: [1] }}
-        empty={() => null}
-      >
+      <AsyncBoundary state={{ status: 'ready', data: [1] }} empty={() => null}>
         {(data) => <p>{String(data.length)} items</p>}
       </AsyncBoundary>,
     );
@@ -208,10 +217,13 @@ describe('WarehousesPanel create flow', () => {
       fetchImpl: vi.fn().mockImplementation((url: string, init?: RequestInit) => {
         if (init?.method === 'POST') {
           return Promise.resolve(
-            new Response(JSON.stringify({ data: { warehouse: { state: 'ACTIVE' } }, correlationId: 'c1' }), {
-              status: 201,
-              headers: { 'Content-Type': 'application/json' },
-            }),
+            new Response(
+              JSON.stringify({ data: { warehouse: { state: 'ACTIVE' } }, correlationId: 'c1' }),
+              {
+                status: 201,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            ),
           );
         }
         if (url.includes('/profile')) {
@@ -267,10 +279,16 @@ describe('MembersPanel add flow', () => {
       fetchImpl: vi.fn().mockImplementation((url: string, init?: RequestInit) => {
         if (init?.method === 'POST') {
           return Promise.resolve(
-            new Response(JSON.stringify({ data: { member: { associationState: 'ACTIVE' } }, correlationId: 'c1' }), {
-              status: 201,
-              headers: { 'Content-Type': 'application/json' },
-            }),
+            new Response(
+              JSON.stringify({
+                data: { member: { associationState: 'ACTIVE' } },
+                correlationId: 'c1',
+              }),
+              {
+                status: 201,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            ),
           );
         }
         if (url.includes('/profile')) {
@@ -327,10 +345,16 @@ describe('BusinessPanel edit flow', () => {
         if (init?.method === 'PATCH') {
           patched.push({ init });
           return Promise.resolve(
-            new Response(JSON.stringify({ data: { seller: { state: 'DRAFT', version: 2 } }, correlationId: 'c1' }), {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' },
-            }),
+            new Response(
+              JSON.stringify({
+                data: { seller: { state: 'DRAFT', version: 2 } },
+                correlationId: 'c1',
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            ),
           );
         }
         if (url.includes('/profile')) {
@@ -358,7 +382,9 @@ describe('BusinessPanel edit flow', () => {
         return Promise.resolve(
           new Response(
             JSON.stringify({
-              data: { business: { version: 1, legalName: 'L', tradeName: 'T', businessAddress: 'A' } },
+              data: {
+                business: { version: 1, legalName: 'L', tradeName: 'T', businessAddress: 'A' },
+              },
               correlationId: 'c1',
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } },

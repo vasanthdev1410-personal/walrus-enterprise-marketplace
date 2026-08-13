@@ -367,7 +367,11 @@ describe('Module 03 admin seller API (integration)', () => {
         .post(`/admin/sellers/${sellerProfileId}/review`)
         .set(authHeader)
         .set('Idempotency-Key', 'idempotency-key-review-003')
-        .send({ action: 'REQUEST_CORRECTIONS', expectedVersion: 3, reasonReference: 'WEMP-REV-0001' })
+        .send({
+          action: 'REQUEST_CORRECTIONS',
+          expectedVersion: 3,
+          reasonReference: 'WEMP-REV-0001',
+        })
         .expect(200);
 
       const command = firstCallArg(verification.requestCorrections) as
@@ -391,7 +395,9 @@ describe('Module 03 admin seller API (integration)', () => {
 
     it('denies self-approval attempts (SoD) with a generic AUTHORIZATION_DENIED', async () => {
       useAal2Session();
-      verification.decideReview.mockRejectedValue(new SellerApplicationError('SELLER_SOD_VIOLATION'));
+      verification.decideReview.mockRejectedValue(
+        new SellerApplicationError('SELLER_SOD_VIOLATION'),
+      );
 
       const response = await request(server)
         .post(`/admin/sellers/${sellerProfileId}/review`)
@@ -592,10 +598,7 @@ describe('Module 03 admin seller API (integration)', () => {
         .expect(200);
 
       expect(envelopeOf(response).data?.sellers).toBeDefined();
-      expect(read.listSellers).toHaveBeenCalledWith(
-        expect.anything(),
-        'ACTIVE',
-      );
+      expect(read.listSellers).toHaveBeenCalledWith(expect.anything(), 'ACTIVE');
     });
 
     it('rejects an unknown state filter as 400 SELLER_PRECONDITION_FAILED', async () => {

@@ -157,20 +157,20 @@ approved additive Module 02 change.
 
 ## Test strategy (module-wide, mandatory)
 
-| Area | Requirement |
-| ---- | ----------- |
-| Domain unit tests | Lifecycle state machine, invariants, compliance derivation |
-| API integration tests | Every §13 endpoint through the guard chain |
-| Database tests | Mapper roundtrips, constraints, migration-safety on clean DB |
-| Ownership tests | Cross-organization and cross-seller access denied |
-| Authorization tests | Full `seller.*` matrix grant/deny, role-state, assignment-state |
-| Negative security tests | Privilege escalation, self-approval, stale version, forged owner |
-| Duplicate seller tests | Registration-digest uniqueness; identity re-association idempotency |
-| Concurrency tests | Optimistic version conflicts on all mutations |
-| Lifecycle transition tests | Every allowed/denied/terminal transition |
-| KYC/KYB access tests | Evidence readable only via `seller.evidence.read`; no PII in audit |
-| Audit tests | Append-only business audit; authorization decisions remain in Module 02 |
-| E2E tests | Web seller onboarding + admin review; mobile widget tests |
+| Area                       | Requirement                                                             |
+| -------------------------- | ----------------------------------------------------------------------- |
+| Domain unit tests          | Lifecycle state machine, invariants, compliance derivation              |
+| API integration tests      | Every §13 endpoint through the guard chain                              |
+| Database tests             | Mapper roundtrips, constraints, migration-safety on clean DB            |
+| Ownership tests            | Cross-organization and cross-seller access denied                       |
+| Authorization tests        | Full `seller.*` matrix grant/deny, role-state, assignment-state         |
+| Negative security tests    | Privilege escalation, self-approval, stale version, forged owner        |
+| Duplicate seller tests     | Registration-digest uniqueness; identity re-association idempotency     |
+| Concurrency tests          | Optimistic version conflicts on all mutations                           |
+| Lifecycle transition tests | Every allowed/denied/terminal transition                                |
+| KYC/KYB access tests       | Evidence readable only via `seller.evidence.read`; no PII in audit      |
+| Audit tests                | Append-only business audit; authorization decisions remain in Module 02 |
+| E2E tests                  | Web seller onboarding + admin review; mobile widget tests               |
 
 Quality gates preserve repository thresholds (current API coverage
 ≈ 90.7% lines / 89.3% functions / 80.2% branches; lint, typecheck, Prisma

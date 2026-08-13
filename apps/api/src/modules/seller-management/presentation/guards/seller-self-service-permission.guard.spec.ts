@@ -64,9 +64,7 @@ describe('SellerSelfServicePermissionGuard (M03-M5, D-11 org scope)', () => {
     const request = requestWithClaims({ subject: SUBJECT.value, sessionId: 's' });
 
     await expect(
-      guard.canActivate(
-        contextFor(handlerWithPermission('seller.warehouse.read'), request),
-      ),
+      guard.canActivate(contextFor(handlerWithPermission('seller.warehouse.read'), request)),
     ).resolves.toBe(true);
     expect(authorize).toHaveBeenCalledWith({
       subjectIdentityId: SUBJECT,
@@ -85,15 +83,11 @@ describe('SellerSelfServicePermissionGuard (M03-M5, D-11 org scope)', () => {
     const guard = new SellerSelfServicePermissionGuard(authorizationWith(authorize), sellers);
     const request = requestWithClaims({ subject: SUBJECT.value, sessionId: 's' });
 
-    await guard.canActivate(
-      contextFor(handlerWithPermission('seller.agreement.read'), request),
-    );
+    await guard.canActivate(contextFor(handlerWithPermission('seller.agreement.read'), request));
 
     expect(sellers.findProfileByAssociatedIdentityId).toHaveBeenCalledWith(SUBJECT);
     // No client-supplied identifier ever reaches the engine as a scope.
-    expect(authorize).toHaveBeenCalledWith(
-      expect.objectContaining({ resourceReference: SELLER }),
-    );
+    expect(authorize).toHaveBeenCalledWith(expect.objectContaining({ resourceReference: SELLER }));
   });
 
   it('fails closed with AUTHORIZATION_DENIED when the decision is denied', async () => {
@@ -143,7 +137,10 @@ describe('SellerSelfServicePermissionGuard (M03-M5, D-11 org scope)', () => {
 
   it('fails closed when the caller has no resolvable seller (no association)', async () => {
     const authorize = jest.fn();
-    const guard = new SellerSelfServicePermissionGuard(authorizationWith(authorize), repositoryWith(null));
+    const guard = new SellerSelfServicePermissionGuard(
+      authorizationWith(authorize),
+      repositoryWith(null),
+    );
 
     await expect(
       guard.canActivate(
@@ -174,9 +171,9 @@ describe('SellerSelfServicePermissionGuard (M03-M5, D-11 org scope)', () => {
 
   it('fails closed when the ownership resolution errors', async () => {
     const sellers = repositoryWith(undefined);
-    sellers.findProfileByAssociatedIdentityId = jest.fn().mockRejectedValue(
-      new Error('storage down'),
-    );
+    sellers.findProfileByAssociatedIdentityId = jest
+      .fn()
+      .mockRejectedValue(new Error('storage down'));
     const guard = new SellerSelfServicePermissionGuard(authorizationWith(jest.fn()), sellers);
 
     await expect(

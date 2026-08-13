@@ -8,11 +8,7 @@ import type { VerificationType } from '../value-objects/verification-type';
  * approved Module 01 v1.12 §7. ADDRESS verification is not mandatory for the
  * compliance summary.
  */
-export const MANDATORY_VERIFICATION_TYPES: readonly VerificationType[] = [
-  'GST',
-  'PAN',
-  'BANK',
-];
+export const MANDATORY_VERIFICATION_TYPES: readonly VerificationType[] = ['GST', 'PAN', 'BANK'];
 
 /**
  * Pure compliance derivation. The compliance state is recomputed on read and
@@ -32,7 +28,10 @@ export class SellerCompliancePolicy {
     const latest = new Map<string, SellerBusinessVerification>();
     for (const verification of mandatory) {
       const current = latest.get(verification.properties.verificationType);
-      if (current === undefined || verification.properties.generation > current.properties.generation) {
+      if (
+        current === undefined ||
+        verification.properties.generation > current.properties.generation
+      ) {
         latest.set(verification.properties.verificationType, verification);
       }
     }
@@ -43,13 +42,14 @@ export class SellerCompliancePolicy {
     if (latestRecords.some((record) => record.properties.state === 'REJECTED')) {
       return 'NON_COMPLIANT';
     }
-    if (MANDATORY_VERIFICATION_TYPES.every((type) =>
-      latestRecords.some(
-        (record) =>
-          record.properties.verificationType === type &&
-          record.properties.state === 'APPROVED',
-      ),
-    )) {
+    if (
+      MANDATORY_VERIFICATION_TYPES.every((type) =>
+        latestRecords.some(
+          (record) =>
+            record.properties.verificationType === type && record.properties.state === 'APPROVED',
+        ),
+      )
+    ) {
       return 'COMPLIANT';
     }
     return 'IN_PROGRESS';

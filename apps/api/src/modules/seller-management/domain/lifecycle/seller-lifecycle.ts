@@ -25,12 +25,7 @@ import { isTerminalSellerState, type SellerState } from '../value-objects/seller
  *  - SYSTEM: automatic activation after the approved Module 02 role assignment
  */
 export type SellerActorKind =
-  | 'SELLER_OWNER'
-  | 'SELLER_MEMBER'
-  | 'ADMIN_REVIEWER'
-  | 'ADMIN_APPROVER'
-  | 'ADMIN'
-  | 'SYSTEM';
+  'SELLER_OWNER' | 'SELLER_MEMBER' | 'ADMIN_REVIEWER' | 'ADMIN_APPROVER' | 'ADMIN' | 'SYSTEM';
 
 export interface SellerActor {
   readonly identityId: UuidV7;
@@ -71,37 +66,37 @@ interface TransitionRule {
 const TRANSITION_TABLE: Readonly<
   Partial<Record<SellerState, Readonly<Partial<Record<SellerState, TransitionRule>>>>>
 > = {
-    DRAFT: {
-      SUBMITTED: { actors: ['SELLER_OWNER'], reasonRequired: false },
-    },
-    SUBMITTED: {
-      UNDER_REVIEW: { actors: ['ADMIN_REVIEWER'], reasonRequired: false },
-      REJECTED: { actors: ['ADMIN_APPROVER'], reasonRequired: true },
-    },
-    UNDER_REVIEW: {
-      CORRECTIONS_REQUESTED: { actors: ['ADMIN_REVIEWER'], reasonRequired: true },
-      APPROVED: { actors: ['ADMIN_APPROVER'], reasonRequired: false },
-      REJECTED: { actors: ['ADMIN_APPROVER'], reasonRequired: true },
-    },
-    CORRECTIONS_REQUESTED: {
-      SUBMITTED: { actors: ['SELLER_OWNER'], reasonRequired: false },
-      REJECTED: { actors: ['ADMIN_APPROVER'], reasonRequired: true },
-    },
-    APPROVED: {
-      ACTIVE: { actors: ['SYSTEM'], reasonRequired: false },
-      CLOSED: { actors: ['SELLER_OWNER', 'ADMIN'], reasonRequired: true },
-    },
-    ACTIVE: {
-      SUSPENDED: { actors: ['ADMIN'], reasonRequired: true },
-      CLOSED: { actors: ['SELLER_OWNER', 'ADMIN'], reasonRequired: true },
-    },
-    SUSPENDED: {
-      ACTIVE: { actors: ['ADMIN'], reasonRequired: false },
-      CLOSED: { actors: ['SELLER_OWNER', 'ADMIN'], reasonRequired: true },
-    },
-    REJECTED: {},
-    CLOSED: {},
-  };
+  DRAFT: {
+    SUBMITTED: { actors: ['SELLER_OWNER'], reasonRequired: false },
+  },
+  SUBMITTED: {
+    UNDER_REVIEW: { actors: ['ADMIN_REVIEWER'], reasonRequired: false },
+    REJECTED: { actors: ['ADMIN_APPROVER'], reasonRequired: true },
+  },
+  UNDER_REVIEW: {
+    CORRECTIONS_REQUESTED: { actors: ['ADMIN_REVIEWER'], reasonRequired: true },
+    APPROVED: { actors: ['ADMIN_APPROVER'], reasonRequired: false },
+    REJECTED: { actors: ['ADMIN_APPROVER'], reasonRequired: true },
+  },
+  CORRECTIONS_REQUESTED: {
+    SUBMITTED: { actors: ['SELLER_OWNER'], reasonRequired: false },
+    REJECTED: { actors: ['ADMIN_APPROVER'], reasonRequired: true },
+  },
+  APPROVED: {
+    ACTIVE: { actors: ['SYSTEM'], reasonRequired: false },
+    CLOSED: { actors: ['SELLER_OWNER', 'ADMIN'], reasonRequired: true },
+  },
+  ACTIVE: {
+    SUSPENDED: { actors: ['ADMIN'], reasonRequired: true },
+    CLOSED: { actors: ['SELLER_OWNER', 'ADMIN'], reasonRequired: true },
+  },
+  SUSPENDED: {
+    ACTIVE: { actors: ['ADMIN'], reasonRequired: false },
+    CLOSED: { actors: ['SELLER_OWNER', 'ADMIN'], reasonRequired: true },
+  },
+  REJECTED: {},
+  CLOSED: {},
+};
 
 export class SellerLifecycle {
   /**
@@ -126,7 +121,10 @@ export class SellerLifecycle {
     if (!rule.actors.includes(actor.kind)) {
       throw new SellerDomainError('SELLER_TRANSITION_FORBIDDEN');
     }
-    if (rule.reasonRequired && (command.reasonReference === undefined || command.reasonReference.trim().length === 0)) {
+    if (
+      rule.reasonRequired &&
+      (command.reasonReference === undefined || command.reasonReference.trim().length === 0)
+    ) {
       throw new SellerDomainError('SELLER_REASON_REQUIRED');
     }
 
@@ -160,10 +158,14 @@ export class SellerLifecycle {
       actorKind: actor.kind,
       transitionedAt: now,
       createdAt: now,
-      ...(command.reasonReference !== undefined ? { reasonReference: command.reasonReference } : {}),
+      ...(command.reasonReference !== undefined
+        ? { reasonReference: command.reasonReference }
+        : {}),
       ...(command.correlationId !== undefined ? { correlationId: command.correlationId } : {}),
       ...(command.causationId !== undefined ? { causationId: command.causationId } : {}),
-      ...(command.sourceReference !== undefined ? { sourceReference: command.sourceReference } : {}),
+      ...(command.sourceReference !== undefined
+        ? { sourceReference: command.sourceReference }
+        : {}),
     });
   }
 
@@ -188,7 +190,11 @@ export class SellerLifecycle {
    * timestamps are maintained (submittedAt, approvedAt, suspendedAt,
    * closedAt); updatedAt and aggregateVersion are always advanced.
    */
-  public updatedProfile(sellerProfile: SellerProfile, toState: SellerState, now: Date): SellerProfile {
+  public updatedProfile(
+    sellerProfile: SellerProfile,
+    toState: SellerState,
+    now: Date,
+  ): SellerProfile {
     const properties = sellerProfile.properties;
     return new SellerProfile({
       ...properties,

@@ -59,7 +59,9 @@ export class Module02SellerRoleAssignmentAdapter implements Module02Authorizatio
         ...(request.revokedByIdentityId === undefined
           ? {}
           : { revokedByIdentityId: request.revokedByIdentityId }),
-        ...(request.reasonReference === undefined ? {} : { reasonReference: request.reasonReference }),
+        ...(request.reasonReference === undefined
+          ? {}
+          : { reasonReference: request.reasonReference }),
         ...(request.correlationId === undefined ? {} : { correlationId: request.correlationId }),
       });
     } catch {

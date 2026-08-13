@@ -32,7 +32,9 @@ export class SellerOrganization {
       throw new Error('Seller organization trade name is required');
     }
     if (!/^[0-9a-f]{64}$/i.test(properties.registrationLookupDigest)) {
-      throw new Error('Seller organization registration lookup digest must be a SHA-256 hex digest');
+      throw new Error(
+        'Seller organization registration lookup digest must be a SHA-256 hex digest',
+      );
     }
     if (properties.businessAddress.trim().length === 0) {
       throw new Error('Seller organization business address is required');

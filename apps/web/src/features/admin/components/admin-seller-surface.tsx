@@ -44,11 +44,11 @@ export function AdminSellerList({
         State
         <select
           value={stateFilter ?? ''}
-          onChange={(event) =>
-            { setStateFilter(
+          onChange={(event) => {
+            setStateFilter(
               event.target.value === '' ? undefined : (event.target.value as SellerState),
-            ); }
-          }
+            );
+          }}
         >
           <option value="">All</option>
           {(
@@ -83,7 +83,9 @@ export function AdminSellerList({
                 <button
                   type="button"
                   className="link"
-                  onClick={() => { onSelect(seller.sellerProfileId); }}
+                  onClick={() => {
+                    onSelect(seller.sellerProfileId);
+                  }}
                 >
                   <SellerStateBadge state={seller.state} />{' '}
                   <span className="id">{seller.sellerProfileId}</span>
@@ -107,7 +109,10 @@ export function AdminSellerDetail({
   readonly sellerProfileId: string;
 }): ReactNode {
   const client = useSellerApi();
-  const load = useCallback(() => client.getSellerDetail(sellerProfileId), [client, sellerProfileId]);
+  const load = useCallback(
+    () => client.getSellerDetail(sellerProfileId),
+    [client, sellerProfileId],
+  );
   const state = useAsync(load, [load]);
   return (
     <AsyncBoundary state={state}>
@@ -117,9 +122,7 @@ export function AdminSellerDetail({
           <p>
             Status: <SellerStateBadge state={seller.state} />
           </p>
-          <p className="muted">
-            Compliance: {COMPLIANCE_STATE_LABELS[seller.complianceState]}
-          </p>
+          <p className="muted">Compliance: {COMPLIANCE_STATE_LABELS[seller.complianceState]}</p>
           <div className="muted detail-list">
             <p>Legal name: {seller.organization.legalName}</p>
             <p>Trade name: {seller.organization.tradeName}</p>
@@ -154,19 +157,10 @@ function ReviewActions({ seller }: { readonly seller: OwnProfile }): ReactNode {
 
   function run(action: AdminReviewAction, requiresReason: boolean): void {
     if (requiresReason && reason.trim().length === 0) {
-      setNotice(
-        <ErrorNotice kind="VALIDATION" />,
-      );
+      setNotice(<ErrorNotice kind="VALIDATION" />);
       return;
     }
-    void review(
-      client,
-      seller,
-      action,
-      requiresReason ? reason : undefined,
-      setSaving,
-      setNotice,
-    );
+    void review(client, seller, action, requiresReason ? reason : undefined, setSaving, setNotice);
   }
 
   return (
@@ -179,7 +173,9 @@ function ReviewActions({ seller }: { readonly seller: OwnProfile }): ReactNode {
             type="button"
             className="btn"
             disabled={saving}
-            onClick={() => { run(entry.action, entry.requiresReason); }}
+            onClick={() => {
+              run(entry.action, entry.requiresReason);
+            }}
           >
             {entry.label}
           </button>
@@ -189,7 +185,9 @@ function ReviewActions({ seller }: { readonly seller: OwnProfile }): ReactNode {
         Reason (required for corrections / reject)
         <input
           value={reason}
-          onChange={(event) => { setReason(event.target.value); }}
+          onChange={(event) => {
+            setReason(event.target.value);
+          }}
           maxLength={256}
         />
       </label>
@@ -214,7 +212,11 @@ async function review(
       expectedVersion: seller.version,
       ...(reasonReference === undefined ? {} : { reasonReference }),
     });
-    setNotice(<div className="notice" role="status">Review decision recorded.</div>);
+    setNotice(
+      <div className="notice" role="status">
+        Review decision recorded.
+      </div>,
+    );
   } catch (error) {
     setNotice(<ErrorNotice kind={toKind(error)} />);
   } finally {
@@ -265,7 +267,9 @@ function SuspendActions({ seller }: { readonly seller: OwnProfile }): ReactNode 
         Reason (required for suspension)
         <input
           value={reason}
-          onChange={(event) => { setReason(event.target.value); }}
+          onChange={(event) => {
+            setReason(event.target.value);
+          }}
           maxLength={256}
         />
       </label>
@@ -288,7 +292,11 @@ async function suspendSeller(
       expectedVersion: seller.version,
       reasonReference,
     });
-    setNotice(<div className="notice" role="status">Seller suspended.</div>);
+    setNotice(
+      <div className="notice" role="status">
+        Seller suspended.
+      </div>,
+    );
   } catch (error) {
     setNotice(<ErrorNotice kind={toKind(error)} />);
   } finally {
@@ -308,7 +316,11 @@ async function reactivateSeller(
       sellerProfileId: seller.sellerProfileId,
       expectedVersion: seller.version,
     });
-    setNotice(<div className="notice" role="status">Seller reactivated.</div>);
+    setNotice(
+      <div className="notice" role="status">
+        Seller reactivated.
+      </div>,
+    );
   } catch (error) {
     setNotice(<ErrorNotice kind={toKind(error)} />);
   } finally {
@@ -320,20 +332,17 @@ async function reactivateSeller(
 // Evidence metadata (admin-only; metadata only — never content)
 // ---------------------------------------------------------------------------
 
-function EvidenceMetadata({
-  sellerProfileId,
-}: {
-  readonly sellerProfileId: string;
-}): ReactNode {
+function EvidenceMetadata({ sellerProfileId }: { readonly sellerProfileId: string }): ReactNode {
   const client = useSellerApi();
-  const load = useCallback(() => client.getEvidenceMetadata(sellerProfileId), [client, sellerProfileId]);
+  const load = useCallback(
+    () => client.getEvidenceMetadata(sellerProfileId),
+    [client, sellerProfileId],
+  );
   const state = useAsync(load, [load]);
   return (
     <div className="panel-sub">
       <h3>Evidence metadata</h3>
-      <p className="muted">
-        Metadata only — document contents are never shown.
-      </p>
+      <p className="muted">Metadata only — document contents are never shown.</p>
       <AsyncBoundary state={state}>
         {(evidence: readonly EvidenceMetadataEntry[]) =>
           evidence.length === 0 ? (

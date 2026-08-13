@@ -372,9 +372,7 @@ export class SellerAuthorizationApplicationService {
   }
 
   private async requireOwnerIdentityId(profile: SellerProfile): Promise<UuidV7> {
-    const associations = await this.repository.findAssociations(
-      profile.properties.sellerProfileId,
-    );
+    const associations = await this.repository.findAssociations(profile.properties.sellerProfileId);
     const owner = this.associations.assertValidAssociations(associations);
     return owner.properties.identityId;
   }

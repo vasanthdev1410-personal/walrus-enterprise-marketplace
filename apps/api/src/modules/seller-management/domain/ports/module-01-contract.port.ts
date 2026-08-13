@@ -7,12 +7,7 @@ import type { UuidV7 } from '../../../identity-authentication/domain/shared/valu
  * is intentionally not imported — the adapter maps it into this boundary type.
  */
 export type BoundaryIdentityState =
-  | 'PENDING_VERIFICATION'
-  | 'ACTIVE'
-  | 'LOCKED'
-  | 'SUSPENDED'
-  | 'DISABLED'
-  | 'DELETED';
+  'PENDING_VERIFICATION' | 'ACTIVE' | 'LOCKED' | 'SUSPENDED' | 'DISABLED' | 'DELETED';
 
 export type BoundaryIdentityVerificationState = 'PENDING_VERIFICATION' | 'VERIFIED';
 

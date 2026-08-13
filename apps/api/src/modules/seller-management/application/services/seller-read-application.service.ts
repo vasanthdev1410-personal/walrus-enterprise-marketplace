@@ -128,9 +128,7 @@ export class SellerReadApplicationService {
    * authenticated identity through the authoritative association store — the
    * client never supplies a seller identifier.
    */
-  public async getOwnOnboardingStatus(
-    identityId: UuidV7,
-  ): Promise<OwnOnboardingStatusResult> {
+  public async getOwnOnboardingStatus(identityId: UuidV7): Promise<OwnOnboardingStatusResult> {
     const profile = await this.requireOwnProfile(identityId);
     const [organization, verifications] = await Promise.all([
       this.repository.findOrganization(profile.properties.organizationId),
@@ -139,7 +137,12 @@ export class SellerReadApplicationService {
     if (organization === null) {
       throw new SellerApplicationError('SELLER_NOT_FOUND');
     }
-    return toOnboardingStatus(profile, organization, this.compliance.derive(verifications), verifications);
+    return toOnboardingStatus(
+      profile,
+      organization,
+      this.compliance.derive(verifications),
+      verifications,
+    );
   }
 
   /**

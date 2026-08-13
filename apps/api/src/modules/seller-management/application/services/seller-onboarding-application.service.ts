@@ -215,9 +215,7 @@ export class SellerOnboardingApplicationService {
    * verification submission) is a hard precondition. Idempotent via the
    * request key; version-guarded save; mandatory audit appended atomically.
    */
-  public async submitOnboarding(
-    command: SubmitOnboardingCommand,
-  ): Promise<OnboardingSubmitResult> {
+  public async submitOnboarding(command: SubmitOnboardingCommand): Promise<OnboardingSubmitResult> {
     const profile = await this.repository.findById(command.sellerProfileId);
     if (profile === null) throw new SellerApplicationError('SELLER_NOT_FOUND');
     if (profile.properties.aggregateVersion.value !== command.expectedVersion) {
@@ -265,7 +263,9 @@ export class SellerOnboardingApplicationService {
               actorIdentityId: command.actorIdentityId,
               occurredAt: now,
               createdAt: now,
-              ...(command.correlationId !== undefined ? { correlationId: command.correlationId } : {}),
+              ...(command.correlationId !== undefined
+                ? { correlationId: command.correlationId }
+                : {}),
             }),
           ),
           profile.properties.aggregateVersion,
@@ -348,9 +348,7 @@ export class SellerOnboardingApplicationService {
     await this.assertOwnerActor(profile, command.actorIdentityId);
     await this.assertIdentityEligible(command.actorIdentityId);
 
-    const organization = await this.repository.findOrganization(
-      profile.properties.organizationId,
-    );
+    const organization = await this.repository.findOrganization(profile.properties.organizationId);
     if (organization === null) throw new SellerApplicationError('SELLER_NOT_FOUND');
 
     const now = this.clock.now();
@@ -362,9 +360,7 @@ export class SellerOnboardingApplicationService {
         ? { businessAddress: command.businessAddress }
         : {}),
       updatedAt: now,
-      aggregateVersion: new AggregateVersion(
-        organization.properties.aggregateVersion.value + 1,
-      ),
+      aggregateVersion: new AggregateVersion(organization.properties.aggregateVersion.value + 1),
     });
     const updatedProfile = new SellerProfile({
       ...profile.properties,
@@ -389,7 +385,9 @@ export class SellerOnboardingApplicationService {
             actorIdentityId: command.actorIdentityId,
             occurredAt: now,
             createdAt: now,
-            ...(command.correlationId !== undefined ? { correlationId: command.correlationId } : {}),
+            ...(command.correlationId !== undefined
+              ? { correlationId: command.correlationId }
+              : {}),
           }),
         ],
       },
@@ -402,13 +400,8 @@ export class SellerOnboardingApplicationService {
     };
   }
 
-  private async assertOwnerActor(
-    profile: SellerProfile,
-    actorIdentityId: UuidV7,
-  ): Promise<void> {
-    const associations = await this.repository.findAssociations(
-      profile.properties.sellerProfileId,
-    );
+  private async assertOwnerActor(profile: SellerProfile, actorIdentityId: UuidV7): Promise<void> {
+    const associations = await this.repository.findAssociations(profile.properties.sellerProfileId);
     this.associations.assertValidAssociations(associations);
     const association = this.associations.findActiveAssociation(
       associations,

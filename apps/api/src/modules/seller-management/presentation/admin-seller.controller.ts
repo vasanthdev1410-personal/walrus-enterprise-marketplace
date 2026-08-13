@@ -39,11 +39,7 @@ import {
   SELLER_READ_APPLICATION_SERVICE,
   SELLER_VERIFICATION_APPLICATION_SERVICE,
 } from '../seller-management.tokens';
-import {
-  AdminReactivateDto,
-  AdminReviewDto,
-  AdminSuspendDto,
-} from './dto/seller.dto';
+import { AdminReactivateDto, AdminReviewDto, AdminSuspendDto } from './dto/seller.dto';
 import { mapSellerError } from './seller-error-mapping';
 import { correlationField } from './correlation';
 
@@ -74,7 +70,21 @@ export class AdminSellerController {
   @Get()
   @UseGuards(AuthorizationPermissionGuard)
   @RequiresPermission('seller.audit.view')
-  @ApiQuery({ name: 'state', required: false, enum: ['DRAFT','SUBMITTED','UNDER_REVIEW','CORRECTIONS_REQUESTED','APPROVED','ACTIVE','SUSPENDED','REJECTED','CLOSED'] })
+  @ApiQuery({
+    name: 'state',
+    required: false,
+    enum: [
+      'DRAFT',
+      'SUBMITTED',
+      'UNDER_REVIEW',
+      'CORRECTIONS_REQUESTED',
+      'APPROVED',
+      'ACTIVE',
+      'SUSPENDED',
+      'REJECTED',
+      'CLOSED',
+    ],
+  })
   @ApiOperation({
     operationId: 'M03-ADMIN-SELLERS-LIST',
     summary: 'List sellers (non-enumerating summary rows; optional state filter)',
@@ -291,7 +301,19 @@ const SELLER_STATES = [
   'CLOSED',
 ] as const;
 
-function parseOptionalState(value: string | undefined): 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'CORRECTIONS_REQUESTED' | 'APPROVED' | 'ACTIVE' | 'SUSPENDED' | 'REJECTED' | 'CLOSED' | undefined {
+function parseOptionalState(
+  value: string | undefined,
+):
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'UNDER_REVIEW'
+  | 'CORRECTIONS_REQUESTED'
+  | 'APPROVED'
+  | 'ACTIVE'
+  | 'SUSPENDED'
+  | 'REJECTED'
+  | 'CLOSED'
+  | undefined {
   if (value === undefined) return undefined;
   if ((SELLER_STATES as readonly string[]).includes(value)) {
     return value as (typeof SELLER_STATES)[number];

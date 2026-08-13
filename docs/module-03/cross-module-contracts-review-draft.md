@@ -45,15 +45,15 @@ Seller self-registration **shall**:
 
 `SellerIdentityAssociation` records every Identity ↔ Seller link:
 
-| Field | Proposal |
-| ----- | -------- |
-| `associationId` | UUIDv7 PK |
-| `sellerProfileId` | Logical reference to `SellerProfile` |
-| `identityId` | Logical reference to Module 01 Identity UUIDv7 — **no FK** |
-| `associationRole` | `OWNER` (one per seller) or `MEMBER` |
-| `isPrimary` | Indicates the owning/primary association |
-| `state` | `ACTIVE` / `REMOVED` |
-| `aggregateVersion`, timestamps | Concurrency and audit |
+| Field                          | Proposal                                                   |
+| ------------------------------ | ---------------------------------------------------------- |
+| `associationId`                | UUIDv7 PK                                                  |
+| `sellerProfileId`              | Logical reference to `SellerProfile`                       |
+| `identityId`                   | Logical reference to Module 01 Identity UUIDv7 — **no FK** |
+| `associationRole`              | `OWNER` (one per seller) or `MEMBER`                       |
+| `isPrimary`                    | Indicates the owning/primary association                   |
+| `state`                        | `ACTIVE` / `REMOVED`                                       |
+| `aggregateVersion`, timestamps | Concurrency and audit                                      |
 
 Proposed invariants:
 
@@ -94,13 +94,13 @@ state is untouched by recovery.
 
 ### A.6 Identity suspension/deactivation effects (proposed — decision D-04)
 
-| Module 01 Identity state | Seller effect (proposed) |
-| ------------------------ | ------------------------ |
-| `ACTIVE`, `VERIFIED` | Full seller operations permitted (per seller state) |
-| `PENDING_VERIFICATION` | Seller operations denied (identity not verified) |
-| `LOCKED` / `SUSPENDED` | Seller operations denied while locked/suspended; seller state unchanged; fail closed |
-| `DISABLED` | Seller operations denied; administrative review recommended |
-| `DELETED` | Association removed; seller record retained append-only (no personal data retained beyond retention policy) |
+| Module 01 Identity state | Seller effect (proposed)                                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `ACTIVE`, `VERIFIED`     | Full seller operations permitted (per seller state)                                                         |
+| `PENDING_VERIFICATION`   | Seller operations denied (identity not verified)                                                            |
+| `LOCKED` / `SUSPENDED`   | Seller operations denied while locked/suspended; seller state unchanged; fail closed                        |
+| `DISABLED`               | Seller operations denied; administrative review recommended                                                 |
+| `DELETED`                | Association removed; seller record retained append-only (no personal data retained beyond retention policy) |
 
 The effect matrix is enforced by the association resolver, never by copying
 identity state into Module 03 (no duplicated authentication state).

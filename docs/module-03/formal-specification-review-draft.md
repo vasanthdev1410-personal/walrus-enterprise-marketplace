@@ -32,7 +32,7 @@ Authoritative inputs used for this draft:
 
 1. `docs/module-01/specifications/Module 01 Corrected Draft v1.12.txt`
    (approved) — in particular Section 7 `[WEMP-M01-001 §7] Seller Profile
-   Boundary` and the approved ownership model.
+Boundary` and the approved ownership model.
 2. `docs/module-02/formal-specification-review-draft.md` and
    `docs/architecture/decisions/ADR-M02-001-enterprise-authorization-architecture-review-draft.md`
    (review drafts) — permission vocabulary, role matrix, and audit conventions.
@@ -90,17 +90,17 @@ All entities are **PROPOSED / REQUIRES APPROVAL**. They are Module 03-owned and
 must not be read or written by Module 01 or Module 02 storage (cross-module
 storage isolation, see §9).
 
-| Entity | Responsibility | Key fields (proposed) |
-| ------ | -------------- | --------------------- |
-| `SellerProfile` | The seller aggregate root; owns lifecycle, compliance, and business status | `sellerProfileId`, `organizationId`, `state` (SellerState), `complianceState`, `aggregateVersion`, `createdAt`, `updatedAt`, `submittedAt`, `approvedAt`, `suspendedAt`, `closedAt`, `correlationId` |
-| `SellerOrganization` | The legal business entity (KYC/KYB subject) | `organizationId`, `legalName`, `tradeName`, `businessType`, `registrationNumber`, `registrationLookupDigest` (unique), `businessAddress` (protected fields), `state`, `aggregateVersion`, timestamps |
-| `SellerIdentityAssociation` | Identity ↔ Seller membership (owner and members) | `associationId`, `sellerProfileId`, `identityId` (logical Module 01 reference), `associationRole` (OWNER/MEMBER), `isPrimary`, `state` (ACTIVE/REMOVED), `aggregateVersion`, timestamps |
-| `SellerBusinessVerification` | Per-type KYC/KYB verification record | `verificationId`, `sellerProfileId`, `verificationType` (GST/PAN/BANK/ADDRESS), `state`, `submittedByIdentityId`, `reviewedByIdentityId`, `reviewedAt`, `aggregateVersion`, generation |
-| `SellerVerificationEvidence` | Append-only evidence references and digests | `evidenceId`, `verificationId`, `evidenceType`, `evidenceReference` (opaque), `evidenceDigest`, `uploadedByIdentityId`, `state`, timestamps |
-| `SellerWarehouse` | Warehouse/location records | `warehouseId`, `sellerProfileId`, `name`, `address` (protected fields), `state`, timestamps |
-| `SellerAgreement` | Agreements incl. commission agreements | `agreementId`, `sellerProfileId`, `agreementType` (COMMISSION, ...), `reference`, `state`, `effectiveFrom`, `effectiveTo`, `signedAt`, timestamps |
-| `SellerStateTransition` | Append-only lifecycle episode log (mirrors `IdentityStateTransition`) | `transitionId`, `sellerProfileId`, `fromState`, `toState`, `actorIdentityId`, `reasonReference`, `correlationId`, `causationId`, `occurredAt` |
-| `SellerBusinessAuditRecord` | Append-only Module 03 business audit events | `auditEventId`, `sellerProfileId`, `eventType`, `actorIdentityId`, `correlationId`, `evidenceDigest`, `occurredAt` |
+| Entity                       | Responsibility                                                             | Key fields (proposed)                                                                                                                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SellerProfile`              | The seller aggregate root; owns lifecycle, compliance, and business status | `sellerProfileId`, `organizationId`, `state` (SellerState), `complianceState`, `aggregateVersion`, `createdAt`, `updatedAt`, `submittedAt`, `approvedAt`, `suspendedAt`, `closedAt`, `correlationId` |
+| `SellerOrganization`         | The legal business entity (KYC/KYB subject)                                | `organizationId`, `legalName`, `tradeName`, `businessType`, `registrationNumber`, `registrationLookupDigest` (unique), `businessAddress` (protected fields), `state`, `aggregateVersion`, timestamps |
+| `SellerIdentityAssociation`  | Identity ↔ Seller membership (owner and members)                           | `associationId`, `sellerProfileId`, `identityId` (logical Module 01 reference), `associationRole` (OWNER/MEMBER), `isPrimary`, `state` (ACTIVE/REMOVED), `aggregateVersion`, timestamps              |
+| `SellerBusinessVerification` | Per-type KYC/KYB verification record                                       | `verificationId`, `sellerProfileId`, `verificationType` (GST/PAN/BANK/ADDRESS), `state`, `submittedByIdentityId`, `reviewedByIdentityId`, `reviewedAt`, `aggregateVersion`, generation               |
+| `SellerVerificationEvidence` | Append-only evidence references and digests                                | `evidenceId`, `verificationId`, `evidenceType`, `evidenceReference` (opaque), `evidenceDigest`, `uploadedByIdentityId`, `state`, timestamps                                                          |
+| `SellerWarehouse`            | Warehouse/location records                                                 | `warehouseId`, `sellerProfileId`, `name`, `address` (protected fields), `state`, timestamps                                                                                                          |
+| `SellerAgreement`            | Agreements incl. commission agreements                                     | `agreementId`, `sellerProfileId`, `agreementType` (COMMISSION, ...), `reference`, `state`, `effectiveFrom`, `effectiveTo`, `signedAt`, timestamps                                                    |
+| `SellerStateTransition`      | Append-only lifecycle episode log (mirrors `IdentityStateTransition`)      | `transitionId`, `sellerProfileId`, `fromState`, `toState`, `actorIdentityId`, `reasonReference`, `correlationId`, `causationId`, `occurredAt`                                                        |
+| `SellerBusinessAuditRecord`  | Append-only Module 03 business audit events                                | `auditEventId`, `sellerProfileId`, `eventType`, `actorIdentityId`, `correlationId`, `evidenceDigest`, `occurredAt`                                                                                   |
 
 Identity is never duplicated. `identityId` columns are logical references to
 Module 01 Identities — UUIDv7 values, **no foreign key** to the Module 01
@@ -117,19 +117,19 @@ Optimistic concurrency (`aggregateVersion`) is mandatory on every mutation;
 duplicate transitions and stale versions are rejected. Any missing, unknown,
 or inconsistent state fails closed (deny).
 
-| From | To | Permitted actor | Required evidence | Notes |
-| ---- | -- | --------------- | ----------------- | ----- |
-| `DRAFT` | `SUBMITTED` | Seller OWNER (SELLER role, `seller.onboarding.submit`) | Mandatory onboarding fields complete; at least one verification submitted | Idempotent via request key |
-| `SUBMITTED` | `UNDER_REVIEW` | Admin (reviewer) | Review claim recorded | First reviewer assignment |
-| `UNDER_REVIEW` | `CORRECTIONS_REQUESTED` | Admin (reviewer) | Reason reference (non-disclosing externally) | Seller may resubmit |
-| `CORRECTIONS_REQUESTED` | `SUBMITTED` | Seller OWNER | Corrected fields/evidence | New review cycle |
-| `UNDER_REVIEW` | `APPROVED` | Admin (approver ≠ reviewer) | All mandatory verifications approved; compliance checks pass | Separation of duties (§8) |
-| `APPROVED` | `ACTIVE` | System (activation) after SELLER role assignment | SELLER role assigned via approved Module 02 contract | Selling enabled only after role assignment |
-| `ACTIVE` | `SUSPENDED` | Admin (`seller.suspend.manage`) | Reason reference + audit | Reversible |
-| `SUSPENDED` | `ACTIVE` | Admin (`seller.suspend.manage`) | Reactivation approval + audit | Requires identity still eligible |
-| `ACTIVE`/`SUSPENDED` | `CLOSED` | Seller OWNER (voluntary) or Admin (administrative) | Reason reference; no open obligations (proposed gate) | Terminal |
-| `UNDER_REVIEW`/`SUBMITTED`/`CORRECTIONS_REQUESTED` | `REJECTED` | Admin (approver) | Reason reference (non-disclosing) | Terminal; new onboarding creates a new seller profile |
-| `DRAFT` | `DRAFT` | Seller OWNER | — | Update of incomplete onboarding; version-checked |
+| From                                               | To                      | Permitted actor                                        | Required evidence                                                         | Notes                                                 |
+| -------------------------------------------------- | ----------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `DRAFT`                                            | `SUBMITTED`             | Seller OWNER (SELLER role, `seller.onboarding.submit`) | Mandatory onboarding fields complete; at least one verification submitted | Idempotent via request key                            |
+| `SUBMITTED`                                        | `UNDER_REVIEW`          | Admin (reviewer)                                       | Review claim recorded                                                     | First reviewer assignment                             |
+| `UNDER_REVIEW`                                     | `CORRECTIONS_REQUESTED` | Admin (reviewer)                                       | Reason reference (non-disclosing externally)                              | Seller may resubmit                                   |
+| `CORRECTIONS_REQUESTED`                            | `SUBMITTED`             | Seller OWNER                                           | Corrected fields/evidence                                                 | New review cycle                                      |
+| `UNDER_REVIEW`                                     | `APPROVED`              | Admin (approver ≠ reviewer)                            | All mandatory verifications approved; compliance checks pass              | Separation of duties (§8)                             |
+| `APPROVED`                                         | `ACTIVE`                | System (activation) after SELLER role assignment       | SELLER role assigned via approved Module 02 contract                      | Selling enabled only after role assignment            |
+| `ACTIVE`                                           | `SUSPENDED`             | Admin (`seller.suspend.manage`)                        | Reason reference + audit                                                  | Reversible                                            |
+| `SUSPENDED`                                        | `ACTIVE`                | Admin (`seller.suspend.manage`)                        | Reactivation approval + audit                                             | Requires identity still eligible                      |
+| `ACTIVE`/`SUSPENDED`                               | `CLOSED`                | Seller OWNER (voluntary) or Admin (administrative)     | Reason reference; no open obligations (proposed gate)                     | Terminal                                              |
+| `UNDER_REVIEW`/`SUBMITTED`/`CORRECTIONS_REQUESTED` | `REJECTED`              | Admin (approver)                                       | Reason reference (non-disclosing)                                         | Terminal; new onboarding creates a new seller profile |
+| `DRAFT`                                            | `DRAFT`                 | Seller OWNER                                           | —                                                                         | Update of incomplete onboarding; version-checked      |
 
 Proposed invariants:
 
@@ -303,24 +303,24 @@ reference when needed to explain its own action.
 
 Base path follows the repository convention (`/api/v1`). All **PROPOSED**.
 
-| Method | Path | Permission | Purpose |
-| ------ | ---- | ---------- | ------- |
-| `POST` | `/api/v1/seller/onboarding` | `seller.onboarding.create` | Create `DRAFT` seller profile |
-| `POST` | `/api/v1/seller/onboarding/submit` | `seller.onboarding.submit` | Submit for review (idempotent) |
-| `GET` | `/api/v1/seller/profile` | `seller.profile.read` | Read own seller profile |
-| `PATCH` | `/api/v1/seller/profile` | `seller.profile.update` | Update own profile (version-checked) |
-| `POST` | `/api/v1/seller/verification` | `seller.verification.submit` | Submit KYC/KYB evidence |
-| `GET` | `/api/v1/seller/verification` | `seller.verification.read` | View own verification status |
-| `GET/PATCH` | `/api/v1/seller/business` | `seller.organization.read` / `seller.organization.update` | Business information |
-| `GET/POST` | `/api/v1/seller/warehouses` | `seller.warehouse.read` / `seller.warehouse.manage` | Warehouse records |
-| `GET` | `/api/v1/seller/agreements` | `seller.agreement.read` | Commission/agreement read |
-| `GET/POST/DELETE` | `/api/v1/seller/members` | `seller.member.read` / `seller.member.manage` | Seller organization members |
-| `GET` | `/api/v1/admin/sellers` | `seller.audit.view` (list) | Non-enumerating seller list/filter |
-| `GET` | `/api/v1/admin/sellers/:id` | `seller.audit.view` | Seller detail |
-| `POST` | `/api/v1/admin/sellers/:id/review` | `seller.review.decide` | Approve / reject / request corrections |
-| `POST` | `/api/v1/admin/sellers/:id/suspend` | `seller.suspend.manage` | Suspend |
-| `POST` | `/api/v1/admin/sellers/:id/reactivate` | `seller.suspend.manage` | Reactivate |
-| `GET` | `/api/v1/admin/sellers/:id/evidence` | `seller.evidence.read` | Inspect verification evidence |
+| Method            | Path                                   | Permission                                                | Purpose                                |
+| ----------------- | -------------------------------------- | --------------------------------------------------------- | -------------------------------------- |
+| `POST`            | `/api/v1/seller/onboarding`            | `seller.onboarding.create`                                | Create `DRAFT` seller profile          |
+| `POST`            | `/api/v1/seller/onboarding/submit`     | `seller.onboarding.submit`                                | Submit for review (idempotent)         |
+| `GET`             | `/api/v1/seller/profile`               | `seller.profile.read`                                     | Read own seller profile                |
+| `PATCH`           | `/api/v1/seller/profile`               | `seller.profile.update`                                   | Update own profile (version-checked)   |
+| `POST`            | `/api/v1/seller/verification`          | `seller.verification.submit`                              | Submit KYC/KYB evidence                |
+| `GET`             | `/api/v1/seller/verification`          | `seller.verification.read`                                | View own verification status           |
+| `GET/PATCH`       | `/api/v1/seller/business`              | `seller.organization.read` / `seller.organization.update` | Business information                   |
+| `GET/POST`        | `/api/v1/seller/warehouses`            | `seller.warehouse.read` / `seller.warehouse.manage`       | Warehouse records                      |
+| `GET`             | `/api/v1/seller/agreements`            | `seller.agreement.read`                                   | Commission/agreement read              |
+| `GET/POST/DELETE` | `/api/v1/seller/members`               | `seller.member.read` / `seller.member.manage`             | Seller organization members            |
+| `GET`             | `/api/v1/admin/sellers`                | `seller.audit.view` (list)                                | Non-enumerating seller list/filter     |
+| `GET`             | `/api/v1/admin/sellers/:id`            | `seller.audit.view`                                       | Seller detail                          |
+| `POST`            | `/api/v1/admin/sellers/:id/review`     | `seller.review.decide`                                    | Approve / reject / request corrections |
+| `POST`            | `/api/v1/admin/sellers/:id/suspend`    | `seller.suspend.manage`                                   | Suspend                                |
+| `POST`            | `/api/v1/admin/sellers/:id/reactivate` | `seller.suspend.manage`                                   | Reactivate                             |
+| `GET`             | `/api/v1/admin/sellers/:id/evidence`   | `seller.evidence.read`                                    | Inspect verification evidence          |
 
 Error model follows the repository standard: non-disclosing, versioned
 responses; no policy/evidence internals exposed.
@@ -334,13 +334,13 @@ scope, deliverables, tests, and acceptance criteria: WEMP-M03-PLAN-001.
 
 ## 15. Approval register
 
-| ID | Topic | Status |
-| -- | ----- | ------ |
-| M03-AR-01 | Domain model, lifecycle, verification model | PROPOSED — REQUIRES APPROVAL |
+| ID        | Topic                                                             | Status                       |
+| --------- | ----------------------------------------------------------------- | ---------------------------- |
+| M03-AR-01 | Domain model, lifecycle, verification model                       | PROPOSED — REQUIRES APPROVAL |
 | M03-AR-02 | SELLER role catalog + `seller.*` permissions + ownership resolver | PROPOSED — REQUIRES APPROVAL |
-| M03-AR-03 | Module 01 ↔ 03 identity-association contract | PROPOSED — REQUIRES APPROVAL |
-| M03-AR-04 | KYC/KYB evidence handling (storage, retention, encryption) | PROPOSED — REQUIRES APPROVAL |
-| M03-AR-05 | Milestone plan and Phase 1 scope | PROPOSED — REQUIRES APPROVAL |
+| M03-AR-03 | Module 01 ↔ 03 identity-association contract                      | PROPOSED — REQUIRES APPROVAL |
+| M03-AR-04 | KYC/KYB evidence handling (storage, retention, encryption)        | PROPOSED — REQUIRES APPROVAL |
+| M03-AR-05 | Milestone plan and Phase 1 scope                                  | PROPOSED — REQUIRES APPROVAL |
 
 ## 16. Owner decision catalogue
 

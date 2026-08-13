@@ -134,7 +134,11 @@ describe('SellerReadApplicationService (M03-M5)', () => {
         version: 3,
         organization: { legalName: 'Walrus Retail Pvt Ltd' },
       });
-      expect(result.verifications[0]).toMatchObject({ verificationType: 'GST', state: 'APPROVED', generation: 2 });
+      expect(result.verifications[0]).toMatchObject({
+        verificationType: 'GST',
+        state: 'APPROVED',
+        generation: 2,
+      });
       // No evidence references/digests are ever exposed to the seller.
       expect(JSON.stringify(result)).not.toContain('evidenceReference');
       expect(JSON.stringify(result)).not.toContain('registrationNumber');
@@ -176,7 +180,10 @@ describe('SellerReadApplicationService (M03-M5)', () => {
         sellerProfileId: SELLER.value,
         state: 'ACTIVE',
       });
-      expect(result.members[0]).toMatchObject({ identityId: OWNER.value, associationRole: 'OWNER' });
+      expect(result.members[0]).toMatchObject({
+        identityId: OWNER.value,
+        associationRole: 'OWNER',
+      });
       expect(JSON.stringify(result)).not.toContain('evidenceReference');
       expect(JSON.stringify(result)).not.toContain('registrationNumber');
     });

@@ -15,15 +15,15 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: /
-    schedule: { interval: weekly, day: monday, time: "06:00" }
+    schedule: { interval: weekly, day: monday, time: '06:00' }
     open-pull-requests-limit: 5
     # Resolve to the minimum version satisfying the declared range instead of
     # jumping to the latest major (avoids accidental major upgrades).
     versioning-strategy: increase-if-necessary
     groups:
       safe-patch-updates:
-        patterns: ["*"]
-        update-types: ["patch", "minor"]
+        patterns: ['*']
+        update-types: ['patch', 'minor']
     ignore:
       # TypeScript 7 is the native (Go) compiler rewrite: it does not expose
       # the programmatic compiler API required by Nest CLI, ts-jest, or
@@ -33,21 +33,21 @@ updates:
       - dependency-name: typescript
       # @types/jest 30.x is a major types bump with no security value; the
       # pinned jest 30.4.2 works with @types/jest 29.5.14. Deferred.
-      - dependency-name: "@types/jest"
-        versions: [">=30.0.0"]
+      - dependency-name: '@types/jest'
+        versions: ['>=30.0.0']
   - package-ecosystem: github-actions
     directory: /
-    schedule: { interval: weekly, day: monday, time: "06:00" }
+    schedule: { interval: weekly, day: monday, time: '06:00' }
     open-pull-requests-limit: 2
   - package-ecosystem: docker
     directory: /apps/api
-    schedule: { interval: monthly, day: monday, time: "06:00" }
+    schedule: { interval: monthly, day: monday, time: '06:00' }
     open-pull-requests-limit: 1
   - package-ecosystem: docker
     directory: /apps/web
-    schedule: { interval: monthly, day: monday, time: "06:00" }
+    schedule: { interval: monthly, day: monday, time: '06:00' }
     open-pull-requests-limit: 1
   - package-ecosystem: terraform
     directory: /infrastructure/terraform/environments/foundation
-    schedule: { interval: monthly, day: monday, time: "06:00" }
+    schedule: { interval: monthly, day: monday, time: '06:00' }
     open-pull-requests-limit: 1

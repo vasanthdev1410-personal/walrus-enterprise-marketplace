@@ -304,7 +304,10 @@ describe('SellerRetentionApplicationService (M03-M3, D-03, WEMP-M03-SPEC-001)', 
       repository.findById.mockResolvedValue(profile());
       repository.findVerifications.mockResolvedValue([verification()]);
       repository.findEvidence.mockResolvedValue([evidence(OLD_UPLOAD)]);
-      retentionConfiguration.findRule.mockResolvedValue({ category: 'GST_CERTIFICATE', retentionDays: 0 });
+      retentionConfiguration.findRule.mockResolvedValue({
+        category: 'GST_CERTIFICATE',
+        retentionDays: 0,
+      });
       await expect(service.processEvidenceRetention(command)).rejects.toMatchObject({
         name: 'SellerDomainError',
         code: 'SELLER_RETENTION_CONFIG_INVALID',

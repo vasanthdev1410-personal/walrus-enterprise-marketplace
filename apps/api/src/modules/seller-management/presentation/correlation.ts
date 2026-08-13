@@ -7,8 +7,7 @@ import { currentCorrelationId } from '../../identity-authentication/presentation
  * the value is not a valid UUIDv7 (never throws into a handler).
  */
 export function correlationField():
-  | Readonly<{ correlationId: CorrelationIdentifier }>
-  | Readonly<Record<string, never>> {
+  Readonly<{ correlationId: CorrelationIdentifier }> | Readonly<Record<string, never>> {
   const value = currentCorrelationId();
   if (value === undefined) return Object.freeze({});
   try {

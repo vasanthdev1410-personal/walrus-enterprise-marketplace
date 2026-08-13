@@ -126,7 +126,9 @@ describe('SellerWarehouseApplicationService (M03-M5)', () => {
         state: 'ACTIVE',
       });
       expect(changeSet?.sellerProfile.properties.aggregateVersion.value).toBe(6);
-      expect(changeSet?.auditRecordsToAppend[0]?.properties.eventType).toBe('SELLER_WAREHOUSE_CREATED');
+      expect(changeSet?.auditRecordsToAppend[0]?.properties.eventType).toBe(
+        'SELLER_WAREHOUSE_CREATED',
+      );
     });
 
     it('denies a MEMBER (owner action only)', async () => {
@@ -137,9 +139,9 @@ describe('SellerWarehouseApplicationService (M03-M5)', () => {
         association(MEMBER, 'MEMBER'),
       ]);
 
-      await expect(service.createWarehouse({ ...command, actorIdentityId: MEMBER })).rejects.toEqual(
-        new SellerApplicationError('SELLER_OWNERSHIP_DENIED'),
-      );
+      await expect(
+        service.createWarehouse({ ...command, actorIdentityId: MEMBER }),
+      ).rejects.toEqual(new SellerApplicationError('SELLER_OWNERSHIP_DENIED'));
       expect(repository.save).not.toHaveBeenCalled();
     });
 
@@ -148,9 +150,9 @@ describe('SellerWarehouseApplicationService (M03-M5)', () => {
       repository.findById.mockResolvedValue(profile(6));
       repository.findAssociations.mockResolvedValue([association(OWNER, 'OWNER')]);
 
-      await expect(
-        service.createWarehouse({ ...command, expectedVersion: 5 }),
-      ).rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
+      await expect(service.createWarehouse({ ...command, expectedVersion: 5 })).rejects.toEqual(
+        new SellerApplicationError('SELLER_STATE_CONFLICT'),
+      );
       expect(repository.save).not.toHaveBeenCalled();
     });
 
@@ -186,7 +188,9 @@ describe('SellerWarehouseApplicationService (M03-M5)', () => {
         state: 'CLOSED',
         closedAt: NOW,
       });
-      expect(changeSet?.auditRecordsToAppend[0]?.properties.eventType).toBe('SELLER_WAREHOUSE_CLOSED');
+      expect(changeSet?.auditRecordsToAppend[0]?.properties.eventType).toBe(
+        'SELLER_WAREHOUSE_CLOSED',
+      );
     });
 
     it('rejects closing an unknown warehouse (non-enumerating)', async () => {

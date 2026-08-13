@@ -1,5 +1,8 @@
 import { Global, Module } from '@nestjs/common';
-import type { ClockPort, UuidV7GenerationPort } from '../identity-authentication/application/ports/application-runtime.port';
+import type {
+  ClockPort,
+  UuidV7GenerationPort,
+} from '../identity-authentication/application/ports/application-runtime.port';
 import {
   CLOCK,
   UUID_V7_GENERATOR,
@@ -215,12 +218,7 @@ import type { NonProductionRateLimiterPort } from '../identity-authentication/ap
         compliance: SellerCompliancePolicy,
         adminAuthorization: Module02SellerAdminAuthorizationAdapter,
       ) =>
-        new SellerReadApplicationService(
-          repository,
-          associations,
-          compliance,
-          adminAuthorization,
-        ),
+        new SellerReadApplicationService(repository, associations, compliance, adminAuthorization),
     },
     {
       provide: SELLER_WAREHOUSE_APPLICATION_SERVICE,

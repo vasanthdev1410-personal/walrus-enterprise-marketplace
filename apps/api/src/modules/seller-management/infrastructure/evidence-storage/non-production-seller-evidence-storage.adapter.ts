@@ -22,7 +22,10 @@ const MAX_REFERENCE_LENGTH = 1024;
  */
 @Injectable()
 export class NonProductionSellerEvidenceStorageAdapter implements SellerEvidenceStoragePort {
-  public verifyEvidenceIntegrity(evidenceReference: string, evidenceDigest: string): Promise<boolean> {
+  public verifyEvidenceIntegrity(
+    evidenceReference: string,
+    evidenceDigest: string,
+  ): Promise<boolean> {
     if (evidenceReference.trim().length === 0 || evidenceReference.length > MAX_REFERENCE_LENGTH) {
       return Promise.resolve(false);
     }

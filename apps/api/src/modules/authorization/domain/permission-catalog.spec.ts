@@ -68,7 +68,12 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'seller.warehouse.read',
     ]);
     // The administrative seller permissions are never organization-scoped.
-    for (const id of ['seller.review.decide', 'seller.suspend.manage', 'seller.evidence.read', 'seller.audit.view']) {
+    for (const id of [
+      'seller.review.decide',
+      'seller.suspend.manage',
+      'seller.evidence.read',
+      'seller.audit.view',
+    ]) {
       expect(catalog.isOrganizationScoped(id)).toBe(false);
     }
     expect(catalog.isOrganizationScoped('recovery.approval.decide')).toBe(false);

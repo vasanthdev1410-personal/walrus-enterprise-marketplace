@@ -26,7 +26,11 @@ const draftStatus = {
   version: 1,
   createdAt: '2026-08-01T00:00:00.000Z',
   updatedAt: '2026-08-01T00:00:00.000Z',
-  organization: { legalName: 'Walrus Retail', tradeName: 'Walrus', businessAddress: '1 Market Street' },
+  organization: {
+    legalName: 'Walrus Retail',
+    tradeName: 'Walrus',
+    businessAddress: '1 Market Street',
+  },
   verifications: [],
 };
 
@@ -41,7 +45,11 @@ async function mockSellerApi(page: Page, status: Record<string, unknown>): Promi
       return;
     }
     if (request.method() === 'POST' && path === '/seller/onboarding') {
-      await route.fulfill({ status: 201, body: ok({ seller: { state: 'DRAFT', version: 1 } }).body, headers: { 'Content-Type': 'application/json' } });
+      await route.fulfill({
+        status: 201,
+        body: ok({ seller: { state: 'DRAFT', version: 1 } }).body,
+        headers: { 'Content-Type': 'application/json' },
+      });
       return;
     }
     if (request.method() === 'POST' && path === '/seller/onboarding/submit') {
@@ -111,7 +119,9 @@ test('seller sees a safe conflict message on 409 during submit', async ({ page }
   ).toBeVisible();
 });
 
-test('seller dashboard exposes the approved post-approval sections for ACTIVE sellers', async ({ page }) => {
+test('seller dashboard exposes the approved post-approval sections for ACTIVE sellers', async ({
+  page,
+}) => {
   await mockSellerApi(page, {
     ...draftStatus,
     state: 'ACTIVE',

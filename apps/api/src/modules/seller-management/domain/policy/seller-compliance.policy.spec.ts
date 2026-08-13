@@ -20,7 +20,9 @@ function verification(
 ): SellerBusinessVerification {
   const reviewed = state === 'APPROVED' || state === 'REJECTED';
   return new SellerBusinessVerification({
-    verificationId: new UuidV7(`0191310f-789a-7123-8123-0000000000${String(index).padStart(2, '0')}`),
+    verificationId: new UuidV7(
+      `0191310f-789a-7123-8123-0000000000${String(index).padStart(2, '0')}`,
+    ),
     sellerProfileId: SELLER,
     verificationType,
     state,
@@ -33,7 +35,14 @@ function verification(
   });
 }
 
-function organization(overrides: Partial<{ legalName: string; tradeName: string; digest: string; address: string }> = {}): SellerOrganization {
+function organization(
+  overrides: Partial<{
+    legalName: string;
+    tradeName: string;
+    digest: string;
+    address: string;
+  }> = {},
+): SellerOrganization {
   return new SellerOrganization({
     organizationId: new UuidV7('0191310f-789a-7123-8123-000000000011'),
     legalName: overrides.legalName ?? 'Walrus Trading Ltd',
@@ -130,11 +139,9 @@ describe('SellerCompliancePolicy (M03-M1, WEMP-M03-SPEC-001 §5)', () => {
 
   describe('isOnboardingComplete (DRAFT → SUBMITTED gate)', () => {
     it('accepts a complete organization with at least one submitted verification', () => {
-      expect(
-        policy.isOnboardingComplete(organization(), [
-          verification('GST', 'SUBMITTED'),
-        ]),
-      ).toBe(true);
+      expect(policy.isOnboardingComplete(organization(), [verification('GST', 'SUBMITTED')])).toBe(
+        true,
+      );
     });
 
     it('rejects a missing organization (fail closed)', () => {

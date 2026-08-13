@@ -30,9 +30,7 @@ export class SellerBusinessVerification {
     if (!Number.isSafeInteger(properties.generation) || properties.generation < 1) {
       throw new Error('Verification generation must be a positive safe integer');
     }
-    if (
-      (properties.reviewedByIdentityId === undefined) !== (properties.reviewedAt === undefined)
-    ) {
+    if ((properties.reviewedByIdentityId === undefined) !== (properties.reviewedAt === undefined)) {
       throw new Error('Verification review identity and review time must be provided together');
     }
     if (

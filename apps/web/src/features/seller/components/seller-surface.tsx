@@ -42,9 +42,7 @@ export function ProfilePanel(): ReactNode {
           <p>
             Status: <SellerStateBadge state={profile.state} />
           </p>
-          <p className="muted">
-            Compliance: {COMPLIANCE_STATE_LABELS[profile.complianceState]}
-          </p>
+          <p className="muted">Compliance: {COMPLIANCE_STATE_LABELS[profile.complianceState]}</p>
           <div className="muted detail-list">
             <p>Legal name: {profile.organization.legalName}</p>
             <p>Trade name: {profile.organization.tradeName}</p>
@@ -80,7 +78,9 @@ export function BusinessPanel(): ReactNode {
             <button
               type="button"
               className="btn"
-              onClick={() => { setEditing((current) => !current); }}
+              onClick={() => {
+                setEditing((current) => !current);
+              }}
             >
               {editing ? 'Close editor' : 'Edit'}
             </button>
@@ -88,7 +88,9 @@ export function BusinessPanel(): ReactNode {
           {editing && (
             <BusinessForm
               business={business}
-              onSaved={() => { setEditing(false); }}
+              onSaved={() => {
+                setEditing(false);
+              }}
             />
           )}
         </div>
@@ -136,7 +138,9 @@ function BusinessForm({
         Legal name
         <input
           value={legalName}
-          onChange={(event) => { setLegalName(event.target.value); }}
+          onChange={(event) => {
+            setLegalName(event.target.value);
+          }}
           required
           minLength={1}
           maxLength={256}
@@ -146,7 +150,9 @@ function BusinessForm({
         Trade name
         <input
           value={tradeName}
-          onChange={(event) => { setTradeName(event.target.value); }}
+          onChange={(event) => {
+            setTradeName(event.target.value);
+          }}
           required
           minLength={1}
           maxLength={256}
@@ -156,7 +162,9 @@ function BusinessForm({
         Business address
         <input
           value={businessAddress}
-          onChange={(event) => { setBusinessAddress(event.target.value); }}
+          onChange={(event) => {
+            setBusinessAddress(event.target.value);
+          }}
           required
           minLength={1}
           maxLength={512}
@@ -194,7 +202,11 @@ async function saveBusiness(
       tradeName: values.tradeName,
       businessAddress: values.businessAddress,
     });
-    setNotice(<div className="notice" role="status">Business information saved.</div>);
+    setNotice(
+      <div className="notice" role="status">
+        Business information saved.
+      </div>,
+    );
     onSaved();
   } catch (error) {
     setNotice(<ErrorNotice kind={toKind(error)} />);
@@ -216,9 +228,7 @@ export function VerificationPanel(): ReactNode {
       {(status: VerificationStatus) => (
         <div className="panel">
           <h2>Verification status</h2>
-          <p className="muted">
-            Compliance: {COMPLIANCE_STATE_LABELS[status.complianceState]}
-          </p>
+          <p className="muted">Compliance: {COMPLIANCE_STATE_LABELS[status.complianceState]}</p>
           {status.verifications.length === 0 ? (
             <EmptyNotice>No verification records yet.</EmptyNotice>
           ) : (
@@ -247,9 +257,7 @@ export function WarehousesPanel(): ReactNode {
   const state = useAsync(load, [load]);
   return (
     <AsyncBoundary state={state}>
-      {(warehouses: readonly WarehouseSummary[]) => (
-        <WarehouseList warehouses={warehouses} />
-      )}
+      {(warehouses: readonly WarehouseSummary[]) => <WarehouseList warehouses={warehouses} />}
     </AsyncBoundary>
   );
 }
@@ -279,7 +287,9 @@ function WarehouseList({
         <button
           type="button"
           className="btn"
-          onClick={() => { setCreating((current) => !current); }}
+          onClick={() => {
+            setCreating((current) => !current);
+          }}
         >
           {creating ? 'Close' : 'Add warehouse'}
         </button>
@@ -319,7 +329,9 @@ function WarehouseCreateForm(): ReactNode {
         Name
         <input
           value={name}
-          onChange={(event) => { setName(event.target.value); }}
+          onChange={(event) => {
+            setName(event.target.value);
+          }}
           required
           minLength={1}
           maxLength={256}
@@ -329,7 +341,9 @@ function WarehouseCreateForm(): ReactNode {
         Address
         <input
           value={address}
-          onChange={(event) => { setAddress(event.target.value); }}
+          onChange={(event) => {
+            setAddress(event.target.value);
+          }}
           required
           minLength={1}
           maxLength={512}
@@ -355,7 +369,11 @@ async function createWarehouse(
   setSaving(true);
   try {
     await client.createWarehouse({ expectedVersion, ...values });
-    setNotice(<div className="notice" role="status">Warehouse created.</div>);
+    setNotice(
+      <div className="notice" role="status">
+        Warehouse created.
+      </div>,
+    );
   } catch (error) {
     setNotice(<ErrorNotice kind={toKind(error)} />);
   } finally {
@@ -373,15 +391,17 @@ export function AgreementsPanel(): ReactNode {
   const state = useAsync(load, [load]);
   return (
     <AsyncBoundary state={state}>
-      {(agreements: readonly {
-        readonly agreementId: string;
-        readonly agreementType: string;
-        readonly reference: string;
-        readonly state: string;
-        readonly effectiveFrom: string;
-        readonly effectiveTo?: string;
-        readonly signedAt?: string;
-      }[]) => (
+      {(
+        agreements: readonly {
+          readonly agreementId: string;
+          readonly agreementType: string;
+          readonly reference: string;
+          readonly state: string;
+          readonly effectiveFrom: string;
+          readonly effectiveTo?: string;
+          readonly signedAt?: string;
+        }[],
+      ) => (
         <div className="panel">
           <h2>Agreements</h2>
           <p className="muted">
@@ -412,13 +432,15 @@ export function MembersPanel(): ReactNode {
   const state = useAsync(load, [load]);
   return (
     <AsyncBoundary state={state}>
-      {(members: readonly {
-        readonly identityId: string;
-        readonly associationRole: 'OWNER' | 'MEMBER';
-        readonly isPrimary: boolean;
-        readonly state: 'ACTIVE' | 'REMOVED';
-        readonly addedAt: string;
-      }[]) => (
+      {(
+        members: readonly {
+          readonly identityId: string;
+          readonly associationRole: 'OWNER' | 'MEMBER';
+          readonly isPrimary: boolean;
+          readonly state: 'ACTIVE' | 'REMOVED';
+          readonly addedAt: string;
+        }[],
+      ) => (
         <div className="panel">
           <h2>Members</h2>
           {members.length === 0 ? (
@@ -429,8 +451,7 @@ export function MembersPanel(): ReactNode {
                 .filter((member) => member.state === 'ACTIVE')
                 .map((member) => (
                   <li key={member.identityId}>
-                    {member.associationRole === 'OWNER' ? 'Owner' : 'Member'} —{' '}
-                    {member.identityId}
+                    {member.associationRole === 'OWNER' ? 'Owner' : 'Member'} — {member.identityId}
                   </li>
                 ))}
             </ul>
@@ -453,13 +474,7 @@ function MemberAddForm(): ReactNode {
   function onSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (profileState.status !== 'ready') return;
-    void addMember(
-      client,
-      profileState.data.version,
-      memberIdentityId,
-      setSaving,
-      setNotice,
-    );
+    void addMember(client, profileState.data.version, memberIdentityId, setSaving, setNotice);
   }
 
   return (
@@ -468,7 +483,9 @@ function MemberAddForm(): ReactNode {
         Member identity ID
         <input
           value={memberIdentityId}
-          onChange={(event) => { setMemberIdentityId(event.target.value); }}
+          onChange={(event) => {
+            setMemberIdentityId(event.target.value);
+          }}
           required
           pattern="^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
           title="A valid UUIDv7 identity identifier"
@@ -494,7 +511,11 @@ async function addMember(
   setSaving(true);
   try {
     await client.addMember({ expectedVersion, memberIdentityId });
-    setNotice(<div className="notice" role="status">Member added.</div>);
+    setNotice(
+      <div className="notice" role="status">
+        Member added.
+      </div>,
+    );
   } catch (error) {
     setNotice(<ErrorNotice kind={toKind(error)} />);
   } finally {

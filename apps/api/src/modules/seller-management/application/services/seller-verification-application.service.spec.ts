@@ -34,7 +34,10 @@ function uuid(seed: number): UuidV7 {
   return new UuidV7(`0191310f-789a-7123-8123-${String(seed).padStart(12, '0')}`);
 }
 
-function profile(state: 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'CORRECTIONS_REQUESTED', version: number): SellerProfile {
+function profile(
+  state: 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'CORRECTIONS_REQUESTED',
+  version: number,
+): SellerProfile {
   return new SellerProfile({
     sellerProfileId: SELLER,
     organizationId: ORG,
@@ -60,7 +63,10 @@ function association(identityId: UuidV7, role: 'OWNER' | 'MEMBER'): SellerIdenti
   });
 }
 
-function submittedVerification(type: 'GST' | 'PAN' | 'BANK', generation = 1): SellerBusinessVerification {
+function submittedVerification(
+  type: 'GST' | 'PAN' | 'BANK',
+  generation = 1,
+): SellerBusinessVerification {
   return new SellerBusinessVerification({
     verificationId: uuid(20),
     sellerProfileId: SELLER,
@@ -75,20 +81,21 @@ function submittedVerification(type: 'GST' | 'PAN' | 'BANK', generation = 1): Se
 }
 
 function approvedVerifications(): SellerBusinessVerification[] {
-  return (['GST', 'PAN', 'BANK'] as const).map((type, index) =>
-    new SellerBusinessVerification({
-      verificationId: uuid(30 + index),
-      sellerProfileId: SELLER,
-      verificationType: type,
-      state: 'APPROVED',
-      generation: 1,
-      submittedByIdentityId: OWNER,
-      reviewedByIdentityId: APPROVER,
-      reviewedAt: NOW,
-      aggregateVersion: new AggregateVersion(1),
-      createdAt: NOW,
-      updatedAt: NOW,
-    }),
+  return (['GST', 'PAN', 'BANK'] as const).map(
+    (type, index) =>
+      new SellerBusinessVerification({
+        verificationId: uuid(30 + index),
+        sellerProfileId: SELLER,
+        verificationType: type,
+        state: 'APPROVED',
+        generation: 1,
+        submittedByIdentityId: OWNER,
+        reviewedByIdentityId: APPROVER,
+        reviewedAt: NOW,
+        aggregateVersion: new AggregateVersion(1),
+        createdAt: NOW,
+        updatedAt: NOW,
+      }),
   );
 }
 
@@ -242,23 +249,28 @@ describe('SellerVerificationApplicationService (M03-M3, WEMP-M03-SPEC-001 §5/§
       const { service, repository } = harness();
       repository.findById.mockResolvedValue(profile('UNDER_REVIEW', 2));
       repository.findAssociations.mockResolvedValue([association(OWNER, 'OWNER')]);
-      await expect(
-        service.submitVerification({ ...command, expectedVersion: 2 }),
-      ).rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
+      await expect(service.submitVerification({ ...command, expectedVersion: 2 })).rejects.toEqual(
+        new SellerApplicationError('SELLER_STATE_CONFLICT'),
+      );
       expect(repository.save).not.toHaveBeenCalled();
     });
 
     it('rejects a stale version', async () => {
       const { service, repository } = harness();
       repository.findById.mockResolvedValue(profile('DRAFT', 2));
-      await expect(
-        service.submitVerification({ ...command, expectedVersion: 1 }),
-      ).rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
+      await expect(service.submitVerification({ ...command, expectedVersion: 1 })).rejects.toEqual(
+        new SellerApplicationError('SELLER_STATE_CONFLICT'),
+      );
     });
 
     it('fails closed when the rate limiter denies the request', async () => {
       const { service, rateLimiter } = harness();
-      rateLimiter.consume.mockResolvedValue({ allowed: false, limit: 10, remaining: 0, resetAt: NOW });
+      rateLimiter.consume.mockResolvedValue({
+        allowed: false,
+        limit: 10,
+        remaining: 0,
+        resetAt: NOW,
+      });
       await expect(service.submitVerification(command)).rejects.toEqual(
         new SellerApplicationError('SELLER_PRECONDITION_FAILED'),
       );
@@ -298,9 +310,9 @@ describe('SellerVerificationApplicationService (M03-M3, WEMP-M03-SPEC-001 §5/§
     it('rejects a claim from the wrong lifecycle state', async () => {
       const { service, repository } = harness();
       repository.findById.mockResolvedValue(profile('DRAFT', 1));
-      await expect(
-        service.claimReview({ ...command, expectedVersion: 1 }),
-      ).rejects.toEqual(new SellerApplicationError('SELLER_STATE_CONFLICT'));
+      await expect(service.claimReview({ ...command, expectedVersion: 1 })).rejects.toEqual(
+        new SellerApplicationError('SELLER_STATE_CONFLICT'),
+      );
     });
   });
 

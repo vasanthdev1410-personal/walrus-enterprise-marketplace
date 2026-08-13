@@ -255,7 +255,14 @@ export class SellerVerificationApplicationService {
     });
     const updated = this.lifecycle.updatedProfile(profile, 'UNDER_REVIEW', now);
     await this.repository.save(
-      this.changeSet(updated, [transition], command.reviewerIdentityId, now, 'SELLER_REVIEW_CLAIMED', command.correlationId),
+      this.changeSet(
+        updated,
+        [transition],
+        command.reviewerIdentityId,
+        now,
+        'SELLER_REVIEW_CLAIMED',
+        command.correlationId,
+      ),
       profile.properties.aggregateVersion,
     );
     return {
@@ -270,9 +277,7 @@ export class SellerVerificationApplicationService {
    * that claimed the review requests corrections; a non-disclosing reason
    * reference is mandatory. The seller may then resubmit (new review cycle).
    */
-  public async requestCorrections(
-    command: RequestCorrectionsCommand,
-  ): Promise<ReviewResult> {
+  public async requestCorrections(command: RequestCorrectionsCommand): Promise<ReviewResult> {
     const granted = await this.adminAuthorization.isGranted(
       command.reviewerIdentityId,
       'seller.review.claim',
@@ -302,7 +307,14 @@ export class SellerVerificationApplicationService {
     });
     const updated = this.lifecycle.updatedProfile(profile, 'CORRECTIONS_REQUESTED', now);
     await this.repository.save(
-      this.changeSet(updated, [transition], command.reviewerIdentityId, now, 'SELLER_CORRECTIONS_REQUESTED', command.correlationId),
+      this.changeSet(
+        updated,
+        [transition],
+        command.reviewerIdentityId,
+        now,
+        'SELLER_CORRECTIONS_REQUESTED',
+        command.correlationId,
+      ),
       profile.properties.aggregateVersion,
     );
     return {
@@ -332,7 +344,10 @@ export class SellerVerificationApplicationService {
     if (profile.properties.state !== 'UNDER_REVIEW') {
       throw new SellerApplicationError('SELLER_STATE_CONFLICT');
     }
-    if (command.decision === 'REJECTED' && (command.reasonReference === undefined || command.reasonReference.trim().length === 0)) {
+    if (
+      command.decision === 'REJECTED' &&
+      (command.reasonReference === undefined || command.reasonReference.trim().length === 0)
+    ) {
       throw new SellerApplicationError('SELLER_PRECONDITION_FAILED');
     }
     await this.assertReviewerNotApplicant(profile, command.approverIdentityId);
@@ -363,7 +378,9 @@ export class SellerVerificationApplicationService {
       actor: { identityId: command.approverIdentityId, kind: 'ADMIN_APPROVER' },
       now,
       transitionId: this.identifiers.next(),
-      ...(command.reasonReference !== undefined ? { reasonReference: command.reasonReference } : {}),
+      ...(command.reasonReference !== undefined
+        ? { reasonReference: command.reasonReference }
+        : {}),
       reviewerIdentityId,
       mandatoryVerificationsApproved,
       ...(command.correlationId !== undefined ? { correlationId: command.correlationId } : {}),
@@ -418,13 +435,8 @@ export class SellerVerificationApplicationService {
     }
   }
 
-  private async assertOwnerActor(
-    profile: SellerProfile,
-    actorIdentityId: UuidV7,
-  ): Promise<void> {
-    const associations = await this.repository.findAssociations(
-      profile.properties.sellerProfileId,
-    );
+  private async assertOwnerActor(profile: SellerProfile, actorIdentityId: UuidV7): Promise<void> {
+    const associations = await this.repository.findAssociations(profile.properties.sellerProfileId);
     this.associations.assertValidAssociations(associations);
     const association = this.associations.findActiveAssociation(
       associations,
@@ -439,9 +451,7 @@ export class SellerVerificationApplicationService {
     profile: SellerProfile,
     callerIdentityId: UuidV7,
   ): Promise<void> {
-    const associations = await this.repository.findAssociations(
-      profile.properties.sellerProfileId,
-    );
+    const associations = await this.repository.findAssociations(profile.properties.sellerProfileId);
     const association = this.associations.findActiveAssociation(
       associations,
       callerIdentityId.value,
@@ -455,13 +465,8 @@ export class SellerVerificationApplicationService {
     profile: SellerProfile,
     actorIdentityId: UuidV7,
   ): Promise<void> {
-    const associations = await this.repository.findAssociations(
-      profile.properties.sellerProfileId,
-    );
-    const applicant = this.associations.findActiveAssociation(
-      associations,
-      actorIdentityId.value,
-    );
+    const associations = await this.repository.findAssociations(profile.properties.sellerProfileId);
+    const applicant = this.associations.findActiveAssociation(associations, actorIdentityId.value);
     if (applicant !== null) {
       // A seller-associated identity can never review or approve its own seller.
       throw new SellerApplicationError('SELLER_SOD_VIOLATION');
@@ -470,10 +475,7 @@ export class SellerVerificationApplicationService {
 
   private async assertIdentityEligible(identityId: UuidV7): Promise<void> {
     const eligibility = await this.module01.getIdentityEligibility(identityId);
-    if (
-      eligibility.state !== 'ACTIVE' ||
-      eligibility.verificationState !== 'VERIFIED'
-    ) {
+    if (eligibility.state !== 'ACTIVE' || eligibility.verificationState !== 'VERIFIED') {
       throw new SellerApplicationError('SELLER_IDENTITY_INELIGIBLE');
     }
   }
