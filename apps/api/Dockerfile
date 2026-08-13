@@ -1,4 +1,4 @@
-FROM node:26.6.0-alpine AS base
+FROM node:26.7.0-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN npm install -g corepack@0.35.0 && corepack enable && corepack prepare pnpm@10.34.5 --activate
@@ -19,7 +19,7 @@ COPY . .
 RUN pnpm --filter @walrus/api... build
 RUN pnpm deploy --legacy --filter @walrus/api --prod /deployment
 
-FROM node:26.6.0-alpine AS runtime
+FROM node:26.7.0-alpine AS runtime
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nestjs
 WORKDIR /app
