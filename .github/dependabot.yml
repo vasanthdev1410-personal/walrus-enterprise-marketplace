@@ -1,19 +1,53 @@
+# WALRUS Enterprise Marketplace Platform — Dependabot configuration.
+#
+# Policy (single-main development workflow):
+#   - Dependabot vulnerability ALERTS stay enabled (GitHub setting, unaffected here).
+#   - Dependabot SECURITY UPDATES stay available (advisory-driven PRs).
+#   - Dependency scanning (pnpm audit, gitleaks, trivy, CodeQL) stays enabled
+#     via .github/workflows/security.yml — completely separate from this file.
+#   - Automatic VERSION-UPDATE PR/branch creation is minimized: grouped
+#     patch/minor-only npm updates, capped open-PR counts, monthly cadence for
+#     Docker/Terraform, and explicit ignores for known-incompatible dev deps.
+#   - Dependency upgrades are deliberately reviewed and applied directly to
+#     `main`; Dependabot branches are never used for development and their PRs
+#     are closed + branches deleted once the change is applied on main.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
-    schedule: { interval: weekly }
+    schedule: { interval: weekly, day: monday, time: "06:00" }
+    open-pull-requests-limit: 5
+    # Resolve to the minimum version satisfying the declared range instead of
+    # jumping to the latest major (avoids accidental major upgrades).
+    versioning-strategy: increase-if-necessary
     groups:
-      development-dependencies: { dependency-type: development }
+      safe-patch-updates:
+        patterns: ["*"]
+        update-types: ["patch", "minor"]
+    ignore:
+      # TypeScript 7 is the native (Go) compiler rewrite: it does not expose
+      # the programmatic compiler API required by Nest CLI, ts-jest, or
+      # typescript-eslint, and it removed the tsconfig `baseUrl` option
+      # (TS5102). Rejected 2026-08-13 — do not propose until the toolchain
+      # supports TS 7 (Nest CLI API expected in 7.1) and the repo migrates.
+      - dependency-name: typescript
+      # @types/jest 30.x is a major types bump with no security value; the
+      # pinned jest 30.4.2 works with @types/jest 29.5.14. Deferred.
+      - dependency-name: "@types/jest"
+        versions: [">=30.0.0"]
   - package-ecosystem: github-actions
     directory: /
-    schedule: { interval: weekly }
+    schedule: { interval: weekly, day: monday, time: "06:00" }
+    open-pull-requests-limit: 2
   - package-ecosystem: docker
     directory: /apps/api
-    schedule: { interval: weekly }
+    schedule: { interval: monthly, day: monday, time: "06:00" }
+    open-pull-requests-limit: 1
   - package-ecosystem: docker
     directory: /apps/web
-    schedule: { interval: weekly }
+    schedule: { interval: monthly, day: monday, time: "06:00" }
+    open-pull-requests-limit: 1
   - package-ecosystem: terraform
     directory: /infrastructure/terraform/environments/foundation
-    schedule: { interval: weekly }
+    schedule: { interval: monthly, day: monday, time: "06:00" }
+    open-pull-requests-limit: 1
