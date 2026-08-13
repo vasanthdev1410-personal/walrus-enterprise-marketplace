@@ -22,14 +22,14 @@
   "devDependencies": {
     "@next/eslint-plugin-next": "16.3.0",
     "@playwright/test": "^1.62.1",
-    "@types/node": "26.1.2",
+    "@types/node": "26.2.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vitest/coverage-v8": "4.1.10",
     "@walrus/eslint-config": "workspace:*",
     "@walrus/tsconfig": "workspace:*",
     "eslint": "10.8.0",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vitest": "4.1.10"
   }
 }

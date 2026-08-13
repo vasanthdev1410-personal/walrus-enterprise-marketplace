@@ -43,8 +43,8 @@
     "@nestjs/cli": "11.0.24",
     "@nestjs/testing": "11.1.28",
     "@types/express": "5.0.6",
-    "@types/jest": "29.5.14",
-    "@types/node": "26.1.2",
+    "@types/jest": "30.0.0",
+    "@types/node": "26.2.0",
     "@types/pg": "8.20.4",
     "@types/supertest": "7.2.1",
     "@walrus/eslint-config": "workspace:*",
@@ -55,6 +55,6 @@
     "supertest": "7.2.2",
     "ts-jest": "29.4.12",
     "ts-node": "10.9.2",
-    "typescript": "6.0.3"
+    "typescript": "7.0.2"
   }
 }
