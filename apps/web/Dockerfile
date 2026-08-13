@@ -1,4 +1,4 @@
-FROM node:26.5.1-alpine AS base
+FROM node:26.7.0-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN npm install -g corepack@0.35.0 && corepack enable && corepack prepare pnpm@10.34.5 --activate
@@ -18,7 +18,7 @@ ENV NEXT_STANDALONE=true
 COPY . .
 RUN pnpm --filter @walrus/web... build
 
-FROM node:26.5.1-alpine AS runtime
+FROM node:26.7.0-alpine AS runtime
 ENV NODE_ENV=production
 ENV PORT=3000
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
