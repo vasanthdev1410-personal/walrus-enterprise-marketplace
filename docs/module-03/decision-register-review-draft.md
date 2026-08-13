@@ -1,0 +1,105 @@
+# WALRUS Enterprise Marketplace Platform
+
+## Module 03 — Decision and Approval Register
+
+**Document ID:** WEMP-M03-DECISIONS-001
+**Version:** Finalization Draft 1.1
+**Status:** READY FOR OWNER APPROVAL — decisions resolved to architecture-supported
+defaults or explicitly held for owner/external decisions
+**Effective date:** Not effective until the approval statement in
+WEMP-M03-APPROVAL-001 is signed
+**Classification:** Confidential — Internal Use Only
+
+> Every business/security decision required by Module 03 is recorded here with
+> a resolution status. Each decision is either **APPROVED FROM EXISTING
+> ARCHITECTURE** (binding source cited), **RESOLVED — ARCHITECTURE-SUPPORTED
+> DEFAULT** (the safest enterprise-grade default is derivable from approved
+> Module 00/01/02 architecture and requires only the approval statement), or
+> **NOT RESOLVABLE — OWNER/EXTERNAL DECISION REQUIRED** (no repository
+> authority exists; the decision is a recorded condition on a specific
+> milestone and must not be silently assumed).
+
+---
+
+## 1. APPROVED FROM EXISTING ARCHITECTURE (binding)
+
+| ID | Decision | Binding source |
+| -- | -------- | -------------- |
+| A-01 | Module 03 owns Seller profiles, Seller organizations, Seller business onboarding, Seller approval, GST/PAN/Bank verification, Warehouse setup, Commission agreements, and Seller business status | Module 01 v1.12 §7 (approved) |
+| A-02 | Module 01 may create/authenticate the Identity but never owns seller-profile or onboarding data; Module 01 Identity contains no seller fields | Module 01 v1.12 §7, ownership model, change reports C1–C10 |
+| A-03 | Seller permissions are determined exclusively by Module 02 | Module 01 v1.12 §7 |
+| A-04 | One Identity ↔ multiple business profiles/roles; no duplicate Identities; seller profile creation never creates a second Identity | Module 01 v1.12 §7 |
+| A-05 | `SELLER` role identifier exists in the Module 02 `RoleName` enum | `apps/api/prisma/schema.prisma` |
+| A-06 | Seller self-registration order: create/locate Identity → identity verification → request Seller profile via approved Module 03 contract → request seller role via approved Module 02 contract | Module 01 v1.12 §7 |
+| A-07 | Recovery/approval channels are never used for business approval, KYC, or seller onboarding | Module 01 (recovery boundary) |
+| A-08 | Cross-module storage isolation: no cross-module foreign keys; integration through approved ports; Module 03 never reads Module 01/02 storage and vice versa | Module 01 Part 7.3 §12; Module 02 implementation rules |
+| A-09 | Permission identifiers use immutable `resource.action` format; no wildcards; deny-by-default; explicit-deny precedence; fail closed | WEMP-M02-SPEC-001 §4, §14 (approved pattern) |
+| A-10 | Module 03 stores no passwords, MFA secrets, recovery material, or authentication credentials | Module 01 authentication ownership |
+| A-11 | Selling privileges are granted only after successful business onboarding and administrative approval | Module 01 v1.12 §7 approval + role-assignment gating (binding); the archived Module 01 draft corroborates and is not authoritative |
+
+## 2. Decision resolutions (D-01 … D-12)
+
+Resolution legend: **RESOLVED** = architecture-supported default adopted (binding
+upon signature of the approval statement); **CONFIRM** = default adopted with a
+sub-item the owner confirms in the approval statement; **OWNER** = not
+resolvable from repository authority; a recorded condition for a specific
+milestone.
+
+| ID | Decision | Resolution | Adopted default / required owner input | Authority for default |
+| -- | -------- | ---------- | -------------------------------------- | --------------------- |
+| D-01 | Seller membership model | **RESOLVED** | Option A: single `SELLER` role; OWNER/MEMBER carried by `SellerIdentityAssociation.associationRole`; `seller.member.manage` resolves to owner-only. No new role, no admin-scope change. | A-05; Module 02 admin-scope model lists only CUSTOMER/SELLER/ADMIN/SUPER_ADMIN — adding `SELLER_MANAGER` would require new admin-scope and matrix rows, increasing attack surface |
+| D-02 | Duplicate-business prevention | **RESOLVED** | Normalized business registration → unique `registrationLookupDigest` per ACTIVE seller; exactly one OWNER per seller; identity re-association idempotent; new onboarding after `REJECTED`/`CLOSED` is a new profile. Registration identifier set = GST and PAN (the identifiers named in §7). | A-04 universal-identity no-duplicates principle; §7 named GST/PAN verification; enterprise data-integrity default |
+| D-03 | KYC/KYB evidence handling | **RESOLVED** (technical) + **APPROVED** (retention architecture, 2026-08-12) | Technical: object-storage evidence with signed short-lived read refs; DB stores refs + SHA-256 digests only; file-type allowlist; malware scan; size limits; per-generation immutability. **Retention architecture (owner-approved):** retention periods are centrally configurable per evidence/document category (never hard-coded into business logic); evidence is protected/inaccessible after lifecycle expiry where required; only metadata and digests are stored in DB/audit records; raw documents are never logged; deletion/retention processing is auditable; an authorized legal hold prevents automatic deletion; missing or invalid retention configuration fails closed; no regulatory/legal compliance is claimed; jurisdiction-specific final durations remain configurable and subject to Legal/Compliance review. | A-08/A-10 pattern (digests and opaque refs only); owner approval recorded §4 on 2026-08-12 |
+| D-04 | Identity-eligibility gate and effect matrix | **RESOLVED** (+CONFIRM sub-item) | Gate: Identity `ACTIVE` + `VERIFIED` before association (DERIVED from §7 step "complete the required identity verification"). Effect matrix: `LOCKED`/`SUSPENDED`/`DISABLED` → all seller operations denied, seller state unchanged (fail closed); `DELETED` → association removed, seller record retained append-only. **CONFIRM:** `DELETED` identity does not auto-trigger seller review; re-onboarding requires a new association. | §7 verification-before-association; Module 01 fail-closed posture |
+| D-05 | Commission agreement model | **APPROVED (record)** + **OWNER** (terms) | Minimal `SellerAgreement` record (type `COMMISSION`, effective windows, signed-at evidence reference) — no rate/terms business rules. **Owner-approved for M03-M6 (2026-08-13):** the record scope only may be displayed in seller web/mobile UI (agreement ID, seller/profile reference, agreement type, status, effective-from/to, signed-at, evidence/reference metadata). Commission percentage calculation, slabs, transaction/platform fees, settlement, payouts, tax/invoice calculation, ledger logic, rate/term editing, and all trading-affecting financial rules are **explicitly out of Module 03 scope** and belong to the future Finance/Commission module. **Commission rate/terms configuration: OWNER/Finance** — not needed before M03-M6. | §7 names Commission agreements as owned; record-only scope avoids inventing financial policy; D-05 owner approval statement recorded in §5 |
+| D-06 | Phase 1 exclusions | **RESOLVED** | Storefront/store-builder, catalog-management UI, and discovery surfaces excluded; trading requires future modules 04/05/07/08. | Module landscape (Modules 03–08); no seller storefront exists anywhere |
+| D-07 | Seller lifecycle vocabulary | **RESOLVED** (+CONFIRM sub-item) | Nine states adopted (DRAFT, SUBMITTED, UNDER_REVIEW, CORRECTIONS_REQUESTED, APPROVED, ACTIVE, SUSPENDED, REJECTED, CLOSED); `REJECTED`/`CLOSED` terminal; `APPROVED → ACTIVE` gated on SELLER role assignment. **CONFIRM:** withdrawal from `APPROVED` before activation → `CLOSED` (terminal, conservative default). | A-11; §7 role-assignment gating; append-only state-machine pattern from Module 01 |
+| D-08 | Administrative scope and SoD | **RESOLVED** | Admin review/suspend/reactivate per explicit matrix rows; reviewer ≠ approver; applicant never self-approves; Super Admin has matrix grants only — no hidden override. | A-09; Module 02 security posture (no client-selected authorization; SoD precedent) |
+| D-09 | Warehouse model scope | **RESOLVED** | Minimal `SellerWarehouse` record model; **no activation gate** — warehouses are not required before `APPROVED`/`ACTIVE` in Phase 1. | §7 names Warehouse setup as owned but imposes no activation requirement; no gate may be invented |
+| D-10 | Rate limiting policy | **RESOLVED** (integration) + **OWNER** (numeric policy) | Integration reuses the repository rate-limit port/pattern; **numeric production policy: OWNER/Security/Platform** — condition of M03-M5 production exposure. | Repository rate-limit integration point exists; existing record is explicitly non-production |
+| D-11 | Module 02 authorization changes | **OWNER** | WEMP-M03-AUTHZ-001 (SELLER catalog entry, `seller.*` matrix, first ownership resolver) approved by the **Module 02 owner** and Security. Verified additive and non-weakening: no existing grant changed, no wildcard, no override, deny-by-default and fail-closed preserved. Condition/gate for M03-M4. | Module 02 §13.2 marks ownership resolvers MISSING/DEFERRED — Module 03 cannot self-authorize |
+| D-12 | Evidence/verification expiry | **RESOLVED** (+CONFIRM sub-item) | Expired mandatory verification → compliance state `VERIFICATION_REQUIRED`; trading-affecting operations gated until re-verified (fail-closed). In Phase 1 (no trading yet) the effect is re-verification requirement + compliance flag. **CONFIRM:** ACTIVE sellers with expired mandatory verification enter `VERIFICATION_REQUIRED` (not auto-`SUSPENDED`). | Fail-closed default; no trading capability in Phase 1 to suspend |
+
+## 3. Recording of approvals
+
+Sign the approval statement in WEMP-M03-APPROVAL-001 §4. Upon signature, all
+**RESOLVED** decisions become BINDING for Module 03 implementation; **OWNER**
+items remain conditions on the milestones listed. Unapproved decisions remain
+non-implementable.
+
+## 4. Approval record
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-08-12 |
+| Approver | WALRUS Enterprise Marketplace Platform owner |
+| Approved package | Module 03 — Seller Management: WEMP-M03-SPEC-001, WEMP-M03-PLAN-001, WEMP-M03-CONTRACT-001, WEMP-M03-AUTHZ-001, WEMP-M03-DECISIONS-001, approval pack, ADR-M03-001 |
+| Resolved decisions approved | D-01, D-02, D-03 (incl. retention architecture), D-04, D-06, D-07, D-08, D-09, D-12, with the documented confirmation sub-items; D-05 record scope |
+| Conditions acknowledged | D-03 jurisdiction-specific final retention durations (Legal/Compliance review — configurable, no compliance claim); D-05 commission terms (Finance — M03-M6); D-10 production rate-limit policy (Security/Platform — M03-M5); D-11 Module 02 authorization changes (Module 02 owner — M03-M4) |
+| Implementation authority | M03-M1 and M03-M2 authorized immediately; subsequent milestones gated per the approval pack §3 |
+| Constraints | No Module 00/01/02 production-behavior change; no weakening of Module 01 authentication or Module 02 authorization guarantees; no commit or push without direction; no history rewrite; unresolved policy never invented or bypassed |
+
+## 5. D-05 owner approval — M03-M6 (2026-08-13)
+
+Owner decision recorded for D-05, approving ONLY the existing seller-agreement
+record scope defined in the Module 03 design:
+
+> **Approved for M03-M6:** seller agreement records may be displayed in the
+> seller web/mobile UI. Agreement records may contain: agreement ID,
+> seller/profile reference, agreement type, agreement status, effective-from,
+> effective-to where applicable, signed-at, and evidence/reference metadata.
+> Agreement type may include `COMMISSION` only as a record/category. M03-M6 may
+> READ and DISPLAY approved agreement records returned by the existing M03
+> APIs.
+>
+> **NOT approved in Module 03:** commission percentage calculation, commission
+> slabs, transaction fees, platform fees, seller settlement calculations,
+> payouts, tax calculation, invoice calculation, marketplace ledger logic,
+> rate/term editing, and trading-affecting financial rules. These belong to the
+> future Finance/Commission module and must not be invented here.
+
+This approval is recorded for the limited M03-M6 scope above; it does not
+authorize any finance/commission business logic, rate/term configuration, or
+calculation anywhere in Module 03.
+
+**End of finalization draft — approval recorded.**

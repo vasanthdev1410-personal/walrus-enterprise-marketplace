@@ -42,11 +42,64 @@ describe('RoleCatalog (M02 domain core)', () => {
     expect(superAdmin?.properties.grantedPermissionIds).toContain('identity.superadmin.bootstrap');
   });
 
-  it('gives Customer and Seller no authorization-domain permission in Phase 1', () => {
+  it('gives Customer no authorization-domain permission and SELLER only the approved self-service set (D-11)', () => {
     const catalog = new RoleCatalog();
 
     expect(catalog.findByName('CUSTOMER')?.properties.grantedPermissionIds).toEqual([]);
-    expect(catalog.findByName('SELLER')?.properties.grantedPermissionIds).toEqual([]);
+    const seller = catalog.findByName('SELLER');
+    if (seller === undefined) {
+      throw new Error('SELLER role must exist');
+    }
+    expect([...seller.properties.grantedPermissionIds].sort()).toEqual([
+      'seller.agreement.read',
+      'seller.member.manage',
+      'seller.member.read',
+      'seller.onboarding.create',
+      'seller.onboarding.read',
+      'seller.onboarding.submit',
+      'seller.organization.read',
+      'seller.organization.update',
+      'seller.profile.close',
+      'seller.profile.create',
+      'seller.profile.read',
+      'seller.profile.update',
+      'seller.verification.read',
+      'seller.verification.submit',
+      'seller.warehouse.manage',
+      'seller.warehouse.read',
+    ]);
+    // SELLER never holds administrative seller permissions (no escalation).
+    expect(seller.properties.grantedPermissionIds).not.toContain('seller.review.decide');
+    expect(seller.properties.grantedPermissionIds).not.toContain('seller.suspend.manage');
+    expect(seller.properties.grantedPermissionIds).not.toContain('seller.evidence.read');
+    expect(seller.properties.grantedPermissionIds).not.toContain('seller.audit.view');
+  });
+
+  it('grants ADMIN and SUPER_ADMIN exactly the approved seller administrative permissions (D-11)', () => {
+    const catalog = new RoleCatalog();
+
+    for (const roleName of ['ADMIN', 'SUPER_ADMIN'] as const) {
+      const role = catalog.findByName(roleName);
+      expect(role?.properties.grantedPermissionIds).toEqual(
+        expect.arrayContaining([
+          'seller.review.decide',
+          'seller.suspend.manage',
+          'seller.evidence.read',
+          'seller.audit.view',
+        ]),
+      );
+      // No seller self-service permission is granted to ADMIN/SUPER_ADMIN.
+      expect(role?.properties.grantedPermissionIds).not.toContain('seller.profile.read');
+      expect(role?.properties.grantedPermissionIds).not.toContain('seller.verification.submit');
+      // Super Admin keeps the full Module 02 privileged scope; Admin does not.
+      if (roleName === 'SUPER_ADMIN') {
+        expect(role?.properties.grantedPermissionIds).toContain('identity.privileged.provision');
+        expect(role?.properties.grantedPermissionIds).toContain('identity.superadmin.bootstrap');
+      } else {
+        expect(role?.properties.grantedPermissionIds).not.toContain('identity.privileged.provision');
+        expect(role?.properties.grantedPermissionIds).not.toContain('identity.superadmin.bootstrap');
+      }
+    }
   });
 
   describe('role hierarchy (administrative scope only, Part 6.2 §7)', () => {

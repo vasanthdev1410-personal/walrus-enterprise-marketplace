@@ -22,6 +22,19 @@ export interface AuthorizationDecisionRecordProperties {
   readonly correlationId?: string;
   readonly decidedAt: Date;
   readonly createdAt: Date;
+  /**
+   * WEMP-M03-AUTHZ-001 §4 (D-11). The target of an organization-scoped or
+   * administration decision (e.g. the seller profile) for audit traceability.
+   * Never holds evidence content — references/digests only.
+   */
+  readonly resourceType?: string;
+  readonly resourceReference?: string;
+  /** The identity whose role/privilege state changed (role-assignment audit). */
+  readonly targetIdentityId?: UuidV7;
+  /** Non-sensitive reason code for system/control-plane decisions. */
+  readonly reasonCode?: string;
+  /** The trusted workload that performed a control-plane decision. */
+  readonly workloadIdentity?: string;
 }
 
 export class AuthorizationDecisionRecord {
@@ -42,6 +55,9 @@ export class AuthorizationDecisionRecord {
     }
     if (properties.sessionIdentifier?.trim() === '') {
       throw new Error('Session identifier must not be empty');
+    }
+    if (properties.resourceReference?.trim() === '') {
+      throw new Error('Resource reference must not be empty');
     }
     this.properties = Object.freeze({ ...properties });
     Object.freeze(this);

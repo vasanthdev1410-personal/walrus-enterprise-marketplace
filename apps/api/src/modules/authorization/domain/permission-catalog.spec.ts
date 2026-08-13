@@ -18,7 +18,61 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'identity.state.change',
       'identity.superadmin.bootstrap',
       'recovery.approval.decide',
+      'seller.agreement.read',
+      'seller.audit.view',
+      'seller.evidence.read',
+      'seller.member.manage',
+      'seller.member.read',
+      'seller.onboarding.create',
+      'seller.onboarding.read',
+      'seller.onboarding.submit',
+      'seller.organization.read',
+      'seller.organization.update',
+      'seller.profile.close',
+      'seller.profile.create',
+      'seller.profile.read',
+      'seller.profile.update',
+      'seller.review.decide',
+      'seller.suspend.manage',
+      'seller.verification.read',
+      'seller.verification.submit',
+      'seller.warehouse.manage',
+      'seller.warehouse.read',
     ]);
+  });
+
+  it('marks exactly the approved SELLER self-service set as organization-scoped (WEMP-M03-AUTHZ-001 §4)', () => {
+    const catalog = new PermissionCatalog();
+
+    const orgScoped = catalog
+      .all()
+      .filter((permission) => catalog.isOrganizationScoped(permission.properties.permissionId))
+      .map((permission) => permission.properties.permissionId)
+      .sort();
+    expect(orgScoped).toEqual([
+      'seller.agreement.read',
+      'seller.member.manage',
+      'seller.member.read',
+      'seller.onboarding.create',
+      'seller.onboarding.read',
+      'seller.onboarding.submit',
+      'seller.organization.read',
+      'seller.organization.update',
+      'seller.profile.close',
+      'seller.profile.create',
+      'seller.profile.read',
+      'seller.profile.update',
+      'seller.verification.read',
+      'seller.verification.submit',
+      'seller.warehouse.manage',
+      'seller.warehouse.read',
+    ]);
+    // The administrative seller permissions are never organization-scoped.
+    for (const id of ['seller.review.decide', 'seller.suspend.manage', 'seller.evidence.read', 'seller.audit.view']) {
+      expect(catalog.isOrganizationScoped(id)).toBe(false);
+    }
+    expect(catalog.isOrganizationScoped('recovery.approval.decide')).toBe(false);
+    expect(catalog.isOrganizationScoped('orders.export')).toBe(false);
   });
 
   it('finds a seeded permission by immutable identifier', () => {

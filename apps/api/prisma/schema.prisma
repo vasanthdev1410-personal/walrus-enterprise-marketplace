@@ -316,6 +316,7 @@ enum RoleAssignmentOriginType {
   HUMAN_ADMINISTRATION
   PRIVILEGED_PROVISIONING
   CONTROLLED_BOOTSTRAP
+  SELLER_LIFECYCLE
 }
 
 enum PermissionStatus {
@@ -1174,4 +1175,233 @@ model PrivilegedAccessEligibilityRecord {
   @@index([environment, identityId, roleName, evaluatedAt(sort: Desc)])
   @@index([eligibilityState, identityId])
   @@map("privileged_access_eligibility_records")
+}
+
+// ================= Module 03 - Seller Management (WEMP-M03-SPEC-001) =================
+// Additive Module 03-owned tables. identity_id and seller_profile_id are logical
+// UUIDv7 references with NO cross-module foreign keys (storage isolation).
+
+enum SellerState {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  CORRECTIONS_REQUESTED
+  APPROVED
+  ACTIVE
+  SUSPENDED
+  REJECTED
+  CLOSED
+}
+
+enum SellerComplianceState {
+  NOT_STARTED
+  IN_PROGRESS
+  VERIFICATION_REQUIRED
+  COMPLIANT
+  NON_COMPLIANT
+}
+
+enum SellerVerificationType {
+  GST
+  PAN
+  BANK
+  ADDRESS
+}
+
+enum SellerVerificationState {
+  PENDING
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum SellerAssociationRole {
+  OWNER
+  MEMBER
+}
+
+enum SellerAssociationState {
+  ACTIVE
+  REMOVED
+}
+
+enum SellerWarehouseState {
+  ACTIVE
+  CLOSED
+}
+
+enum SellerAgreementState {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum SellerAgreementType {
+  COMMISSION
+}
+
+model SellerProfile {
+  sellerProfileId  String                @id @map("seller_profile_id") @db.Uuid
+  organizationId   String                @map("organization_id") @db.Uuid
+  state            SellerState           @map("state")
+  complianceState  SellerComplianceState @map("compliance_state")
+  aggregateVersion Int                   @map("aggregate_version")
+  createdAt        DateTime              @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime              @map("updated_at") @db.Timestamptz(6)
+  submittedAt      DateTime?             @map("submitted_at") @db.Timestamptz(6)
+  approvedAt       DateTime?             @map("approved_at") @db.Timestamptz(6)
+  suspendedAt      DateTime?             @map("suspended_at") @db.Timestamptz(6)
+  closedAt         DateTime?             @map("closed_at") @db.Timestamptz(6)
+  correlationId    String?               @map("correlation_id") @db.Uuid
+
+  @@index([state, complianceState])
+  @@map("seller_profiles")
+}
+
+model SellerOrganization {
+  organizationId           String   @id @map("organization_id") @db.Uuid
+  legalName                String   @map("legal_name") @db.Text
+  tradeName                String   @map("trade_name") @db.Text
+  businessType             String?  @map("business_type") @db.Text
+  registrationNumber       String   @map("registration_number") @db.Text
+  registrationLookupDigest String   @map("registration_lookup_digest") @db.Text
+  businessAddress          String   @map("business_address") @db.Text
+  aggregateVersion         Int      @map("aggregate_version")
+  createdAt                DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([registrationLookupDigest])
+  @@map("seller_organizations")
+}
+
+model SellerIdentityAssociation {
+  associationId   String                 @id @map("association_id") @db.Uuid
+  sellerProfileId String                 @map("seller_profile_id") @db.Uuid
+  identityId      String                 @map("identity_id") @db.Uuid
+  associationRole SellerAssociationRole  @map("association_role")
+  isPrimary       Boolean                @map("is_primary")
+  state           SellerAssociationState @map("state")
+  aggregateVersion Int                   @map("aggregate_version")
+  createdAt       DateTime               @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime               @map("updated_at") @db.Timestamptz(6)
+  removedAt       DateTime?              @map("removed_at") @db.Timestamptz(6)
+
+  @@unique([sellerProfileId, identityId])
+  @@index([identityId, state])
+  @@map("seller_identity_associations")
+}
+
+model SellerBusinessVerification {
+  verificationId        String                  @id @map("verification_id") @db.Uuid
+  sellerProfileId       String                  @map("seller_profile_id") @db.Uuid
+  verificationType      SellerVerificationType  @map("verification_type")
+  state                 SellerVerificationState @map("state")
+  generation            Int                     @map("generation")
+  submittedByIdentityId String                  @map("submitted_by_identity_id") @db.Uuid
+  reviewedByIdentityId  String?                 @map("reviewed_by_identity_id") @db.Uuid
+  reviewedAt            DateTime?               @map("reviewed_at") @db.Timestamptz(6)
+  aggregateVersion      Int                     @map("aggregate_version")
+  createdAt             DateTime                @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([sellerProfileId, verificationType, generation])
+  @@index([sellerProfileId, state])
+  @@map("seller_business_verifications")
+}
+
+model SellerVerificationEvidence {
+  evidenceId           String   @id @map("evidence_id") @db.Uuid
+  verificationId       String   @map("verification_id") @db.Uuid
+  evidenceType         String   @map("evidence_type") @db.Text
+  evidenceReference    String   @map("evidence_reference") @db.Text
+  evidenceDigest       String   @map("evidence_digest") @db.Text
+  uploadedByIdentityId String   @map("uploaded_by_identity_id") @db.Uuid
+  uploadedAt           DateTime @map("uploaded_at") @db.Timestamptz(6)
+  createdAt            DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([verificationId])
+  @@map("seller_verification_evidence")
+}
+
+model SellerWarehouse {
+  warehouseId       String               @id @map("warehouse_id") @db.Uuid
+  sellerProfileId   String               @map("seller_profile_id") @db.Uuid
+  name              String               @map("name") @db.Text
+  address           String               @map("address") @db.Text
+  state             SellerWarehouseState @map("state")
+  aggregateVersion  Int                  @map("aggregate_version")
+  createdAt         DateTime             @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime             @map("updated_at") @db.Timestamptz(6)
+  closedAt          DateTime?            @map("closed_at") @db.Timestamptz(6)
+
+  @@index([sellerProfileId])
+  @@map("seller_warehouses")
+}
+
+model SellerAgreement {
+  agreementId      String               @id @map("agreement_id") @db.Uuid
+  sellerProfileId  String               @map("seller_profile_id") @db.Uuid
+  agreementType    SellerAgreementType  @map("agreement_type")
+  reference        String               @map("reference") @db.Text
+  state            SellerAgreementState @map("state")
+  effectiveFrom    DateTime             @map("effective_from") @db.Timestamptz(6)
+  effectiveTo      DateTime?            @map("effective_to") @db.Timestamptz(6)
+  signedAt         DateTime?            @map("signed_at") @db.Timestamptz(6)
+  aggregateVersion Int                  @map("aggregate_version")
+  createdAt        DateTime             @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime             @map("updated_at") @db.Timestamptz(6)
+
+  @@index([sellerProfileId])
+  @@map("seller_agreements")
+}
+
+model SellerStateTransition {
+  sellerStateTransitionId String      @id @map("seller_state_transition_id") @db.Uuid
+  sellerProfileId         String      @map("seller_profile_id") @db.Uuid
+  fromState               SellerState? @map("from_state")
+  toState                 SellerState  @map("to_state")
+  stateVersion            Int         @map("state_version")
+  actorIdentityId         String      @map("actor_identity_id") @db.Uuid
+  actorKind               String      @map("actor_kind") @db.Text
+  reasonReference         String?     @map("reason_reference") @db.Text
+  correlationId           String?     @map("correlation_id") @db.Uuid
+  causationId             String?     @map("causation_id") @db.Uuid
+  sourceReference         String?     @map("source_reference") @db.Text
+  transitionedAt          DateTime    @map("transitioned_at") @db.Timestamptz(6)
+  createdAt               DateTime    @map("created_at") @db.Timestamptz(6)
+
+  @@unique([sellerProfileId, stateVersion])
+  @@map("seller_state_transitions")
+}
+
+model SellerBusinessAuditRecord {
+  auditEventId    String   @id @map("audit_event_id") @db.Uuid
+  sellerProfileId String   @map("seller_profile_id") @db.Uuid
+  eventType       String   @map("event_type") @db.Text
+  actorIdentityId String   @map("actor_identity_id") @db.Uuid
+  correlationId   String?  @map("correlation_id") @db.Uuid
+  evidenceDigest  String?  @map("evidence_digest") @db.Text
+  occurredAt      DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt       DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([sellerProfileId, occurredAt(sort: Desc)])
+  @@map("seller_business_audit_records")
+}
+
+model SellerEvidenceLegalHold {
+  legalHoldId            String   @id @map("legal_hold_id") @db.Uuid
+  sellerProfileId        String   @map("seller_profile_id") @db.Uuid
+  authorizedByIdentityId String   @map("authorized_by_identity_id") @db.Uuid
+  reasonReference        String   @map("reason_reference") @db.Text
+  active                 Boolean  @map("active")
+  placedAt               DateTime @map("placed_at") @db.Timestamptz(6)
+  createdAt              DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime @map("updated_at") @db.Timestamptz(6)
+  releasedByIdentityId   String?  @map("released_by_identity_id") @db.Uuid
+  releasedAt             DateTime? @map("released_at") @db.Timestamptz(6)
+
+  @@index([sellerProfileId, active])
+  @@map("seller_evidence_legal_holds")
 }

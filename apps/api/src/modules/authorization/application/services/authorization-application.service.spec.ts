@@ -1,3 +1,5 @@
+/* Jest verifies injected mock methods by reference. */
+/* eslint-disable @typescript-eslint/unbound-method */
 import { OptimisticConcurrencyError } from '../../../identity-authentication/domain/shared/errors/optimistic-concurrency.error';
 import { AggregateVersion } from '../../../identity-authentication/domain/shared/value-objects/aggregate-version';
 import { UuidV7 } from '../../../identity-authentication/domain/shared/value-objects/uuid-v7';
@@ -9,12 +11,15 @@ import type { AuthorizationMutationPort } from '../ports/authorization-mutation.
 import type { IdentityRoleAssignmentRepository } from '../../domain/repositories/identity-role-assignment-repository';
 import { PermissionCatalog } from '../../domain/permission-catalog';
 import { RoleCatalog } from '../../domain/role-catalog';
+import type { SellerOwnershipResolverPort } from '../ports/seller-ownership-resolver.port';
 import { AuthorizationApplicationService } from './authorization-application.service';
 
 const ACTOR = new UuidV7('0191310f-789a-7123-8123-000000000001');
 const TARGET = new UuidV7('0191310f-789a-7123-8123-000000000002');
 const ASSIGNMENT_ID = new UuidV7('0191310f-789a-7123-8123-000000000003');
 const NEW_ASSIGNMENT_ID = new UuidV7('0191310f-789a-7123-8123-000000000004');
+const SELLER_PROFILE_ID = new UuidV7('0191310f-789a-7123-8123-000000000005');
+const ORGANIZATION_ID = new UuidV7('0191310f-789a-7123-8123-000000000006');
 const NOW = new Date('2026-08-11T00:00:00.000Z');
 
 function assignment(
@@ -49,6 +54,7 @@ interface AuthorizationFixture {
 function createFixture(
   roles?: RoleCatalog,
   identifiers: { next: () => UuidV7 } = { next: () => NEW_ASSIGNMENT_ID },
+  resolver?: SellerOwnershipResolverPort,
 ): AuthorizationFixture {
   const findById = jest.fn<Promise<unknown>, [unknown]>();
   const findByIdentityId = jest.fn<Promise<readonly unknown[]>, [unknown]>();
@@ -86,6 +92,7 @@ function createFixture(
     { now: () => NOW },
     identifiers,
     { isEligible: jest.fn().mockResolvedValue(true) },
+    resolver,
   );
   return {
     service,
@@ -98,6 +105,45 @@ function createFixture(
     assignRoleWithAudit,
     revokeRoleWithAudit,
   };
+}
+
+function scope(
+  overrides: Partial<{
+    sellerProfileId: UuidV7;
+    organizationId: UuidV7;
+    sellerState: string;
+    associationRole: 'OWNER' | 'MEMBER';
+    associationState: 'ACTIVE' | 'REMOVED';
+  }> = {},
+): never {
+  return {
+    sellerProfileId: SELLER_PROFILE_ID,
+    organizationId: ORGANIZATION_ID,
+    sellerState: 'ACTIVE',
+    associationRole: 'OWNER',
+    associationState: 'ACTIVE',
+    ...overrides,
+  } as never;
+}
+
+function sellerAssignment(
+  overrides: Partial<IdentityRoleAssignment['properties']> = {},
+): IdentityRoleAssignment {
+  return new IdentityRoleAssignment({
+    assignmentId: ASSIGNMENT_ID,
+    identityId: TARGET,
+    roleName: 'SELLER',
+    assignmentState: 'ACTIVE',
+    assignmentOriginType: 'SELLER_LIFECYCLE',
+    assignedByWorkloadIdentity: 'walrus.module-03.seller-lifecycle',
+    authorityEvidenceReference: 'seller:test',
+    operationId: SELLER_PROFILE_ID,
+    assignedAt: NOW,
+    aggregateVersion: new AggregateVersion(1),
+    createdAt: NOW,
+    updatedAt: NOW,
+    ...overrides,
+  });
 }
 
 describe('AuthorizationApplicationService (M02)', () => {
@@ -413,6 +459,358 @@ describe('AuthorizationApplicationService (M02)', () => {
       await expect(
         service.revokeRole({ assignmentId: ASSIGNMENT_ID, revokedByIdentityId: ACTOR }),
       ).rejects.toMatchObject({ code: 'STALE_VERSION' });
+    });
+  });
+
+  describe('authorize — organization scope (WEMP-M03-AUTHZ-001 §4, D-11)', () => {
+    const resolver: jest.Mocked<SellerOwnershipResolverPort> = {
+      resolveSellerScope: jest.fn(),
+    };
+
+    it('grants an org-scoped seller permission when the SELLER role and ACTIVE association scope both pass', async () => {
+      const { service, findActiveByIdentityId, recordInsert } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+      resolver.resolveSellerScope.mockResolvedValue(scope());
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'seller.profile.read',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(true);
+      const record = (recordInsert.mock.calls[0]?.[0] as { properties: Record<string, unknown> })
+        .properties;
+      expect(record).toMatchObject({
+        permissionId: 'seller.profile.read',
+        decisionOutcome: 'GRANTED',
+        resourceType: 'seller.profile',
+        resourceReference: SELLER_PROFILE_ID.value,
+      });
+    });
+
+    it('denies a SELLER accessing another seller (SCOPE_NOT_ASSOCIATED)', async () => {
+      const { service, findActiveByIdentityId, recordInsert } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+      resolver.resolveSellerScope.mockResolvedValue(null);
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'seller.profile.read',
+        resourceReference: new UuidV7('0191310f-789a-7123-8123-0000000000ab'),
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('SCOPE_NOT_ASSOCIATED');
+      const record = (recordInsert.mock.calls[0]?.[0] as { properties: Record<string, unknown> })
+        .properties;
+      expect(record).toMatchObject({
+        decisionOutcome: 'DENIED',
+        denialReason: 'SCOPE_NOT_ASSOCIATED',
+        resourceReference: '0191310f-789a-7123-8123-0000000000ab',
+      });
+      // The engine must never run with a forged seller reference.
+      expect(record.decisionOutcome).toBe('DENIED');
+    });
+
+    it('denies a forged/missing resource reference (SCOPE_RESOURCE_MISSING)', async () => {
+      const { service, findActiveByIdentityId } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'seller.profile.read',
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('SCOPE_RESOURCE_MISSING');
+    });
+
+    it('fails closed when the ownership resolver is unavailable (SCOPE_RESOLUTION_UNAVAILABLE)', async () => {
+      const { service, findActiveByIdentityId } = createFixture();
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'seller.profile.read',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('SCOPE_RESOLUTION_UNAVAILABLE');
+    });
+
+    it('denies when the seller is terminal (SCOPE_SELLER_TERMINAL)', async () => {
+      const { service, findActiveByIdentityId } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+      resolver.resolveSellerScope.mockResolvedValue(scope({ sellerState: 'CLOSED' }));
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'seller.profile.read',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('SCOPE_SELLER_TERMINAL');
+    });
+
+    it('denies when the resolver fails (SCOPE_RESOLUTION_UNAVAILABLE, fail closed)', async () => {
+      const { service, findActiveByIdentityId } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+      resolver.resolveSellerScope.mockRejectedValue(new Error('storage down'));
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'seller.profile.read',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('SCOPE_RESOLUTION_UNAVAILABLE');
+    });
+
+    it('grants org-scoped permissions when the SELLER role covers them and scope passes', async () => {
+      const { service, findActiveByIdentityId } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+      resolver.resolveSellerScope.mockResolvedValue(scope());
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'seller.profile.close',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(true);
+    });
+
+    it('denies an org-scoped permission when the role does not cover it even with valid scope', async () => {
+      const { service, findActiveByIdentityId } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([assignment({ roleName: 'CUSTOMER' })]);
+      resolver.resolveSellerScope.mockResolvedValue(scope());
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'seller.profile.read',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('PERMISSION_NOT_GRANTED');
+    });
+
+    it('does not apply the org-scope gate to administrative seller permissions', async () => {
+      const { service, findActiveByIdentityId } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([assignment({ roleName: 'ADMIN' })]);
+      // No resourceReference supplied and the resolver is never consulted.
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'seller.review.decide',
+      });
+
+      expect(decision.granted).toBe(true);
+      expect(resolver.resolveSellerScope).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('assignSellerRoleForActivation (D-11, APPROVED → role → ACTIVE gate)', () => {
+    const resolver: jest.Mocked<SellerOwnershipResolverPort> = {
+      resolveSellerScope: jest.fn(),
+    };
+
+    it('grants the SELLER role for an APPROVED seller with an ACTIVE association', async () => {
+      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([]);
+      resolver.resolveSellerScope.mockResolvedValue(scope({ sellerState: 'APPROVED' }));
+
+      const result = await service.assignSellerRoleForActivation({
+        targetIdentityId: TARGET,
+        sellerProfileId: SELLER_PROFILE_ID,
+        authorityEvidenceReference: 'seller:test',
+      });
+
+      expect(result).toEqual({ outcome: 'GRANTED' });
+      expect(assignRoleWithAudit).toHaveBeenCalledTimes(1);
+      const saved = assignRoleWithAudit.mock.calls[0]?.[0] as
+        { properties?: Record<string, unknown> } | undefined;
+      expect(saved?.properties).toMatchObject({
+        roleName: 'SELLER',
+        assignmentState: 'ACTIVE',
+        assignmentOriginType: 'SELLER_LIFECYCLE',
+        assignedByWorkloadIdentity: 'walrus.module-03.seller-lifecycle',
+        operationId: SELLER_PROFILE_ID,
+      });
+      const audit = assignRoleWithAudit.mock.calls[0]?.[1] as
+        { properties?: Record<string, unknown> } | undefined;
+      expect(audit?.properties).toMatchObject({
+        permissionId: 'authorization.role.assign',
+        subjectIdentityId: TARGET,
+        decisionOutcome: 'GRANTED',
+        workloadIdentity: 'walrus.module-03.seller-lifecycle',
+      });
+    });
+
+    it('denies assignment for a seller that was never approved (SELLER_STATE_INELIGIBLE)', async () => {
+      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([]);
+      resolver.resolveSellerScope.mockResolvedValue(scope({ sellerState: 'DRAFT' }));
+
+      const result = await service.assignSellerRoleForActivation({
+        targetIdentityId: TARGET,
+        sellerProfileId: SELLER_PROFILE_ID,
+        authorityEvidenceReference: 'seller:test',
+      });
+
+      expect(result).toMatchObject({ outcome: 'DENIED', reason: 'SELLER_STATE_INELIGIBLE' });
+      expect(assignRoleWithAudit).not.toHaveBeenCalled();
+    });
+
+    it('denies assignment for a terminal seller', async () => {
+      const { service, findActiveByIdentityId } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([]);
+      resolver.resolveSellerScope.mockResolvedValue(scope({ sellerState: 'REJECTED' }));
+
+      const result = await service.assignSellerRoleForActivation({
+        targetIdentityId: TARGET,
+        sellerProfileId: SELLER_PROFILE_ID,
+        authorityEvidenceReference: 'seller:test',
+      });
+
+      expect(result).toMatchObject({ outcome: 'DENIED', reason: 'SELLER_STATE_INELIGIBLE' });
+    });
+
+    it('denies assignment when the identity has no ACTIVE association to the seller', async () => {
+      const { service, findActiveByIdentityId } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([]);
+      resolver.resolveSellerScope.mockResolvedValue(null);
+
+      const result = await service.assignSellerRoleForActivation({
+        targetIdentityId: TARGET,
+        sellerProfileId: SELLER_PROFILE_ID,
+        authorityEvidenceReference: 'seller:test',
+      });
+
+      expect(result).toMatchObject({ outcome: 'DENIED', reason: 'SELLER_NOT_ASSOCIATED' });
+    });
+
+    it('fails closed when the resolver is unavailable', async () => {
+      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture();
+      findActiveByIdentityId.mockResolvedValue([]);
+
+      const result = await service.assignSellerRoleForActivation({
+        targetIdentityId: TARGET,
+        sellerProfileId: SELLER_PROFILE_ID,
+        authorityEvidenceReference: 'seller:test',
+      });
+
+      expect(result).toMatchObject({ outcome: 'FAILED', reason: 'SCOPE_RESOLUTION_UNAVAILABLE' });
+      expect(assignRoleWithAudit).not.toHaveBeenCalled();
+    });
+
+    it('is idempotent: an existing ACTIVE SELLER assignment resolves to GRANTED', async () => {
+      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+      resolver.resolveSellerScope.mockResolvedValue(scope({ sellerState: 'APPROVED' }));
+
+      const result = await service.assignSellerRoleForActivation({
+        targetIdentityId: TARGET,
+        sellerProfileId: SELLER_PROFILE_ID,
+        authorityEvidenceReference: 'seller:test',
+      });
+
+      expect(result).toEqual({ outcome: 'GRANTED' });
+      expect(assignRoleWithAudit).not.toHaveBeenCalled();
+    });
+
+    it('fails with STALE_VERSION on an optimistic-concurrency conflict (concurrent activation)', async () => {
+      const { service, findActiveByIdentityId, assignRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([]);
+      resolver.resolveSellerScope.mockResolvedValue(scope({ sellerState: 'APPROVED' }));
+      assignRoleWithAudit.mockRejectedValue(new OptimisticConcurrencyError('IdentityRoleAssignment'));
+
+      const result = await service.assignSellerRoleForActivation({
+        targetIdentityId: TARGET,
+        sellerProfileId: SELLER_PROFILE_ID,
+        authorityEvidenceReference: 'seller:test',
+      });
+
+      expect(result).toMatchObject({ outcome: 'FAILED', reason: 'STALE_VERSION' });
+    });
+  });
+
+  describe('revokeSellerRole (D-11)', () => {
+    const resolver: jest.Mocked<SellerOwnershipResolverPort> = {
+      resolveSellerScope: jest.fn(),
+    };
+
+    it('revokes every ACTIVE SELLER assignment with audit provenance', async () => {
+      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+
+      const result = await service.revokeSellerRole({
+        identityId: TARGET,
+        revokedByIdentityId: ACTOR,
+        reasonReference: 'seller.closed',
+      });
+
+      expect(result).toEqual({ outcome: 'GRANTED' });
+      expect(revokeRoleWithAudit).toHaveBeenCalledTimes(1);
+      const saved = revokeRoleWithAudit.mock.calls[0]?.[0] as
+        { properties?: Record<string, unknown> } | undefined;
+      expect(saved?.properties).toMatchObject({
+        assignmentState: 'REVOKED',
+        revokedByIdentityId: ACTOR,
+        revocationReasonReference: 'seller.closed',
+        aggregateVersion: { value: 2 },
+      });
+      const audit = revokeRoleWithAudit.mock.calls[0]?.[1] as
+        { properties?: Record<string, unknown> } | undefined;
+      expect(audit?.properties).toMatchObject({
+        permissionId: 'authorization.role.revoke',
+        decisionOutcome: 'GRANTED',
+        actorIdentityId: ACTOR,
+      });
+    });
+
+    it('revokes a control-plane assignment without a human revoker (compensation)', async () => {
+      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+
+      const result = await service.revokeSellerRole({
+        identityId: TARGET,
+        reasonReference: 'SELLER_ACTIVATION_ROLLED_BACK',
+      });
+
+      expect(result).toEqual({ outcome: 'GRANTED' });
+      const saved = revokeRoleWithAudit.mock.calls[0]?.[0] as
+        { properties?: Record<string, unknown> } | undefined;
+      expect(saved?.properties).toMatchObject({ assignmentState: 'REVOKED' });
+      const audit = revokeRoleWithAudit.mock.calls[0]?.[1] as
+        { properties?: Record<string, unknown> } | undefined;
+      expect(audit?.properties).toMatchObject({
+        workloadIdentity: 'walrus.module-03.seller-lifecycle',
+      });
+    });
+
+    it('is idempotent when there is nothing to revoke', async () => {
+      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([assignment({ roleName: 'CUSTOMER' })]);
+
+      const result = await service.revokeSellerRole({ identityId: TARGET });
+
+      expect(result).toEqual({ outcome: 'GRANTED' });
+      expect(revokeRoleWithAudit).not.toHaveBeenCalled();
+    });
+
+    it('fails with STALE_VERSION on a concurrent revocation conflict', async () => {
+      const { service, findActiveByIdentityId, revokeRoleWithAudit } = createFixture(undefined, undefined, resolver);
+      findActiveByIdentityId.mockResolvedValue([sellerAssignment()]);
+      revokeRoleWithAudit.mockRejectedValue(new OptimisticConcurrencyError('IdentityRoleAssignment'));
+
+      const result = await service.revokeSellerRole({ identityId: TARGET });
+
+      expect(result).toMatchObject({ outcome: 'FAILED', reason: 'STALE_VERSION' });
     });
   });
 

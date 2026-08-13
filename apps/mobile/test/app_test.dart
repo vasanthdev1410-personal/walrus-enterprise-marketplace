@@ -21,12 +21,12 @@ void main() {
     },
   );
 
-  testWidgets('keeps seller navigation inside the seller feature boundary', (
+  testWidgets('navigates to the seller onboarding feature', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const WalrusApp());
     await tester.tap(find.text('Seller module boundary'));
     await tester.pumpAndSettle();
-    expect(find.text('Seller boundary'), findsOneWidget);
+    expect(find.text('Seller onboarding'), findsOneWidget);
   });
 }

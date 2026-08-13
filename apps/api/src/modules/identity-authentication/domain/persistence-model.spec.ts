@@ -24,10 +24,10 @@ const protectedAuthenticationMigration = readFileSync(
 );
 
 describe('Module 01 Limited Phase 1 persistence model', () => {
-  it('contains the approved Module 01 and Module 02 persistence records', () => {
+  it('contains the approved Module 01, Module 02 and Module 03 persistence records', () => {
     const models = [...schema.matchAll(/^model\s+(\w+)\s+\{/gm)].map((match) => match[1]);
 
-    expect(models).toHaveLength(40);
+    expect(models).toHaveLength(50);
     expect(models).toEqual(
       expect.arrayContaining([
         'Identity',
@@ -55,6 +55,17 @@ describe('Module 01 Limited Phase 1 persistence model', () => {
         'AuthorizationAuditParticipant',
         'PrivilegedAccessEligibilityRecord',
         'PrivilegedEligibilityInvalidationOutbox',
+        // Approved Module 03 (seller management, WEMP-M03-SPEC-001 §3/§9).
+        'SellerProfile',
+        'SellerOrganization',
+        'SellerIdentityAssociation',
+        'SellerBusinessVerification',
+        'SellerVerificationEvidence',
+        'SellerWarehouse',
+        'SellerAgreement',
+        'SellerStateTransition',
+        'SellerBusinessAuditRecord',
+        'SellerEvidenceLegalHold',
       ]),
     );
   });
@@ -68,7 +79,6 @@ describe('Module 01 Limited Phase 1 persistence model', () => {
       'PrivacyRequest',
       'ConsentRecord',
       'CustomerProfile',
-      'SellerProfile',
       'Role',
       'Permission',
     ];

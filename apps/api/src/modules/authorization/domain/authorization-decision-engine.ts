@@ -46,6 +46,16 @@ export class AuthorizationDecisionEngine {
     private readonly roleCatalog: RoleCatalog,
   ) {}
 
+  /**
+   * True when the permission is organization-scoped (WEMP-M03-AUTHZ-001 §4):
+   * such permissions are additionally gated on the caller's ACTIVE seller
+   * association, resolved by the application layer through the ownership
+   * resolver before the engine runs.
+   */
+  public isOrganizationScoped(permissionId: string): boolean {
+    return this.permissionCatalog.isOrganizationScoped(permissionId);
+  }
+
   public evaluate(
     request: AuthorizationRequest,
     assignments: readonly IdentityRoleAssignment[],

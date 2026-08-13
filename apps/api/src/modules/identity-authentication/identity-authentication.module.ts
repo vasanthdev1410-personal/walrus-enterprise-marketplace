@@ -695,7 +695,17 @@ const OTP_DELIVERY = Symbol('OTP_DELIVERY');
     NonProductionRateLimiterGuard,
     BasicAuditInterceptor,
   ],
-  exports: [AuthoritativeSessionGuard, Aal2SessionGuard],
+  exports: [
+    AuthoritativeSessionGuard,
+    Aal2SessionGuard,
+    // WEMP-M03-PLAN-001 M03-M5: Module 03 reuses the approved Module 01
+    // idempotency and rate-limit infrastructure for seller mutation endpoints
+    // (no second system is built). These are additive exports of existing
+    // providers — no Module 01 behavior changes.
+    API_IDEMPOTENCY,
+    RATE_LIMITER,
+    NonProductionRateLimiterGuard,
+  ],
 })
 // NestJS modules are declarative metadata containers and intentionally have no members.
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class

@@ -12,6 +12,7 @@ import { SecurityHeadersMiddleware } from './platform/security/security-headers.
 import { IdentityAuthenticationModule } from './modules/identity-authentication/identity-authentication.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { AuthorizationCoreModule } from './modules/authorization/authorization-core.module';
+import { SellerManagementModule } from './modules/seller-management/seller-management.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AuthorizationCoreModule } from './modules/authorization/authorization-c
     AuthorizationCoreModule,
     IdentityAuthenticationModule,
     AuthorizationModule,
+    SellerManagementModule,
   ],
   controllers: [HealthController],
   providers: [

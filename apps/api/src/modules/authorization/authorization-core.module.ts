@@ -14,6 +14,7 @@ import {
 } from '../identity-authentication/infrastructure/runtime/system-runtime.adapter';
 import type { AuthorizationMutationPort } from './application/ports/authorization-mutation.port';
 import type { PrivilegedEligibilityPort } from './application/ports/privileged-eligibility.port';
+import type { SellerOwnershipResolverPort } from './application/ports/seller-ownership-resolver.port';
 import { AuthorizationApplicationService } from './application/services/authorization-application.service';
 import { PrivilegedActivationService } from './application/services/privileged-activation.service';
 import { ReadinessInboxService } from './application/services/readiness-inbox.service';
@@ -30,6 +31,7 @@ import {
   AUTHORIZATION_MUTATION,
   IDENTITY_ROLE_ASSIGNMENT_REPOSITORY,
   PRIVILEGED_ELIGIBILITY,
+  SELLER_OWNERSHIP_RESOLVER,
   TRUSTED_PEER_CERTIFICATE,
   TRUSTED_WORKLOAD_KEY_RESOLVER,
   TRUSTED_WORKLOAD_REPLAY,
@@ -130,6 +132,10 @@ import { WorkloadAuthorizationBoundaryV2Adapter } from './infrastructure/boundar
         CLOCK,
         UUID_V7_GENERATOR,
         PRIVILEGED_ELIGIBILITY,
+        // D-11: the seller ownership resolver is provided by the Module 03
+        // seller-management module. Optional — when absent, every
+        // organization-scoped seller.* decision fails closed.
+        { token: SELLER_OWNERSHIP_RESOLVER, optional: true },
       ],
       useFactory: (
         assignments: IdentityRoleAssignmentRepository,
@@ -138,6 +144,7 @@ import { WorkloadAuthorizationBoundaryV2Adapter } from './infrastructure/boundar
         clock: ClockPort,
         identifiers: UuidV7GenerationPort,
         privilegedEligibility: PrivilegedEligibilityPort,
+        sellerOwnershipResolver?: SellerOwnershipResolverPort,
       ) => {
         const permissions = new PermissionCatalog();
         const roles = new RoleCatalog();
@@ -150,6 +157,7 @@ import { WorkloadAuthorizationBoundaryV2Adapter } from './infrastructure/boundar
           clock,
           identifiers,
           privilegedEligibility,
+          sellerOwnershipResolver,
         );
       },
     },

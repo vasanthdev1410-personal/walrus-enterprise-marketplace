@@ -14,6 +14,12 @@ export const ALLOWED_ACTIONS = [
   'CONFIGURE',
   'AUDIT',
   'MANAGE',
+  // WEMP-M03-AUTHZ-001 §2 (approved D-11): canonical verbs required by the
+  // seller permission vocabulary (immutable resource.action identifiers).
+  'CLOSE',
+  'SUBMIT',
+  'DECIDE',
+  'VIEW',
 ] as const;
 
 export type AllowedAction = (typeof ALLOWED_ACTIONS)[number];

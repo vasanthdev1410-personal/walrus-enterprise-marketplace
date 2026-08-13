@@ -24,6 +24,42 @@ const ROLE_IDS: Readonly<Record<RoleName, string>> = {
 
 const SEEDED_AT = new Date('2026-08-11T00:00:00.000Z');
 
+/**
+ * WEMP-M03-AUTHZ-001 §2.1 (approved D-11). The SELLER self-service
+ * permissions granted to the SELLER role. All are organization-scoped through
+ * the approved ownership resolver (WEMP-M03-AUTHZ-001 §4).
+ */
+const SELLER_PERMISSIONS = [
+  'seller.profile.create',
+  'seller.profile.read',
+  'seller.profile.update',
+  'seller.profile.close',
+  'seller.organization.read',
+  'seller.organization.update',
+  'seller.onboarding.create',
+  'seller.onboarding.submit',
+  'seller.onboarding.read',
+  'seller.verification.submit',
+  'seller.verification.read',
+  'seller.warehouse.read',
+  'seller.warehouse.manage',
+  'seller.agreement.read',
+  'seller.member.read',
+  'seller.member.manage',
+] as const;
+
+/**
+ * WEMP-M03-AUTHZ-001 §2.2 (approved D-11). The seller administrative
+ * permissions granted to ADMIN and SUPER_ADMIN exactly as approved — no
+ * broader authority, no hidden override.
+ */
+const SELLER_ADMIN_PERMISSIONS = [
+  'seller.review.decide',
+  'seller.suspend.manage',
+  'seller.evidence.read',
+  'seller.audit.view',
+] as const;
+
 const SUPER_ADMIN_PERMISSIONS = [
   'recovery.approval.decide',
   'identity.state.change',
@@ -33,6 +69,7 @@ const SUPER_ADMIN_PERMISSIONS = [
   'authorization.role.assign',
   'authorization.role.revoke',
   'authorization.permission.view',
+  ...SELLER_ADMIN_PERMISSIONS,
 ] as const;
 
 const ADMIN_PERMISSIONS = [
@@ -42,6 +79,7 @@ const ADMIN_PERMISSIONS = [
   'authorization.role.assign',
   'authorization.role.revoke',
   'authorization.permission.view',
+  ...SELLER_ADMIN_PERMISSIONS,
 ] as const;
 
 const SEEDED_ROLES: readonly Role[] = Object.freeze([
@@ -67,7 +105,7 @@ const SEEDED_ROLES: readonly Role[] = Object.freeze([
     roleId: new UuidV7(ROLE_IDS.SELLER),
     roleName: 'SELLER',
     state: 'ACTIVE',
-    grantedPermissionIds: [],
+    grantedPermissionIds: [...SELLER_PERMISSIONS],
     aggregateVersion: new AggregateVersion(1),
     createdAt: SEEDED_AT,
     updatedAt: SEEDED_AT,

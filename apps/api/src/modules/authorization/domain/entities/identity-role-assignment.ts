@@ -15,7 +15,10 @@ export interface IdentityRoleAssignmentProperties {
   readonly assignmentState: IdentityRoleAssignmentState;
   readonly assignedByIdentityId?: UuidV7;
   readonly assignmentOriginType?:
-    'HUMAN_ADMINISTRATION' | 'PRIVILEGED_PROVISIONING' | 'CONTROLLED_BOOTSTRAP';
+    | 'HUMAN_ADMINISTRATION'
+    | 'PRIVILEGED_PROVISIONING'
+    | 'CONTROLLED_BOOTSTRAP'
+    | 'SELLER_LIFECYCLE';
   readonly assignedByWorkloadIdentity?: string;
   readonly authorityEvidenceReference?: string;
   readonly operationId?: UuidV7;
@@ -49,7 +52,15 @@ export class IdentityRoleAssignment {
     if (properties.assignmentState === 'REVOKED' && properties.revokedAt === undefined) {
       throw new Error('Revoked Identity Role Assignment requires revokedAt');
     }
-    if (properties.assignmentState === 'REVOKED' && properties.revokedByIdentityId === undefined) {
+    // Human-administered assignments always record the revoking identity.
+    // Control-plane assignments (e.g. SELLER_LIFECYCLE activation rollback)
+    // may be revoked by the control plane itself; the revocation audit record
+    // carries the workload identity and reason code instead.
+    if (
+      properties.assignmentState === 'REVOKED' &&
+      origin === 'HUMAN_ADMINISTRATION' &&
+      properties.revokedByIdentityId === undefined
+    ) {
       throw new Error('Revoked Identity Role Assignment requires revokedByIdentityId');
     }
     this.properties = Object.freeze({
