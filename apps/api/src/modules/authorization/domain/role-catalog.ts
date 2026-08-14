@@ -46,6 +46,19 @@ const SELLER_PERMISSIONS = [
   'seller.agreement.read',
   'seller.member.read',
   'seller.member.manage',
+  // WEMP-M04-AUTHZ-001 §2.1 (approved D-11): the SELLER self-service product
+  // permissions. product.media.read and catalog.category.read are included for
+  // the seller and are also granted to ADMIN/SUPER_ADMIN (shared identifiers,
+  // not org-scoped — see permission-catalog.ts).
+  'product.create',
+  'product.read',
+  'product.update',
+  'product.submit',
+  'product.close',
+  'product.media.read',
+  'product.media.manage',
+  'product.sku.manage',
+  'catalog.category.read',
 ] as const;
 
 /**
@@ -60,6 +73,22 @@ const SELLER_ADMIN_PERMISSIONS = [
   'seller.audit.view',
 ] as const;
 
+/**
+ * WEMP-M04-AUTHZ-001 §2.2 (approved D-11). The product administrative
+ * permissions granted to ADMIN and SUPER_ADMIN exactly as approved — no
+ * broader authority, no hidden override (product.manage.override not
+ * approved). product.media.read and catalog.category.read are the shared
+ * identifiers also granted to SELLER (see permission-catalog.ts).
+ */
+const PRODUCT_ADMIN_PERMISSIONS = [
+  'product.review.decide',
+  'product.audit.view',
+  'product.media.read',
+  'catalog.category.read',
+  'catalog.category.manage',
+  'catalog.attribute.manage',
+] as const;
+
 const SUPER_ADMIN_PERMISSIONS = [
   'recovery.approval.decide',
   'identity.state.change',
@@ -70,6 +99,7 @@ const SUPER_ADMIN_PERMISSIONS = [
   'authorization.role.revoke',
   'authorization.permission.view',
   ...SELLER_ADMIN_PERMISSIONS,
+  ...PRODUCT_ADMIN_PERMISSIONS,
 ] as const;
 
 const ADMIN_PERMISSIONS = [
@@ -80,6 +110,7 @@ const ADMIN_PERMISSIONS = [
   'authorization.role.revoke',
   'authorization.permission.view',
   ...SELLER_ADMIN_PERMISSIONS,
+  ...PRODUCT_ADMIN_PERMISSIONS,
 ] as const;
 
 const SEEDED_ROLES: readonly Role[] = Object.freeze([

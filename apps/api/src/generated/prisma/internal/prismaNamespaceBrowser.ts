@@ -100,7 +100,17 @@ export const ModelName = {
   SellerAgreement: 'SellerAgreement',
   SellerStateTransition: 'SellerStateTransition',
   SellerBusinessAuditRecord: 'SellerBusinessAuditRecord',
-  SellerEvidenceLegalHold: 'SellerEvidenceLegalHold'
+  SellerEvidenceLegalHold: 'SellerEvidenceLegalHold',
+  Product: 'Product',
+  ProductVariant: 'ProductVariant',
+  ProductSku: 'ProductSku',
+  ProductCategory: 'ProductCategory',
+  ProductAttributeDefinition: 'ProductAttributeDefinition',
+  ProductAttributeValue: 'ProductAttributeValue',
+  ProductMedia: 'ProductMedia',
+  ProductStateTransition: 'ProductStateTransition',
+  ProductAuditRecord: 'ProductAuditRecord',
+  ProductPriceHistory: 'ProductPriceHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1003,6 +1013,176 @@ export const SellerEvidenceLegalHoldScalarFieldEnum = {
 } as const
 
 export type SellerEvidenceLegalHoldScalarFieldEnum = (typeof SellerEvidenceLegalHoldScalarFieldEnum)[keyof typeof SellerEvidenceLegalHoldScalarFieldEnum]
+
+
+export const ProductScalarFieldEnum = {
+  productId: 'productId',
+  sellerProfileId: 'sellerProfileId',
+  categoryId: 'categoryId',
+  name: 'name',
+  state: 'state',
+  sellingPrice: 'sellingPrice',
+  compareAtPrice: 'compareAtPrice',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  submittedAt: 'submittedAt',
+  approvedAt: 'approvedAt',
+  publishedAt: 'publishedAt',
+  closedAt: 'closedAt',
+  correlationId: 'correlationId'
+} as const
+
+export type ProductScalarFieldEnum = (typeof ProductScalarFieldEnum)[keyof typeof ProductScalarFieldEnum]
+
+
+export const ProductVariantScalarFieldEnum = {
+  variantId: 'variantId',
+  productId: 'productId',
+  name: 'name',
+  state: 'state',
+  sellingPrice: 'sellingPrice',
+  compareAtPrice: 'compareAtPrice',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  publishedAt: 'publishedAt',
+  correlationId: 'correlationId'
+} as const
+
+export type ProductVariantScalarFieldEnum = (typeof ProductVariantScalarFieldEnum)[keyof typeof ProductVariantScalarFieldEnum]
+
+
+export const ProductSkuScalarFieldEnum = {
+  skuId: 'skuId',
+  sellerProfileId: 'sellerProfileId',
+  productId: 'productId',
+  variantId: 'variantId',
+  skuCode: 'skuCode',
+  state: 'state',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  closedAt: 'closedAt'
+} as const
+
+export type ProductSkuScalarFieldEnum = (typeof ProductSkuScalarFieldEnum)[keyof typeof ProductSkuScalarFieldEnum]
+
+
+export const ProductCategoryScalarFieldEnum = {
+  categoryId: 'categoryId',
+  name: 'name',
+  parentCategoryId: 'parentCategoryId',
+  state: 'state',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  retiredAt: 'retiredAt'
+} as const
+
+export type ProductCategoryScalarFieldEnum = (typeof ProductCategoryScalarFieldEnum)[keyof typeof ProductCategoryScalarFieldEnum]
+
+
+export const ProductAttributeDefinitionScalarFieldEnum = {
+  attributeId: 'attributeId',
+  name: 'name',
+  valueType: 'valueType',
+  unit: 'unit',
+  required: 'required',
+  group: 'group',
+  allowedValues: 'allowedValues',
+  minValue: 'minValue',
+  maxValue: 'maxValue',
+  state: 'state',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  retiredAt: 'retiredAt'
+} as const
+
+export type ProductAttributeDefinitionScalarFieldEnum = (typeof ProductAttributeDefinitionScalarFieldEnum)[keyof typeof ProductAttributeDefinitionScalarFieldEnum]
+
+
+export const ProductAttributeValueScalarFieldEnum = {
+  attributeValueId: 'attributeValueId',
+  productId: 'productId',
+  variantId: 'variantId',
+  attributeId: 'attributeId',
+  valueType: 'valueType',
+  value: 'value',
+  state: 'state',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProductAttributeValueScalarFieldEnum = (typeof ProductAttributeValueScalarFieldEnum)[keyof typeof ProductAttributeValueScalarFieldEnum]
+
+
+export const ProductMediaScalarFieldEnum = {
+  mediaId: 'mediaId',
+  productId: 'productId',
+  mediaType: 'mediaType',
+  mediaReference: 'mediaReference',
+  mediaDigest: 'mediaDigest',
+  mimeType: 'mimeType',
+  sizeBytes: 'sizeBytes',
+  uploadedByIdentityId: 'uploadedByIdentityId',
+  state: 'state',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProductMediaScalarFieldEnum = (typeof ProductMediaScalarFieldEnum)[keyof typeof ProductMediaScalarFieldEnum]
+
+
+export const ProductStateTransitionScalarFieldEnum = {
+  productStateTransitionId: 'productStateTransitionId',
+  productId: 'productId',
+  fromState: 'fromState',
+  toState: 'toState',
+  stateVersion: 'stateVersion',
+  actorIdentityId: 'actorIdentityId',
+  actorKind: 'actorKind',
+  reasonReference: 'reasonReference',
+  correlationId: 'correlationId',
+  causationId: 'causationId',
+  sourceReference: 'sourceReference',
+  transitionedAt: 'transitionedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type ProductStateTransitionScalarFieldEnum = (typeof ProductStateTransitionScalarFieldEnum)[keyof typeof ProductStateTransitionScalarFieldEnum]
+
+
+export const ProductAuditRecordScalarFieldEnum = {
+  auditEventId: 'auditEventId',
+  productId: 'productId',
+  eventType: 'eventType',
+  actorIdentityId: 'actorIdentityId',
+  correlationId: 'correlationId',
+  evidenceDigest: 'evidenceDigest',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type ProductAuditRecordScalarFieldEnum = (typeof ProductAuditRecordScalarFieldEnum)[keyof typeof ProductAuditRecordScalarFieldEnum]
+
+
+export const ProductPriceHistoryScalarFieldEnum = {
+  priceHistoryId: 'priceHistoryId',
+  productId: 'productId',
+  variantId: 'variantId',
+  sellingPrice: 'sellingPrice',
+  compareAtPrice: 'compareAtPrice',
+  recordedVersion: 'recordedVersion',
+  recordedByIdentityId: 'recordedByIdentityId',
+  recordedAt: 'recordedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type ProductPriceHistoryScalarFieldEnum = (typeof ProductPriceHistoryScalarFieldEnum)[keyof typeof ProductPriceHistoryScalarFieldEnum]
 
 
 export const SortOrder = {

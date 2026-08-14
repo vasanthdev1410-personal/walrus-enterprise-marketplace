@@ -585,3 +585,67 @@ export const SellerAgreementType = {
 } as const
 
 export type SellerAgreementType = (typeof SellerAgreementType)[keyof typeof SellerAgreementType]
+
+
+export const ProductState = {
+  DRAFT: 'DRAFT',
+  SUBMITTED: 'SUBMITTED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  APPROVED: 'APPROVED',
+  PUBLISHED: 'PUBLISHED',
+  CORRECTIONS_REQUESTED: 'CORRECTIONS_REQUESTED',
+  UNPUBLISHED: 'UNPUBLISHED',
+  REJECTED: 'REJECTED',
+  CLOSED: 'CLOSED'
+} as const
+
+export type ProductState = (typeof ProductState)[keyof typeof ProductState]
+
+
+export const CategoryState = {
+  ACTIVE: 'ACTIVE',
+  RETIRED: 'RETIRED'
+} as const
+
+export type CategoryState = (typeof CategoryState)[keyof typeof CategoryState]
+
+
+export const AttributeValueType = {
+  STRING: 'STRING',
+  NUMBER: 'NUMBER',
+  BOOLEAN: 'BOOLEAN',
+  DATE: 'DATE'
+} as const
+
+export type AttributeValueType = (typeof AttributeValueType)[keyof typeof AttributeValueType]
+
+
+export const ProductMediaType = {
+  IMAGE: 'IMAGE'
+} as const
+
+export type ProductMediaType = (typeof ProductMediaType)[keyof typeof ProductMediaType]
+
+
+export const ProductSkuState = {
+  ACTIVE: 'ACTIVE',
+  CLOSED: 'CLOSED'
+} as const
+
+export type ProductSkuState = (typeof ProductSkuState)[keyof typeof ProductSkuState]
+
+
+export const ProductAttributeValueState = {
+  ACTIVE: 'ACTIVE',
+  REMOVED: 'REMOVED'
+} as const
+
+export type ProductAttributeValueState = (typeof ProductAttributeValueState)[keyof typeof ProductAttributeValueState]
+
+
+export const ProductMediaState = {
+  ACTIVE: 'ACTIVE',
+  REMOVED: 'REMOVED'
+} as const
+
+export type ProductMediaState = (typeof ProductMediaState)[keyof typeof ProductMediaState]

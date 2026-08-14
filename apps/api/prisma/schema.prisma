@@ -1405,3 +1405,231 @@ model SellerEvidenceLegalHold {
   @@index([sellerProfileId, active])
   @@map("seller_evidence_legal_holds")
 }
+// ============================================================================
+// Module 04 - Product Catalog (WEMP-M04-SPEC-001 §17, decisions D-02..D-17).
+// Additive only. seller_profile_id / identityId references are logical
+// UUIDv7 values with NO cross-module foreign keys (storage isolation).
+// ============================================================================
+
+enum ProductState {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  PUBLISHED
+  CORRECTIONS_REQUESTED
+  UNPUBLISHED
+  REJECTED
+  CLOSED
+}
+
+enum CategoryState {
+  ACTIVE
+  RETIRED
+}
+
+enum AttributeValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+  DATE
+}
+
+enum ProductMediaType {
+  IMAGE
+}
+
+enum ProductSkuState {
+  ACTIVE
+  CLOSED
+}
+
+enum ProductAttributeValueState {
+  ACTIVE
+  REMOVED
+}
+
+enum ProductMediaState {
+  ACTIVE
+  REMOVED
+}
+
+model Product {
+  productId        String       @id @map("product_id") @db.Uuid
+  sellerProfileId  String       @map("seller_profile_id") @db.Uuid
+  categoryId       String       @map("category_id") @db.Uuid
+  name             String       @map("name") @db.Text
+  state            ProductState @map("state")
+  sellingPrice     Decimal      @map("selling_price") @db.Decimal(12, 2)
+  compareAtPrice   Decimal?     @map("compare_at_price") @db.Decimal(12, 2)
+  aggregateVersion Int          @map("aggregate_version")
+  createdAt        DateTime     @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime     @map("updated_at") @db.Timestamptz(6)
+  submittedAt      DateTime?    @map("submitted_at") @db.Timestamptz(6)
+  approvedAt       DateTime?    @map("approved_at") @db.Timestamptz(6)
+  publishedAt      DateTime?    @map("published_at") @db.Timestamptz(6)
+  closedAt         DateTime?    @map("closed_at") @db.Timestamptz(6)
+  correlationId    String?      @map("correlation_id") @db.Uuid
+
+  @@index([sellerProfileId])
+  @@index([categoryId])
+  @@index([state])
+  @@unique([productId, aggregateVersion])
+  @@map("products")
+}
+
+model ProductVariant {
+  variantId        String       @id @map("variant_id") @db.Uuid
+  productId        String       @map("product_id") @db.Uuid
+  name             String       @map("name") @db.Text
+  state            ProductState @map("state")
+  sellingPrice     Decimal      @map("selling_price") @db.Decimal(12, 2)
+  compareAtPrice   Decimal?     @map("compare_at_price") @db.Decimal(12, 2)
+  aggregateVersion Int          @map("aggregate_version")
+  createdAt        DateTime     @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime     @map("updated_at") @db.Timestamptz(6)
+  publishedAt      DateTime?    @map("published_at") @db.Timestamptz(6)
+  correlationId    String?      @map("correlation_id") @db.Uuid
+
+  @@index([productId])
+  @@unique([variantId, aggregateVersion])
+  @@map("product_variants")
+}
+
+model ProductSku {
+  skuId            String          @id @map("sku_id") @db.Uuid
+  sellerProfileId  String          @map("seller_profile_id") @db.Uuid
+  productId        String          @map("product_id") @db.Uuid
+  variantId        String?         @map("variant_id") @db.Uuid
+  skuCode          String          @map("sku_code") @db.Text
+  state            ProductSkuState @map("state")
+  aggregateVersion Int             @map("aggregate_version")
+  createdAt        DateTime        @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime        @map("updated_at") @db.Timestamptz(6)
+  closedAt         DateTime?       @map("closed_at") @db.Timestamptz(6)
+
+  @@index([productId])
+  @@index([variantId])
+  @@unique([skuId, aggregateVersion])
+  @@map("product_skus")
+}
+
+model ProductCategory {
+  categoryId       String        @id @map("category_id") @db.Uuid
+  name             String        @map("name") @db.Text
+  parentCategoryId String?       @map("parent_category_id") @db.Uuid
+  state            CategoryState @map("state")
+  aggregateVersion Int           @map("aggregate_version")
+  createdAt        DateTime      @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @map("updated_at") @db.Timestamptz(6)
+  retiredAt        DateTime?     @map("retired_at") @db.Timestamptz(6)
+
+  @@index([parentCategoryId])
+  @@index([state])
+  @@map("product_categories")
+}
+
+model ProductAttributeDefinition {
+  attributeId      String            @id @map("attribute_id") @db.Uuid
+  name             String            @map("name") @db.Text
+  valueType        AttributeValueType @map("value_type")
+  unit             String?           @map("unit") @db.Text
+  required         Boolean           @map("required")
+  group            String?           @map("group") @db.Text
+  allowedValues    String[]          @map("allowed_values")
+  minValue         Decimal?          @map("min_value") @db.Decimal(18, 6)
+  maxValue         Decimal?          @map("max_value") @db.Decimal(18, 6)
+  state            String            @map("state") @db.Text
+  aggregateVersion Int               @map("aggregate_version")
+  createdAt        DateTime          @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @map("updated_at") @db.Timestamptz(6)
+  retiredAt        DateTime?         @map("retired_at") @db.Timestamptz(6)
+
+  @@index([state])
+  @@map("product_attribute_definitions")
+}
+
+model ProductAttributeValue {
+  attributeValueId  String                    @id @map("attribute_value_id") @db.Uuid
+  productId         String                    @map("product_id") @db.Uuid
+  variantId         String?                   @map("variant_id") @db.Uuid
+  attributeId       String                    @map("attribute_id") @db.Uuid
+  valueType         AttributeValueType        @map("value_type")
+  value             String                    @map("value") @db.Text
+  state             ProductAttributeValueState @map("state")
+  aggregateVersion  Int                       @map("aggregate_version")
+  createdAt         DateTime                  @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                  @map("updated_at") @db.Timestamptz(6)
+
+  @@index([productId])
+  @@index([attributeId])
+  @@unique([attributeValueId, aggregateVersion])
+  @@map("product_attribute_values")
+}
+
+model ProductMedia {
+  mediaId              String            @id @map("media_id") @db.Uuid
+  productId            String            @map("product_id") @db.Uuid
+  mediaType            ProductMediaType  @map("media_type")
+  mediaReference       String            @map("media_reference") @db.Text
+  mediaDigest          String            @map("media_digest") @db.Text
+  mimeType             String            @map("mime_type") @db.Text
+  sizeBytes            Int               @map("size_bytes")
+  uploadedByIdentityId String            @map("uploaded_by_identity_id") @db.Uuid
+  state                ProductMediaState @map("state")
+  aggregateVersion     Int               @map("aggregate_version")
+  createdAt            DateTime          @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime          @map("updated_at") @db.Timestamptz(6)
+
+  @@index([productId])
+  @@map("product_media")
+}
+
+model ProductStateTransition {
+  productStateTransitionId String       @id @map("product_state_transition_id") @db.Uuid
+  productId                String       @map("product_id") @db.Uuid
+  fromState                ProductState? @map("from_state")
+  toState                  ProductState  @map("to_state")
+  stateVersion             Int          @map("state_version")
+  actorIdentityId          String       @map("actor_identity_id") @db.Uuid
+  actorKind                String       @map("actor_kind") @db.Text
+  reasonReference          String?      @map("reason_reference") @db.Text
+  correlationId            String?      @map("correlation_id") @db.Uuid
+  causationId              String?      @map("causation_id") @db.Uuid
+  sourceReference          String?      @map("source_reference") @db.Text
+  transitionedAt           DateTime     @map("transitioned_at") @db.Timestamptz(6)
+  createdAt                DateTime     @map("created_at") @db.Timestamptz(6)
+
+  @@index([productId])
+  @@unique([productId, stateVersion])
+  @@map("product_state_transitions")
+}
+
+model ProductAuditRecord {
+  auditEventId    String   @id @map("audit_event_id") @db.Uuid
+  productId       String   @map("product_id") @db.Uuid
+  eventType       String   @map("event_type") @db.Text
+  actorIdentityId String   @map("actor_identity_id") @db.Uuid
+  correlationId   String?  @map("correlation_id") @db.Uuid
+  evidenceDigest  String?  @map("evidence_digest") @db.Text
+  occurredAt      DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt       DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([productId, occurredAt(sort: Desc)])
+  @@map("product_audit_records")
+}
+
+model ProductPriceHistory {
+  priceHistoryId       String   @id @map("price_history_id") @db.Uuid
+  productId            String   @map("product_id") @db.Uuid
+  variantId            String?  @map("variant_id") @db.Uuid
+  sellingPrice         Decimal  @map("selling_price") @db.Decimal(12, 2)
+  compareAtPrice       Decimal? @map("compare_at_price") @db.Decimal(12, 2)
+  recordedVersion      Int      @map("recorded_version")
+  recordedByIdentityId String   @map("recorded_by_identity_id") @db.Uuid
+  recordedAt           DateTime @map("recorded_at") @db.Timestamptz(6)
+  createdAt            DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([productId, recordedAt(sort: Desc)])
+  @@map("product_price_history")
+}

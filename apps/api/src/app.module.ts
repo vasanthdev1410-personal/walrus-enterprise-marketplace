@@ -13,6 +13,7 @@ import { IdentityAuthenticationModule } from './modules/identity-authentication/
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { AuthorizationCoreModule } from './modules/authorization/authorization-core.module';
 import { SellerManagementModule } from './modules/seller-management/seller-management.module';
+import { ProductCatalogModule } from './modules/product-catalog/product-catalog.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SellerManagementModule } from './modules/seller-management/seller-manag
     IdentityAuthenticationModule,
     AuthorizationModule,
     SellerManagementModule,
+    ProductCatalogModule,
   ],
   controllers: [HealthController],
   providers: [

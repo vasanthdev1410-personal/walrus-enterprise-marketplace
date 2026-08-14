@@ -51,6 +51,15 @@ describe('RoleCatalog (M02 domain core)', () => {
       throw new Error('SELLER role must exist');
     }
     expect([...seller.properties.grantedPermissionIds].sort()).toEqual([
+      'catalog.category.read',
+      'product.close',
+      'product.create',
+      'product.media.manage',
+      'product.media.read',
+      'product.read',
+      'product.sku.manage',
+      'product.submit',
+      'product.update',
       'seller.agreement.read',
       'seller.member.manage',
       'seller.member.read',
@@ -73,6 +82,11 @@ describe('RoleCatalog (M02 domain core)', () => {
     expect(seller.properties.grantedPermissionIds).not.toContain('seller.suspend.manage');
     expect(seller.properties.grantedPermissionIds).not.toContain('seller.evidence.read');
     expect(seller.properties.grantedPermissionIds).not.toContain('seller.audit.view');
+    // SELLER never holds product moderation/audit/category-management authority.
+    expect(seller.properties.grantedPermissionIds).not.toContain('product.review.decide');
+    expect(seller.properties.grantedPermissionIds).not.toContain('product.audit.view');
+    expect(seller.properties.grantedPermissionIds).not.toContain('catalog.category.manage');
+    expect(seller.properties.grantedPermissionIds).not.toContain('catalog.attribute.manage');
   });
 
   it('grants ADMIN and SUPER_ADMIN exactly the approved seller administrative permissions (D-11)', () => {
@@ -86,11 +100,23 @@ describe('RoleCatalog (M02 domain core)', () => {
           'seller.suspend.manage',
           'seller.evidence.read',
           'seller.audit.view',
+          'product.review.decide',
+          'product.audit.view',
+          'product.media.read',
+          'catalog.category.read',
+          'catalog.category.manage',
+          'catalog.attribute.manage',
         ]),
       );
       // No seller self-service permission is granted to ADMIN/SUPER_ADMIN.
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.profile.read');
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.verification.submit');
+      // No seller-owned product mutation permission is granted to admins
+      // (management stays seller-scoped; no override, D-11).
+      expect(role?.properties.grantedPermissionIds).not.toContain('product.create');
+      expect(role?.properties.grantedPermissionIds).not.toContain('product.update');
+      expect(role?.properties.grantedPermissionIds).not.toContain('product.media.manage');
+      expect(role?.properties.grantedPermissionIds).not.toContain('product.sku.manage');
       // Super Admin keeps the full Module 02 privileged scope; Admin does not.
       if (roleName === 'SUPER_ADMIN') {
         expect(role?.properties.grantedPermissionIds).toContain('identity.privileged.provision');

@@ -1,9 +1,10 @@
+import 'package:walrus_mobile/src/features/seller/data/product_status.dart';
 import 'package:walrus_mobile/src/features/seller/data/seller_api_client.dart';
 import 'package:walrus_mobile/src/features/seller/data/seller_status.dart';
 
-/// Deterministic fake of the M03-M5 seller API for widget tests. Test code
-/// configures the status to return or the error to throw; no network access
-/// occurs.
+/// Deterministic fake of the M03-M5 seller API + M04-M5 product catalog for
+/// widget tests. Test code configures the status/products/error to return;
+/// no network access occurs.
 class FakeSellerApiClient implements SellerApiClient {
   FakeSellerApiClient({SellerStatus? status, SellerApiException? error})
     : _status = status,
@@ -11,6 +12,8 @@ class FakeSellerApiClient implements SellerApiClient {
 
   SellerStatus? _status;
   SellerApiException? _error;
+  List<ProductSummary> products = <ProductSummary>[];
+  List<CategorySummary> categories = <CategorySummary>[];
   final List<String> calls = <String>[];
 
   void setStatus(SellerStatus status) {
@@ -57,6 +60,81 @@ class FakeSellerApiClient implements SellerApiClient {
   }) async {
     calls.add('submitOnboarding');
   }
+
+  @override
+  Future<List<ProductSummary>> listProducts(String sellerProfileId) async {
+    calls.add('listProducts:$sellerProfileId');
+    return products;
+  }
+
+  @override
+  Future<ProductSummary> createProduct({
+    required String sellerProfileId,
+    required String name,
+    required String categoryId,
+    required double sellingPrice,
+    required String skuCode,
+  }) async {
+    calls.add('createProduct:$name');
+    final product = ProductSummary(
+      productId: 'product-${products.length + 1}',
+      sellerProfileId: sellerProfileId,
+      name: name,
+      state: ProductLifecycleState.draft,
+      sellingPrice: sellingPrice,
+      version: 1,
+    );
+    products = <ProductSummary>[...products, product];
+    return product;
+  }
+
+  @override
+  Future<void> submitProduct({
+    required String productId,
+    required String sellerProfileId,
+    required int expectedVersion,
+  }) async {
+    calls.add('submitProduct:$productId');
+    products = products
+        .map(
+          (product) => product.productId == productId
+              ? ProductSummary(
+                  productId: product.productId,
+                  sellerProfileId: product.sellerProfileId,
+                  name: product.name,
+                  state: ProductLifecycleState.submitted,
+                  sellingPrice: product.sellingPrice,
+                  version: product.version + 1,
+                )
+              : product,
+        )
+        .toList();
+  }
+
+  @override
+  Future<List<CategorySummary>> listCategories() async {
+    calls.add('listCategories');
+    return categories;
+  }
+}
+
+ProductSummary draftProduct() {
+  return const ProductSummary(
+    productId: '0191310f-789a-7123-8123-000000000011',
+    sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+    name: 'Espresso machine',
+    state: ProductLifecycleState.draft,
+    sellingPrice: 499.99,
+    version: 1,
+  );
+}
+
+CategorySummary appliancesCategory() {
+  return const CategorySummary(
+    categoryId: '0191310f-789a-7123-8123-000000000005',
+    name: 'Appliances',
+    state: 'ACTIVE',
+  );
 }
 
 SellerStatus draftStatus() {

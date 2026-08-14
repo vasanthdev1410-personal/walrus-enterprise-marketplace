@@ -221,6 +221,109 @@ const SEEDED_PERMISSIONS: readonly Permission[] = Object.freeze([
     allowedAction: 'VIEW',
     status: 'ACTIVE',
   }),
+  // --- Module 04 PRODUCT self-service permissions (WEMP-M04-AUTHZ-001 §2.1) ---
+  // Every one of these is seller-organization-scoped except the two shared
+  // read identifiers granted to ADMIN/SUPER_ADMIN as well (product.media.read,
+  // catalog.category.read): the org-scoped flag is per-permission, so a shared
+  // identifier must not be org-scoped or the administrative rows would always
+  // deny (admins hold no seller association). Seller-side scope for those reads
+  // is enforced by the seller permission guard (server-side seller resolution)
+  // and the Module 04 application layer (D-01 assertOwner).
+  new Permission({
+    permissionId: 'product.create',
+    name: 'Create a DRAFT product',
+    protectedResource: 'product',
+    allowedAction: 'CREATE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'product.read',
+    name: 'Read own products (never another seller)',
+    protectedResource: 'product',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'product.update',
+    name: 'Update own products (version-checked)',
+    protectedResource: 'product',
+    allowedAction: 'UPDATE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'product.submit',
+    name: 'Submit product for moderation (idempotent)',
+    protectedResource: 'product',
+    allowedAction: 'SUBMIT',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'product.close',
+    name: 'Withdraw/unpublish own product',
+    protectedResource: 'product',
+    allowedAction: 'CLOSE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'product.media.read',
+    name: 'Read own product media metadata (seller) / inspect (admin)',
+    protectedResource: 'product.media',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'product.media.manage',
+    name: 'Upload/replace own product media references+digests',
+    protectedResource: 'product.media',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'product.sku.manage',
+    name: 'Manage SKUs on own products',
+    protectedResource: 'product.sku',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'catalog.category.read',
+    name: 'Read platform categories',
+    protectedResource: 'catalog.category',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  // --- Module 04 administrative permissions (WEMP-M04-AUTHZ-001 §2.2) ---
+  // Granted to ADMIN and SUPER_ADMIN exactly as approved (D-11: no override,
+  // no hidden bypass); never organization-scoped and never inheritable by the
+  // SELLER role.
+  new Permission({
+    permissionId: 'product.review.decide',
+    name: 'Decide product review (approve/reject/request corrections)',
+    protectedResource: 'product.review',
+    allowedAction: 'DECIDE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'product.audit.view',
+    name: 'Read product list/detail and audit records',
+    protectedResource: 'product.audit',
+    allowedAction: 'VIEW',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'catalog.category.manage',
+    name: 'Create/update/retire platform categories',
+    protectedResource: 'catalog.category',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'catalog.attribute.manage',
+    name: 'Create/update/retire attribute definitions',
+    protectedResource: 'catalog.attribute',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
 ]);
 
 /**
@@ -247,6 +350,18 @@ const ORGANIZATION_SCOPED_PERMISSIONS: ReadonlySet<string> = new Set([
   'seller.agreement.read',
   'seller.member.read',
   'seller.member.manage',
+  // WEMP-M04-AUTHZ-001 §4 (D-11, matrix decision 2026-08-14): the seller-
+  // exclusive product self-service set. product.media.read and
+  // catalog.category.read are intentionally NOT in this set — they are also
+  // granted to ADMIN/SUPER_ADMIN, and the org-scoped flag is per-permission,
+  // so marking them org-scoped would deny every administrative evaluation.
+  'product.create',
+  'product.read',
+  'product.update',
+  'product.submit',
+  'product.close',
+  'product.media.manage',
+  'product.sku.manage',
 ]);
 
 export class PermissionCatalog {

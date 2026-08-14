@@ -1,6 +1,7 @@
 /**
- * M03-M6 — Typed client for the M03-M5 Seller & Admin APIs
- * (WEMP-M03-SPEC-001 §13 / WEMP-M03-CONTRACT-001).
+ * M03-M6 + M04-M6 — Typed client for the M03-M5 Seller & Admin APIs
+ * (WEMP-M03-SPEC-001 §13 / WEMP-M03-CONTRACT-001) and the M04-M5 Product
+ * Catalog APIs (WEMP-M04-SPEC-001 §18 / WEMP-M04-CONTRACT-001).
  *
  * The server remains authoritative for authentication and authorization.
  * This client never decides access; it only consumes the approved envelope
@@ -120,6 +121,174 @@ export interface EvidenceMetadataEntry {
   readonly evidenceDigest: string;
   readonly uploadedByIdentityId: string;
   readonly uploadedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Module 04 — Product Catalog (WEMP-M04-SPEC-001 §18, M04-M5/M04-M6)
+// ---------------------------------------------------------------------------
+
+export type ProductState =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'UNDER_REVIEW'
+  | 'APPROVED'
+  | 'PUBLISHED'
+  | 'CORRECTIONS_REQUESTED'
+  | 'UNPUBLISHED'
+  | 'REJECTED'
+  | 'CLOSED';
+
+export interface ProductListEntry {
+  readonly productId: string;
+  readonly sellerProfileId: string;
+  readonly categoryId: string;
+  readonly name: string;
+  readonly state: ProductState;
+  readonly sellingPrice: number;
+  readonly compareAtPrice?: number;
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface VariantSummary {
+  readonly variantId: string;
+  readonly name: string;
+  readonly state: ProductState;
+  readonly sellingPrice: number;
+  readonly compareAtPrice?: number;
+}
+
+export interface SkuSummary {
+  readonly skuId: string;
+  readonly variantId?: string;
+  readonly skuCode: string;
+  readonly state: 'ACTIVE' | 'CLOSED';
+}
+
+export interface MediaMetadataEntry {
+  readonly mediaId: string;
+  readonly productId: string;
+  readonly mediaType: string;
+  readonly mediaReference: string;
+  readonly mediaDigest: string;
+  readonly mimeType: string;
+  readonly sizeBytes: number;
+  readonly uploadedByIdentityId: string;
+  readonly state: 'ACTIVE' | 'REMOVED';
+  readonly uploadedAt: string;
+}
+
+export interface ProductDetailResult extends ProductListEntry {
+  readonly variants: readonly VariantSummary[];
+  readonly skus: readonly SkuSummary[];
+  readonly media: readonly MediaMetadataEntry[];
+}
+
+export interface ProductTransitionEntry {
+  readonly fromState?: ProductState;
+  readonly toState: ProductState;
+  readonly stateVersion: number;
+  readonly actorKind: string;
+  readonly transitionedAt: string;
+  readonly reasonReference?: string;
+}
+
+export interface ProductAuditRecord {
+  readonly eventType: string;
+  readonly actorIdentityId: string;
+  readonly occurredAt: string;
+}
+
+export interface AdminProductDetailResult extends ProductDetailResult {
+  readonly transitions: readonly ProductTransitionEntry[];
+  readonly audit: readonly ProductAuditRecord[];
+}
+
+export interface CategorySummary {
+  readonly categoryId: string;
+  readonly name: string;
+  readonly parentCategoryId?: string;
+  readonly state: 'ACTIVE' | 'RETIRED';
+}
+
+export interface CreateProductInput {
+  readonly sellerProfileId: string;
+  readonly name: string;
+  readonly categoryId: string;
+  readonly sellingPrice: number;
+  readonly compareAtPrice?: number;
+  readonly skus: readonly { readonly skuCode: string; readonly variantId?: string }[];
+}
+
+export interface UpdateProductInput {
+  readonly productId: string;
+  readonly sellerProfileId: string;
+  readonly expectedVersion: number;
+  readonly name?: string;
+  readonly categoryId?: string;
+  readonly sellingPrice?: number;
+  readonly compareAtPrice?: number;
+  readonly skusToUpsert?: readonly { readonly skuCode: string; readonly variantId?: string }[];
+}
+
+export interface SubmitProductInput {
+  readonly productId: string;
+  readonly sellerProfileId: string;
+  readonly expectedVersion: number;
+}
+
+export interface CloseProductInput {
+  readonly productId: string;
+  readonly sellerProfileId: string;
+  readonly expectedVersion: number;
+  readonly reasonReference: string;
+}
+
+export interface AddVariantInput {
+  readonly productId: string;
+  readonly sellerProfileId: string;
+  readonly expectedVersion: number;
+  readonly name: string;
+  readonly sellingPrice: number;
+  readonly compareAtPrice?: number;
+  readonly skuCode: string;
+}
+
+export interface AddSkuInput {
+  readonly productId: string;
+  /** Variant the SKU attaches to (the M04-M5 API exposes SKU add via a variant). */
+  readonly variantId: string;
+  readonly sellerProfileId: string;
+  readonly expectedVersion: number;
+  readonly skuCode: string;
+}
+
+export interface CloseSkuInput {
+  readonly productId: string;
+  readonly skuId: string;
+  readonly sellerProfileId: string;
+  readonly expectedVersion: number;
+}
+
+export interface RecordMediaInput {
+  readonly productId: string;
+  readonly sellerProfileId: string;
+  readonly expectedVersion: number;
+  readonly mediaReference: string;
+  readonly mediaDigest: string;
+  readonly mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
+  readonly sizeBytes: number;
+}
+
+export type ProductReviewAction =
+  'CLAIM_REVIEW' | 'REQUEST_CORRECTIONS' | 'APPROVE' | 'REJECT' | 'PUBLISH';
+
+export interface AdminProductReviewInput {
+  readonly productId: string;
+  readonly action: ProductReviewAction;
+  readonly expectedVersion: number;
+  readonly reasonReference?: string;
 }
 
 export interface CreateOnboardingInput {
@@ -490,6 +659,180 @@ export class SellerApiClient {
       `/admin/sellers/${sellerProfileId}/evidence`,
     );
     return data.evidence;
+  }
+
+  // ----- Seller product catalog (Module 04, WEMP-M04-SPEC-001 §18) -----
+
+  public async listProducts(sellerProfileId: string): Promise<readonly ProductListEntry[]> {
+    const query = `?sellerProfileId=${encodeURIComponent(sellerProfileId)}`;
+    const data = await this.request<{ products: readonly ProductListEntry[] }>(
+      'GET',
+      `/seller/products${query}`,
+    );
+    return data.products;
+  }
+
+  public async getProductDetail(
+    productId: string,
+    sellerProfileId: string,
+  ): Promise<ProductDetailResult> {
+    const query = `?sellerProfileId=${encodeURIComponent(sellerProfileId)}`;
+    const data = await this.request<{ product: ProductDetailResult }>(
+      'GET',
+      `/seller/products/${encodeURIComponent(productId)}${query}`,
+    );
+    return data.product;
+  }
+
+  public async createProduct(
+    input: CreateProductInput,
+  ): Promise<{ productId: string; state: ProductState; version: number }> {
+    const data = await this.request<{
+      product: { productId: string; state: ProductState; version: number };
+    }>('POST', '/seller/products', { body: input });
+    return data.product;
+  }
+
+  public async updateProduct(
+    input: UpdateProductInput,
+  ): Promise<{ productId: string; state: ProductState; version: number }> {
+    const { productId, ...body } = input;
+    const data = await this.request<{
+      product: { productId: string; state: ProductState; version: number };
+    }>('PATCH', `/seller/products/${encodeURIComponent(productId)}`, { body });
+    return data.product;
+  }
+
+  public async submitProduct(
+    input: SubmitProductInput,
+  ): Promise<{ productId: string; state: ProductState; version: number }> {
+    const { productId, ...body } = input;
+    const data = await this.request<{
+      product: { productId: string; state: ProductState; version: number };
+    }>('POST', `/seller/products/${encodeURIComponent(productId)}/submit`, { body });
+    return data.product;
+  }
+
+  public async closeProduct(
+    input: CloseProductInput,
+  ): Promise<{ productId: string; state: ProductState; version: number }> {
+    const { productId, ...body } = input;
+    const data = await this.request<{
+      product: { productId: string; state: ProductState; version: number };
+    }>('POST', `/seller/products/${encodeURIComponent(productId)}/close`, { body });
+    return data.product;
+  }
+
+  public async listVariants(
+    productId: string,
+    sellerProfileId: string,
+  ): Promise<{ variants: readonly VariantSummary[]; skus: readonly SkuSummary[] }> {
+    const query = `?sellerProfileId=${encodeURIComponent(sellerProfileId)}`;
+    return this.request<{ variants: readonly VariantSummary[]; skus: readonly SkuSummary[] }>(
+      'GET',
+      `/seller/products/${encodeURIComponent(productId)}/variants${query}`,
+    );
+  }
+
+  public async addVariant(
+    input: AddVariantInput,
+  ): Promise<{ variantId: string; skuCode: string; version: number }> {
+    const { productId, ...body } = input;
+    const data = await this.request<{
+      variant: { variantId: string; skuCode: string; version: number };
+    }>('POST', `/seller/products/${encodeURIComponent(productId)}/variants`, { body });
+    return data.variant;
+  }
+
+  public async addSku(
+    input: AddSkuInput,
+  ): Promise<{ skuId: string; skuCode: string; version: number }> {
+    const { productId, variantId, ...body } = input;
+    const data = await this.request<{ sku: { skuId: string; skuCode: string; version: number } }>(
+      'POST',
+      `/seller/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}/skus`,
+      { body },
+    );
+    return data.sku;
+  }
+
+  public async closeSku(
+    input: CloseSkuInput,
+  ): Promise<{ skuId: string; skuCode: string; version: number }> {
+    const { productId, skuId, ...body } = input;
+    const data = await this.request<{ sku: { skuId: string; skuCode: string; version: number } }>(
+      'POST',
+      `/seller/products/${encodeURIComponent(productId)}/skus/${encodeURIComponent(skuId)}/close`,
+      { body },
+    );
+    return data.sku;
+  }
+
+  public async listProductMedia(
+    productId: string,
+    sellerProfileId: string,
+  ): Promise<readonly MediaMetadataEntry[]> {
+    const query = `?sellerProfileId=${encodeURIComponent(sellerProfileId)}`;
+    const data = await this.request<{ media: readonly MediaMetadataEntry[] }>(
+      'GET',
+      `/seller/products/${encodeURIComponent(productId)}/media${query}`,
+    );
+    return data.media;
+  }
+
+  public async recordMedia(
+    input: RecordMediaInput,
+  ): Promise<{ mediaId: string; productId: string; version: number }> {
+    const { productId, ...body } = input;
+    const data = await this.request<{
+      media: { mediaId: string; productId: string; version: number };
+    }>('POST', `/seller/products/${encodeURIComponent(productId)}/media`, { body });
+    return data.media;
+  }
+
+  public async listCategories(): Promise<readonly CategorySummary[]> {
+    const data = await this.request<{ categories: readonly CategorySummary[] }>(
+      'GET',
+      '/seller/categories',
+    );
+    return data.categories;
+  }
+
+  // ----- Admin product moderation (Module 04, WEMP-M04-SPEC-001 §18) -----
+
+  public async adminListProducts(state?: ProductState): Promise<readonly ProductListEntry[]> {
+    const query = state === undefined ? '' : `?state=${encodeURIComponent(state)}`;
+    const data = await this.request<{ products: readonly ProductListEntry[] }>(
+      'GET',
+      `/admin/products${query}`,
+    );
+    return data.products;
+  }
+
+  public async adminGetProductDetail(productId: string): Promise<AdminProductDetailResult> {
+    const data = await this.request<{ product: AdminProductDetailResult }>(
+      'GET',
+      `/admin/products/${encodeURIComponent(productId)}`,
+    );
+    return data.product;
+  }
+
+  public async adminReviewProduct(
+    input: AdminProductReviewInput,
+  ): Promise<{ productId: string; state: ProductState; version: number }> {
+    const { productId, ...body } = input;
+    const data = await this.request<{
+      product: { productId: string; state: ProductState; version: number };
+    }>('POST', `/admin/products/${encodeURIComponent(productId)}/review`, { body });
+    return data.product;
+  }
+
+  public async adminGetProductMedia(productId: string): Promise<readonly MediaMetadataEntry[]> {
+    const data = await this.request<{ media: readonly MediaMetadataEntry[] }>(
+      'GET',
+      `/admin/products/${encodeURIComponent(productId)}/media`,
+    );
+    return data.media;
   }
 
   // ----- transport -----

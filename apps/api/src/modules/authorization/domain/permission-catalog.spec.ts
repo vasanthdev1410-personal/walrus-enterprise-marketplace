@@ -13,10 +13,23 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'authorization.permission.view',
       'authorization.role.assign',
       'authorization.role.revoke',
+      'catalog.attribute.manage',
+      'catalog.category.manage',
+      'catalog.category.read',
       'identity.classification.change',
       'identity.privileged.provision',
       'identity.state.change',
       'identity.superadmin.bootstrap',
+      'product.audit.view',
+      'product.close',
+      'product.create',
+      'product.media.manage',
+      'product.media.read',
+      'product.read',
+      'product.review.decide',
+      'product.sku.manage',
+      'product.submit',
+      'product.update',
       'recovery.approval.decide',
       'seller.agreement.read',
       'seller.audit.view',
@@ -50,6 +63,13 @@ describe('PermissionCatalog (M02 domain core)', () => {
       .map((permission) => permission.properties.permissionId)
       .sort();
     expect(orgScoped).toEqual([
+      'product.close',
+      'product.create',
+      'product.media.manage',
+      'product.read',
+      'product.sku.manage',
+      'product.submit',
+      'product.update',
       'seller.agreement.read',
       'seller.member.manage',
       'seller.member.read',
@@ -73,9 +93,18 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'seller.suspend.manage',
       'seller.evidence.read',
       'seller.audit.view',
+      'product.review.decide',
+      'product.audit.view',
+      'catalog.category.manage',
+      'catalog.attribute.manage',
     ]) {
       expect(catalog.isOrganizationScoped(id)).toBe(false);
     }
+    // Shared seller/admin read identifiers stay non-org-scoped (the org-scoped
+    // flag is per-permission; marking them org-scoped would deny the
+    // administrative rows since admins hold no seller association).
+    expect(catalog.isOrganizationScoped('product.media.read')).toBe(false);
+    expect(catalog.isOrganizationScoped('catalog.category.read')).toBe(false);
     expect(catalog.isOrganizationScoped('recovery.approval.decide')).toBe(false);
     expect(catalog.isOrganizationScoped('orders.export')).toBe(false);
   });

@@ -444,4 +444,336 @@ describe('SellerApiClient', () => {
       complianceState: 'IN_PROGRESS',
     });
   });
+
+  // ----- Module 04 product catalog -----
+
+  it('lists own products with the sellerProfileId query scope', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { data: { products: [] }, correlationId: 'c1' }));
+    const client = createClient(fetchImpl);
+    await client.listProducts('0191310f-789a-7123-8123-000000000003');
+    const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      '/api/v1/seller/products?sellerProfileId=0191310f-789a-7123-8123-000000000003',
+    );
+  });
+
+  it('reads the own product detail (variants, SKUs, media metadata)', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          product: {
+            productId: '0191310f-789a-7123-8123-000000000011',
+            sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+            categoryId: '0191310f-789a-7123-8123-000000000005',
+            name: 'Espresso machine',
+            state: 'DRAFT',
+            sellingPrice: 499.99,
+            version: 1,
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z',
+            variants: [],
+            skus: [{ skuId: 's1', skuCode: 'WLR-001', state: 'ACTIVE' }],
+            media: [],
+          },
+        },
+        correlationId: 'c1',
+      }),
+    );
+    const client = createClient(fetchImpl);
+    const result = await client.getProductDetail(
+      '0191310f-789a-7123-8123-000000000011',
+      '0191310f-789a-7123-8123-000000000003',
+    );
+    expect(result.skus).toHaveLength(1);
+    const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      '/api/v1/seller/products/0191310f-789a-7123-8123-000000000011?sellerProfileId=0191310f-789a-7123-8123-000000000003',
+    );
+  });
+
+  it('creates a product with skus and returns the mutation result', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(201, {
+        data: { product: { productId: 'p1', state: 'DRAFT', version: 1 } },
+        correlationId: 'c1',
+      }),
+    );
+    const client = createClient(fetchImpl);
+    const result = await client.createProduct({
+      sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+      name: 'Espresso machine',
+      categoryId: '0191310f-789a-7123-8123-000000000005',
+      sellingPrice: 499.99,
+      skus: [{ skuCode: 'WLR-001' }],
+    });
+    expect(result).toEqual({ productId: 'p1', state: 'DRAFT', version: 1 });
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/seller/products');
+    expect(init.method).toBe('POST');
+    expect(init.body).toContain('WLR-001');
+    expect((init.headers as Record<string, string>)['Idempotency-Key']).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('updates a product without leaking the id into the body', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: { product: { productId: 'p1', state: 'DRAFT', version: 2 } },
+        correlationId: 'c1',
+      }),
+    );
+    const client = createClient(fetchImpl);
+    await client.updateProduct({
+      productId: '0191310f-789a-7123-8123-000000000011',
+      sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+      expectedVersion: 1,
+      name: 'Espresso machine v2',
+    });
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/seller/products/0191310f-789a-7123-8123-000000000011');
+    expect(init.method).toBe('PATCH');
+    expect(init.body).not.toContain('0191310f-789a-7123-8123-000000000011');
+  });
+
+  it('submits and closes own products (version-checked)', async () => {
+    const submit = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: { product: { productId: 'p1', state: 'SUBMITTED', version: 2 } },
+        correlationId: 'c1',
+      }),
+    );
+    const submitClient = createClient(submit);
+    await expect(
+      submitClient.submitProduct({
+        productId: '0191310f-789a-7123-8123-000000000011',
+        sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+        expectedVersion: 1,
+      }),
+    ).resolves.toMatchObject({ state: 'SUBMITTED' });
+    const [submitUrl] = submit.mock.calls[0] as [string, RequestInit];
+    expect(submitUrl).toContain('/submit');
+
+    const close = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: { product: { productId: 'p1', state: 'CLOSED', version: 3 } },
+        correlationId: 'c1',
+      }),
+    );
+    const closeClient = createClient(close);
+    await closeClient.closeProduct({
+      productId: '0191310f-789a-7123-8123-000000000011',
+      sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+      expectedVersion: 2,
+      reasonReference: 'withdraw-001',
+    });
+    const [, closeInit] = close.mock.calls[0] as [string, RequestInit];
+    expect(closeInit.body).toContain('withdraw-001');
+  });
+
+  it('adds variants and SKUs on own products', async () => {
+    const variant = vi.fn().mockResolvedValue(
+      jsonResponse(201, {
+        data: { variant: { variantId: 'v1', skuCode: 'WLR-001-SS', version: 1 } },
+        correlationId: 'c1',
+      }),
+    );
+    const variantClient = createClient(variant);
+    await expect(
+      variantClient.addVariant({
+        productId: '0191310f-789a-7123-8123-000000000011',
+        sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+        expectedVersion: 2,
+        name: 'Stainless steel',
+        sellingPrice: 549.99,
+        skuCode: 'WLR-001-SS',
+      }),
+    ).resolves.toMatchObject({ skuCode: 'WLR-001-SS' });
+    const [variantUrl] = variant.mock.calls[0] as [string, RequestInit];
+    expect(variantUrl).toContain('/variants');
+
+    const sku = vi.fn().mockResolvedValue(
+      jsonResponse(201, {
+        data: { sku: { skuId: 's2', skuCode: 'WLR-001-SS-2', version: 1 } },
+        correlationId: 'c1',
+      }),
+    );
+    const skuClient = createClient(sku);
+    await skuClient.addSku({
+      productId: '0191310f-789a-7123-8123-000000000011',
+      variantId: '0191310f-789a-7123-8123-000000000012',
+      sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+      expectedVersion: 2,
+      skuCode: 'WLR-001-SS-2',
+    });
+    const [skuUrl] = sku.mock.calls[0] as [string, RequestInit];
+    expect(skuUrl).toBe(
+      '/api/v1/seller/products/0191310f-789a-7123-8123-000000000011/variants/0191310f-789a-7123-8123-000000000012/skus',
+    );
+  });
+
+  it('closes a SKU and records media references (metadata only)', async () => {
+    const close = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: { sku: { skuId: 's2', skuCode: 'WLR-001-SS-2', version: 2 } },
+        correlationId: 'c1',
+      }),
+    );
+    const closeClient = createClient(close);
+    await closeClient.closeSku({
+      productId: '0191310f-789a-7123-8123-000000000011',
+      skuId: '0191310f-789a-7123-8123-000000000014',
+      sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+      expectedVersion: 3,
+    });
+    const [closeUrl] = close.mock.calls[0] as [string, RequestInit];
+    expect(closeUrl).toContain('/skus/0191310f-789a-7123-8123-000000000014/close');
+
+    const media = vi.fn().mockResolvedValue(
+      jsonResponse(201, {
+        data: { media: { mediaId: 'm1', productId: 'p1', version: 4 } },
+        correlationId: 'c1',
+      }),
+    );
+    const mediaClient = createClient(media);
+    await mediaClient.recordMedia({
+      productId: '0191310f-789a-7123-8123-000000000011',
+      sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+      expectedVersion: 4,
+      mediaReference: 'ref:obj:opaque',
+      mediaDigest: 'a'.repeat(64),
+      mimeType: 'image/jpeg',
+      sizeBytes: 1024,
+    });
+    const [, mediaInit] = media.mock.calls[0] as [string, RequestInit];
+    expect(mediaInit.body).toContain('image/jpeg');
+  });
+
+  it('lists product media metadata and platform categories', async () => {
+    const mediaFetch = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          media: [
+            {
+              mediaId: 'm1',
+              productId: 'p1',
+              mediaType: 'PRODUCT_IMAGE',
+              mediaReference: 'ref:obj:opaque',
+              mediaDigest: 'a'.repeat(64),
+              mimeType: 'image/jpeg',
+              sizeBytes: 1024,
+              uploadedByIdentityId: 'u1',
+              state: 'ACTIVE',
+              uploadedAt: '2026-08-01T00:00:00.000Z',
+            },
+          ],
+        },
+        correlationId: 'c1',
+      }),
+    );
+    const client = createClient(mediaFetch);
+    await expect(
+      client.listProductMedia('0191310f-789a-7123-8123-000000000011', 'seller-1'),
+    ).resolves.toHaveLength(1);
+
+    const categoryFetch = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: { categories: [{ categoryId: 'c1', name: 'Appliances', state: 'ACTIVE' }] },
+        correlationId: 'c1',
+      }),
+    );
+    const categoryClient = createClient(categoryFetch);
+    await expect(categoryClient.listCategories()).resolves.toHaveLength(1);
+  });
+
+  it('lists and filters admin products by state', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { data: { products: [] }, correlationId: 'c1' }));
+    const client = createClient(fetchImpl);
+    await client.adminListProducts('SUBMITTED');
+    const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/admin/products?state=SUBMITTED');
+  });
+
+  it('reads the admin product detail with transitions and audit', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          product: {
+            productId: '0191310f-789a-7123-8123-000000000011',
+            sellerProfileId: '0191310f-789a-7123-8123-000000000003',
+            categoryId: '0191310f-789a-7123-8123-000000000005',
+            name: 'Espresso machine',
+            state: 'SUBMITTED',
+            sellingPrice: 499.99,
+            version: 2,
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z',
+            variants: [],
+            skus: [],
+            media: [],
+            transitions: [
+              { toState: 'SUBMITTED', stateVersion: 2, actorKind: 'SELLER', transitionedAt: 't' },
+            ],
+            audit: [{ eventType: 'PRODUCT_SUBMITTED', actorIdentityId: 'u1', occurredAt: 't' }],
+          },
+        },
+        correlationId: 'c1',
+      }),
+    );
+    const client = createClient(fetchImpl);
+    const result = await client.adminGetProductDetail('0191310f-789a-7123-8123-000000000011');
+    expect(result.transitions).toHaveLength(1);
+    expect(result.audit).toHaveLength(1);
+    const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/admin/products/0191310f-789a-7123-8123-000000000011');
+  });
+
+  it('records admin product review decisions (with reason for reject)', async () => {
+    const approve = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: { product: { productId: 'p1', state: 'APPROVED', version: 3 } },
+        correlationId: 'c1',
+      }),
+    );
+    const approveClient = createClient(approve);
+    await expect(
+      approveClient.adminReviewProduct({
+        productId: '0191310f-789a-7123-8123-000000000011',
+        action: 'APPROVE',
+        expectedVersion: 2,
+      }),
+    ).resolves.toMatchObject({ state: 'APPROVED' });
+    const [approveUrl] = approve.mock.calls[0] as [string, RequestInit];
+    expect(approveUrl).toBe('/api/v1/admin/products/0191310f-789a-7123-8123-000000000011/review');
+
+    const reject = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: { product: { productId: 'p1', state: 'REJECTED', version: 3 } },
+        correlationId: 'c1',
+      }),
+    );
+    const rejectClient = createClient(reject);
+    await rejectClient.adminReviewProduct({
+      productId: '0191310f-789a-7123-8123-000000000011',
+      action: 'REJECT',
+      expectedVersion: 2,
+      reasonReference: 'policy-002',
+    });
+    const [, rejectInit] = reject.mock.calls[0] as [string, RequestInit];
+    expect(rejectInit.body).toContain('policy-002');
+  });
+
+  it('reads admin product media metadata', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { data: { media: [] }, correlationId: 'c1' }));
+    const client = createClient(fetchImpl);
+    await expect(
+      client.adminGetProductMedia('0191310f-789a-7123-8123-000000000011'),
+    ).resolves.toEqual([]);
+    const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/admin/products/0191310f-789a-7123-8123-000000000011/media');
+  });
 });

@@ -289,3 +289,53 @@ export type SellerBusinessAuditRecord = Prisma.SellerBusinessAuditRecordModel
  *
  */
 export type SellerEvidenceLegalHold = Prisma.SellerEvidenceLegalHoldModel
+/**
+ * Model Product
+ *
+ */
+export type Product = Prisma.ProductModel
+/**
+ * Model ProductVariant
+ *
+ */
+export type ProductVariant = Prisma.ProductVariantModel
+/**
+ * Model ProductSku
+ *
+ */
+export type ProductSku = Prisma.ProductSkuModel
+/**
+ * Model ProductCategory
+ *
+ */
+export type ProductCategory = Prisma.ProductCategoryModel
+/**
+ * Model ProductAttributeDefinition
+ *
+ */
+export type ProductAttributeDefinition = Prisma.ProductAttributeDefinitionModel
+/**
+ * Model ProductAttributeValue
+ *
+ */
+export type ProductAttributeValue = Prisma.ProductAttributeValueModel
+/**
+ * Model ProductMedia
+ *
+ */
+export type ProductMedia = Prisma.ProductMediaModel
+/**
+ * Model ProductStateTransition
+ *
+ */
+export type ProductStateTransition = Prisma.ProductStateTransitionModel
+/**
+ * Model ProductAuditRecord
+ *
+ */
+export type ProductAuditRecord = Prisma.ProductAuditRecordModel
+/**
+ * Model ProductPriceHistory
+ *
+ */
+export type ProductPriceHistory = Prisma.ProductPriceHistoryModel

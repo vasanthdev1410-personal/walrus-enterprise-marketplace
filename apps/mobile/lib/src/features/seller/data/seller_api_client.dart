@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'product_status.dart';
 import 'seller_status.dart';
 
 /// Coarse, safe error kinds surfaced to the mobile UI. The server remains
@@ -71,6 +72,33 @@ abstract interface class SellerApiClient {
     required String sellerProfileId,
     required int expectedVersion,
   });
+
+  // ----- Module 04 product catalog (D-14: create / submit / status only) -----
+
+  /// Lists the caller's own products (`GET /seller/products?sellerProfileId=`).
+  /// Returns non-enumerating summary rows.
+  Future<List<ProductSummary>> listProducts(String sellerProfileId);
+
+  /// Creates a DRAFT product (`POST /seller/products`). Returns the new
+  /// product id and its version.
+  Future<ProductSummary> createProduct({
+    required String sellerProfileId,
+    required String name,
+    required String categoryId,
+    required double sellingPrice,
+    required String skuCode,
+  });
+
+  /// Submits the own DRAFT product for moderation (`POST
+  /// /seller/products/:id/submit`), version-checked.
+  Future<void> submitProduct({
+    required String productId,
+    required String sellerProfileId,
+    required int expectedVersion,
+  });
+
+  /// Reads active platform categories (`GET /seller/categories`).
+  Future<List<CategorySummary>> listCategories();
 }
 
 /// HTTP implementation over the M03-M5 API using the platform `HttpClient`.
@@ -122,6 +150,70 @@ class HttpSellerApiClient implements SellerApiClient {
       'sellerProfileId': sellerProfileId,
       'expectedVersion': expectedVersion,
     });
+  }
+
+  @override
+  Future<List<ProductSummary>> listProducts(String sellerProfileId) async {
+    final body = await _request(
+      'GET',
+      '/seller/products?sellerProfileId=${Uri.encodeQueryComponent(sellerProfileId)}',
+    );
+    final data = decodeApiBody(body)['data'] as Map<String, dynamic>;
+    final products = (data['products'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map(ProductSummary.fromJson)
+        .toList();
+    return products;
+  }
+
+  @override
+  Future<ProductSummary> createProduct({
+    required String sellerProfileId,
+    required String name,
+    required String categoryId,
+    required double sellingPrice,
+    required String skuCode,
+  }) async {
+    final body = await _request('POST', '/seller/products', {
+      'sellerProfileId': sellerProfileId,
+      'name': name,
+      'categoryId': categoryId,
+      'sellingPrice': sellingPrice,
+      'skus': <Map<String, Object?>>[<String, Object?>{'skuCode': skuCode}],
+    });
+    final data = decodeApiBody(body)['data'] as Map<String, dynamic>;
+    final product = data['product'] as Map<String, dynamic>;
+    return ProductSummary(
+      productId: product['productId'] as String,
+      sellerProfileId: sellerProfileId,
+      name: name,
+      state: ProductLifecycleState.fromApi(product['state'] as String),
+      sellingPrice: sellingPrice,
+      version: product['version'] as int,
+    );
+  }
+
+  @override
+  Future<void> submitProduct({
+    required String productId,
+    required String sellerProfileId,
+    required int expectedVersion,
+  }) async {
+    await _request('POST', '/seller/products/$productId/submit', {
+      'sellerProfileId': sellerProfileId,
+      'expectedVersion': expectedVersion,
+    });
+  }
+
+  @override
+  Future<List<CategorySummary>> listCategories() async {
+    final body = await _request('GET', '/seller/categories');
+    final data = decodeApiBody(body)['data'] as Map<String, dynamic>;
+    final categories = (data['categories'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map(CategorySummary.fromJson)
+        .toList();
+    return categories;
   }
 
   Future<String> _request(
