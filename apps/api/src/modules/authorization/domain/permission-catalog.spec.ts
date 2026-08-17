@@ -20,6 +20,10 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'identity.privileged.provision',
       'identity.state.change',
       'identity.superadmin.bootstrap',
+      'inventory.adjust.admin',
+      'inventory.adjust.self',
+      'inventory.audit.view',
+      'inventory.read',
       'product.audit.view',
       'product.close',
       'product.create',
@@ -63,6 +67,8 @@ describe('PermissionCatalog (M02 domain core)', () => {
       .map((permission) => permission.properties.permissionId)
       .sort();
     expect(orgScoped).toEqual([
+      'inventory.adjust.self',
+      'inventory.read',
       'product.close',
       'product.create',
       'product.media.manage',
@@ -97,6 +103,10 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'product.audit.view',
       'catalog.category.manage',
       'catalog.attribute.manage',
+      // WEMP-M05-AUTHZ-001 §4 (D-05): inventory admin identifiers are never
+      // org-scoped — admins hold no seller association.
+      'inventory.adjust.admin',
+      'inventory.audit.view',
     ]) {
       expect(catalog.isOrganizationScoped(id)).toBe(false);
     }

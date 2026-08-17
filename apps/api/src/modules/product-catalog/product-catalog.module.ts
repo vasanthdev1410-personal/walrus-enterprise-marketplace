@@ -30,6 +30,7 @@ import { ProductLifecycle } from './domain/lifecycle/product-lifecycle';
 import { ProductCatalogPolicy } from './domain/policy/product-catalog.policy';
 import { FailClosedModule05InventoryContractAdapter } from './infrastructure/adapters/fail-closed-module05-inventory.adapter';
 import { NonProductionProductMediaStorageAdapter } from './infrastructure/adapters/non-production-product-media-storage.adapter';
+import { PrismaProductCatalogReadAdapter } from './infrastructure/adapters/prisma-product-catalog-read.adapter';
 import { PrismaProductCatalogRepository } from './infrastructure/persistence/prisma/repositories/prisma-product-catalog.repository';
 import { AdminProductController } from './presentation/admin-product.controller';
 import {
@@ -42,6 +43,7 @@ import {
   MODULE05_INVENTORY_CONTRACT,
   PRODUCT_ADMIN_AUTHORIZATION,
   PRODUCT_APPLICATION_SERVICE,
+  PRODUCT_CATALOG_READ,
   PRODUCT_CATALOG_REPOSITORY,
   PRODUCT_CATEGORY_READ_SERVICE,
   PRODUCT_MEDIA_APPLICATION_SERVICE,
@@ -64,6 +66,10 @@ import {
  *   the Module 02 authorization engine.
  * - MODULE05_INVENTORY_CONTRACT (fail-closed, decision D-08) — Module 04 is
  *   definition-only; no stock facts are ever fabricated.
+ * - PRODUCT_CATALOG_READ (decision D-12/D-10, M05-M4 SKU-fact wiring) — the
+ *   real `ProductCatalogReadPort` adapter over Module 04's own repository;
+ *   Module 05 consumes SKU facts through this port (never Module 04
+ *   storage, A-06), PUBLISHED-gated and fail-closed.
  * - PRODUCT_MEDIA_STORAGE (non-production reference/digest adapter,
  *   decisions D-09/D-17 — fail closed, retention config pending).
  *
@@ -81,6 +87,7 @@ import {
     { provide: UUID_V7_GENERATOR, useClass: SystemUuidV7Generator },
     PrismaProductCatalogRepository,
     { provide: PRODUCT_CATALOG_REPOSITORY, useExisting: PrismaProductCatalogRepository },
+    { provide: PRODUCT_CATALOG_READ, useClass: PrismaProductCatalogReadAdapter },
     ProductLifecycle,
     ProductCatalogPolicy,
     {
@@ -225,6 +232,7 @@ import {
   controllers: [SellerProductController, SellerCategoryController, AdminProductController],
   exports: [
     PRODUCT_CATALOG_REPOSITORY,
+    PRODUCT_CATALOG_READ,
     MODULE02_SELLER_AUTHORIZATION_CONTRACT,
     PRODUCT_ADMIN_AUTHORIZATION,
     MODULE05_INVENTORY_CONTRACT,

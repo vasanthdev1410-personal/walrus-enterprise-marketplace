@@ -52,6 +52,8 @@ describe('RoleCatalog (M02 domain core)', () => {
     }
     expect([...seller.properties.grantedPermissionIds].sort()).toEqual([
       'catalog.category.read',
+      'inventory.adjust.self',
+      'inventory.read',
       'product.close',
       'product.create',
       'product.media.manage',
@@ -87,6 +89,10 @@ describe('RoleCatalog (M02 domain core)', () => {
     expect(seller.properties.grantedPermissionIds).not.toContain('product.audit.view');
     expect(seller.properties.grantedPermissionIds).not.toContain('catalog.category.manage');
     expect(seller.properties.grantedPermissionIds).not.toContain('catalog.attribute.manage');
+    // WEMP-M05-AUTHZ-001 §3 (D-05): SELLER never holds inventory
+    // administrative permissions (no override, no escalation).
+    expect(seller.properties.grantedPermissionIds).not.toContain('inventory.adjust.admin');
+    expect(seller.properties.grantedPermissionIds).not.toContain('inventory.audit.view');
   });
 
   it('grants ADMIN and SUPER_ADMIN exactly the approved seller administrative permissions (D-11)', () => {
@@ -106,11 +112,18 @@ describe('RoleCatalog (M02 domain core)', () => {
           'catalog.category.read',
           'catalog.category.manage',
           'catalog.attribute.manage',
+          // WEMP-M05-AUTHZ-001 §2.2 (D-05): inventory admin grants.
+          'inventory.adjust.admin',
+          'inventory.audit.view',
         ]),
       );
       // No seller self-service permission is granted to ADMIN/SUPER_ADMIN.
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.profile.read');
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.verification.submit');
+      // WEMP-M05-AUTHZ-001 §3 (D-05): the seller self-service inventory set is
+      // never granted to administrative roles — no cross-scope borrowing.
+      expect(role?.properties.grantedPermissionIds).not.toContain('inventory.read');
+      expect(role?.properties.grantedPermissionIds).not.toContain('inventory.adjust.self');
       // No seller-owned product mutation permission is granted to admins
       // (management stays seller-scoped; no override, D-11).
       expect(role?.properties.grantedPermissionIds).not.toContain('product.create');

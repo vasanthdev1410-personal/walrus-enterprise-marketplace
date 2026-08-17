@@ -324,6 +324,40 @@ const SEEDED_PERMISSIONS: readonly Permission[] = Object.freeze([
     allowedAction: 'MANAGE',
     status: 'ACTIVE',
   }),
+  // --- Module 05 INVENTORY permissions (WEMP-M05-AUTHZ-001 §2, D-05) ---
+  // Four additive identifiers, OWNER-APPROVED 2026-08-14 (D-05, option A);
+  // Module 02 owner sign-off RECORDED 2026-08-15 (A-09/D-05). The two
+  // self-service identifiers are seller-organization-scoped (approved third
+  // ownership-resolver scope); the two administrative identifiers are granted
+  // to ADMIN/SUPER_ADMIN exactly as approved — no override, no wildcard.
+  new Permission({
+    permissionId: 'inventory.read',
+    name: 'Read own-SKU stock and derived labels (seller, org-scoped)',
+    protectedResource: 'inventory',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'inventory.adjust.self',
+    name: 'Adjust own-SKU stock (seller OWNER, org-scoped)',
+    protectedResource: 'inventory',
+    allowedAction: 'ADJUST',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'inventory.adjust.admin',
+    name: 'Administrative stock corrections and threshold config changes',
+    protectedResource: 'inventory',
+    allowedAction: 'ADJUST',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'inventory.audit.view',
+    name: 'View stock list/detail, movement ledger and audit records',
+    protectedResource: 'inventory.audit',
+    allowedAction: 'VIEW',
+    status: 'ACTIVE',
+  }),
 ]);
 
 /**
@@ -362,6 +396,13 @@ const ORGANIZATION_SCOPED_PERMISSIONS: ReadonlySet<string> = new Set([
   'product.close',
   'product.media.manage',
   'product.sku.manage',
+  // WEMP-M05-AUTHZ-001 §4 (D-05, Module 02 owner sign-off 2026-08-15): the
+  // seller self-service inventory set — inventory.read (MEMBER read-only) and
+  // inventory.adjust.self (OWNER only). The administrative inventory
+  // identifiers (inventory.adjust.admin, inventory.audit.view) are NOT in
+  // this set: admins hold no seller association.
+  'inventory.read',
+  'inventory.adjust.self',
 ]);
 
 export class PermissionCatalog {

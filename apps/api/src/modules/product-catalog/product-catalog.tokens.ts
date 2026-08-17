@@ -6,6 +6,15 @@
  * them; Module 04 provides the implementations of its own ports.
  */
 export const PRODUCT_CATALOG_REPOSITORY = Symbol('PRODUCT_CATALOG_REPOSITORY');
+/**
+ * WEMP-M04-CONTRACT-001 Part B (decision D-12) / WEMP-M05-SPEC-001 §11.1
+ * (decision D-10, M05-M4 SKU-fact wiring). The Module 04
+ * `ProductCatalogReadPort` consumed by trading modules (05/07/08) through
+ * the approved cross-module contract — Module 04 owns the implementation
+ * and the PUBLISHED visibility gate; consumers never read Module 04
+ * storage (A-06).
+ */
+export const PRODUCT_CATALOG_READ = Symbol('PRODUCT_CATALOG_READ');
 /** WEMP-M04-CONTRACT-001 Part A (decisions D-01, D-11). */
 export const MODULE02_SELLER_AUTHORIZATION_CONTRACT = Symbol(
   'MODULE02_SELLER_AUTHORIZATION_CONTRACT',

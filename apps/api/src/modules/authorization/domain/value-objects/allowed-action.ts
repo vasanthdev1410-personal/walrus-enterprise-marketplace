@@ -20,6 +20,10 @@ export const ALLOWED_ACTIONS = [
   'SUBMIT',
   'DECIDE',
   'VIEW',
+  // WEMP-M05-AUTHZ-001 §2 (approved D-05, Module 02 owner sign-off RECORDED
+  // 2026-08-15): canonical verb required by the inventory permission
+  // vocabulary (`inventory.adjust.self` / `inventory.adjust.admin`).
+  'ADJUST',
 ] as const;
 
 export type AllowedAction = (typeof ALLOWED_ACTIONS)[number];

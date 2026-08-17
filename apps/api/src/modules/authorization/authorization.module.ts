@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { IdentityAuthenticationModule } from '../identity-authentication/identity-authentication.module';
 import { AuthorizationCoreModule } from './authorization-core.module';
+import { AdminHealthController } from './presentation/admin-health.controller';
 import { AuthorizationController } from './presentation/authorization.controller';
 import { AuthorizationPermissionGuard } from './presentation/guards/authorization-permission.guard';
 import { ReadinessController } from './presentation/readiness.controller';
@@ -13,7 +14,7 @@ import { ReadinessController } from './presentation/readiness.controller';
  */
 @Module({
   imports: [AuthorizationCoreModule, IdentityAuthenticationModule],
-  controllers: [AuthorizationController, ReadinessController],
+  controllers: [AdminHealthController, AuthorizationController, ReadinessController],
   providers: [AuthorizationPermissionGuard],
   exports: [AuthorizationCoreModule],
 })

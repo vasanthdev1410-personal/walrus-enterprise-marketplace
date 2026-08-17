@@ -59,6 +59,11 @@ const SELLER_PERMISSIONS = [
   'product.media.manage',
   'product.sku.manage',
   'catalog.category.read',
+  // WEMP-M05-AUTHZ-001 §2.1 (approved D-05, Module 02 owner sign-off
+  // 2026-08-15): the SELLER self-service inventory permissions, both
+  // organization-scoped through the approved ownership resolver (third scope).
+  'inventory.read',
+  'inventory.adjust.self',
 ] as const;
 
 /**
@@ -89,6 +94,15 @@ const PRODUCT_ADMIN_PERMISSIONS = [
   'catalog.attribute.manage',
 ] as const;
 
+/**
+ * WEMP-M05-AUTHZ-001 §2.2 (approved D-05, Module 02 owner sign-off
+ * 2026-08-15). The inventory administrative permissions granted to ADMIN and
+ * SUPER_ADMIN exactly as approved — no override, no hidden bypass (D-05
+ * no-override precedent). Never organization-scoped and never granted to the
+ * SELLER role.
+ */
+const INVENTORY_ADMIN_PERMISSIONS = ['inventory.adjust.admin', 'inventory.audit.view'] as const;
+
 const SUPER_ADMIN_PERMISSIONS = [
   'recovery.approval.decide',
   'identity.state.change',
@@ -100,6 +114,7 @@ const SUPER_ADMIN_PERMISSIONS = [
   'authorization.permission.view',
   ...SELLER_ADMIN_PERMISSIONS,
   ...PRODUCT_ADMIN_PERMISSIONS,
+  ...INVENTORY_ADMIN_PERMISSIONS,
 ] as const;
 
 const ADMIN_PERMISSIONS = [
@@ -111,6 +126,7 @@ const ADMIN_PERMISSIONS = [
   'authorization.permission.view',
   ...SELLER_ADMIN_PERMISSIONS,
   ...PRODUCT_ADMIN_PERMISSIONS,
+  ...INVENTORY_ADMIN_PERMISSIONS,
 ] as const;
 
 const SEEDED_ROLES: readonly Role[] = Object.freeze([

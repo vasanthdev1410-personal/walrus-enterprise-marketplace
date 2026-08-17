@@ -71,6 +71,13 @@ export class PrismaProductCatalogRepository implements ProductCatalogRepository 
     return records.map((record) => productSkuMapper.toDomain(record));
   }
 
+  public async findSkuById(skuId: UuidV7): Promise<ProductSku | null> {
+    const record = await this.prisma.productSku.findUnique({
+      where: { skuId: skuId.value },
+    });
+    return record === null ? null : productSkuMapper.toDomain(record);
+  }
+
   public async findMedia(productId: UuidV7): Promise<readonly ProductMedia[]> {
     const records = await this.prisma.productMedia.findMany({
       where: { productId: productId.value },

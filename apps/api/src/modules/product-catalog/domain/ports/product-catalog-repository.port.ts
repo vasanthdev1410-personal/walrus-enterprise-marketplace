@@ -22,6 +22,13 @@ export interface ProductCatalogRepository {
   findById(productId: UuidV7): Promise<Product | null>;
   findVariants(productId: UuidV7): Promise<readonly ProductVariant[]>;
   findSkus(productId: UuidV7): Promise<readonly ProductSku[]>;
+  /**
+   * WEMP-M05-SPEC-001 §11.1 (D-10, M05-M4 SKU-fact wiring). Resolves a
+   * single SKU by its identifier. Consumed by the Module 04
+   * ProductCatalogReadPort adapter so Module 05 can receive SKU-existence +
+   * PUBLISHED-state facts without reading Module 04 storage directly (A-06).
+   */
+  findSkuById(skuId: UuidV7): Promise<ProductSku | null>;
   findMedia(productId: UuidV7): Promise<readonly ProductMedia[]>;
   findAttributeValues(productId: UuidV7): Promise<readonly ProductAttributeValue[]>;
   findTransitions(productId: UuidV7): Promise<readonly ProductStateTransition[]>;
