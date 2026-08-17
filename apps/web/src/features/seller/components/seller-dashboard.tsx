@@ -11,6 +11,7 @@ import { VerificationPanel } from './seller-surface';
 import { WarehousesPanel } from './seller-surface';
 import { AgreementsPanel } from './seller-surface';
 import { CatalogPanel, CategoriesPanel } from '../../catalog/components/catalog-surface';
+import { InventoryPanel } from '../../inventory/components/inventory-surface';
 
 type SellerSection =
   | 'dashboard'
@@ -21,7 +22,8 @@ type SellerSection =
   | 'agreements'
   | 'members'
   | 'catalog'
-  | 'categories';
+  | 'categories'
+  | 'inventory';
 
 const NAV: readonly { readonly id: SellerSection; readonly label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -33,6 +35,7 @@ const NAV: readonly { readonly id: SellerSection; readonly label: string }[] = [
   { id: 'members', label: 'Members' },
   { id: 'catalog', label: 'Catalog' },
   { id: 'categories', label: 'Categories' },
+  { id: 'inventory', label: 'Inventory' },
 ];
 
 /**
@@ -72,6 +75,7 @@ export function SellerDashboard(): ReactNode {
       {section === 'members' && <MembersPanel />}
       {section === 'catalog' && <CatalogPanel />}
       {section === 'categories' && <CategoriesPanel />}
+      {section === 'inventory' && <InventoryPanel />}
     </SellerApiProvider>
   );
 }

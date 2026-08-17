@@ -8,12 +8,17 @@ import { AdminSellerDetail } from '@/src/features/admin/components/admin-seller-
 import { AdminSellerList } from '@/src/features/admin/components/admin-seller-surface';
 import { AdminProductDetail } from '@/src/features/admin-catalog/components/admin-catalog-surface';
 import { AdminProductList } from '@/src/features/admin-catalog/components/admin-catalog-surface';
+import { AdminInventoryDetail } from '@/src/features/admin-inventory/components/admin-inventory-surface';
+import { AdminInventoryList } from '@/src/features/admin-inventory/components/admin-inventory-surface';
+import { AdminThresholdConfigPanel } from '@/src/features/admin-inventory/components/admin-inventory-surface';
 
-type AdminSection = 'sellers' | 'products';
+type AdminSection = 'sellers' | 'products' | 'inventory' | 'thresholds';
 
 const NAV: readonly { readonly id: AdminSection; readonly label: string }[] = [
   { id: 'sellers', label: 'Sellers' },
   { id: 'products', label: 'Products' },
+  { id: 'inventory', label: 'Inventory' },
+  { id: 'thresholds', label: 'Inventory thresholds' },
 ];
 
 /**
@@ -26,11 +31,13 @@ export default function AdminPortalPage(): ReactNode {
   const [section, setSection] = useState<AdminSection>('sellers');
   const [selectedSellerId, setSelectedSellerId] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
 
   function switchSection(target: AdminSection): void {
     setSection(target);
     setSelectedSellerId(null);
     setSelectedProductId(null);
+    setSelectedSkuId(null);
   }
 
   return (
@@ -102,6 +109,25 @@ export default function AdminPortalPage(): ReactNode {
             )}
           </>
         )}
+        {section === 'inventory' && (
+          <>
+            {selectedSkuId === null ? (
+              <AdminInventoryList
+                onSelect={(skuId: string) => {
+                  setSelectedSkuId(skuId);
+                }}
+              />
+            ) : (
+              <AdminInventoryDetail
+                skuId={selectedSkuId}
+                onBack={() => {
+                  setSelectedSkuId(null);
+                }}
+              />
+            )}
+          </>
+        )}
+        {section === 'thresholds' && <AdminThresholdConfigPanel />}
       </SellerApiProvider>
     </PortalShell>
   );

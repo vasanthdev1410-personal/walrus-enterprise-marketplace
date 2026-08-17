@@ -776,4 +776,179 @@ describe('SellerApiClient', () => {
     const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('/api/v1/admin/products/0191310f-789a-7123-8123-000000000011/media');
   });
+
+  // ----- Module 05 inventory (WEMP-M05-SPEC-001 §15) -----
+
+  it('lists own inventory with the sellerProfileId query scope', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { data: { inventory: [] }, correlationId: 'c1' }));
+    const client = createClient(fetchImpl);
+    await expect(client.listOwnInventory('seller-1')).resolves.toEqual([]);
+    const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/seller/inventory?sellerProfileId=seller-1');
+  });
+
+  it('reads own SKU detail and movement ledger', async () => {
+    const detail = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          inventory: {
+            skuId: 'sku-1',
+            onHand: 12,
+            reserved: 2,
+            available: 10,
+            version: 2,
+            label: 'IN_STOCK',
+          },
+        },
+        correlationId: 'c1',
+      }),
+    );
+    const client = createClient(detail);
+    await expect(client.getOwnSkuDetail('sku-1', 'seller-1')).resolves.toMatchObject({
+      available: 10,
+    });
+    const [detailUrl] = detail.mock.calls[0] as [string, RequestInit];
+    expect(detailUrl).toBe('/api/v1/seller/inventory/sku-1?sellerProfileId=seller-1');
+
+    const ledger = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { data: { movements: [] }, correlationId: 'c1' }));
+    const ledgerClient = createClient(ledger);
+    await expect(ledgerClient.getOwnMovementLedger('sku-1', 'seller-1')).resolves.toEqual([]);
+    const [ledgerUrl] = ledger.mock.calls[0] as [string, RequestInit];
+    expect(ledgerUrl).toBe('/api/v1/seller/inventory/sku-1/movements?sellerProfileId=seller-1');
+  });
+
+  it('performs a seller stock adjustment with the mandatory idempotency key', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          inventory: {
+            skuId: 'sku-1',
+            onHand: 17,
+            reserved: 2,
+            available: 15,
+            version: 3,
+          },
+        },
+        correlationId: 'c1',
+      }),
+    );
+    const client = createClient(fetchImpl);
+    await expect(
+      client.adjustStock({
+        skuId: 'sku-1',
+        sellerProfileId: 'seller-1',
+        movementType: 'STOCK_IN',
+        delta: 5,
+        expectedVersion: 2,
+      }),
+    ).resolves.toMatchObject({ version: 3 });
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/seller/inventory/sku-1/movements');
+    expect((init.headers as Record<string, string>)['Idempotency-Key']).toMatch(/^[0-9a-f-]{36}$/);
+    expect(init.body).toContain('STOCK_IN');
+  });
+
+  it('lists and reads admin inventory with audit records', async () => {
+    const list = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { data: { inventory: [] }, correlationId: 'c1' }));
+    const listClient = createClient(list);
+    await expect(listClient.adminListInventory()).resolves.toEqual([]);
+    const [listUrl] = list.mock.calls[0] as [string, RequestInit];
+    expect(listUrl).toBe('/api/v1/admin/inventory');
+
+    const detail = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          inventory: {
+            skuId: 'sku-1',
+            sellerProfileId: 'seller-1',
+            onHand: 30,
+            reserved: 0,
+            available: 30,
+            version: 3,
+            label: 'IN_STOCK',
+            audit: [{ eventType: 'POOL_CORRECTED', actorIdentityId: 'u1', occurredAt: 't' }],
+            movements: [],
+          },
+        },
+        correlationId: 'c1',
+      }),
+    );
+    const detailClient = createClient(detail);
+    await expect(detailClient.adminGetSkuDetail('sku-1')).resolves.toMatchObject({
+      sellerProfileId: 'seller-1',
+    });
+    const [detailUrl] = detail.mock.calls[0] as [string, RequestInit];
+    expect(detailUrl).toBe('/api/v1/admin/inventory/sku-1');
+  });
+
+  it('performs an admin correction with the mandatory reason reference', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: {
+          inventory: {
+            skuId: 'sku-1',
+            onHand: 30,
+            reserved: 0,
+            available: 30,
+            version: 4,
+          },
+        },
+        correlationId: 'c1',
+      }),
+    );
+    const client = createClient(fetchImpl);
+    await expect(
+      client.adminCorrectStock({
+        skuId: 'sku-1',
+        targetOnHand: 30,
+        expectedVersion: 3,
+        reasonReference: 'count-2026-08-15',
+      }),
+    ).resolves.toMatchObject({ version: 4 });
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/admin/inventory/sku-1/corrections');
+    expect(init.body).toContain('count-2026-08-15');
+  });
+
+  it('reads and updates the D-14 threshold configuration (version-checked)', async () => {
+    const read = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: { config: { lowStockThreshold: 1, outOfStockThreshold: 0, version: 0 } },
+        correlationId: 'c1',
+      }),
+    );
+    const readClient = createClient(read);
+    await expect(readClient.adminGetThresholdConfig()).resolves.toMatchObject({
+      lowStockThreshold: 1,
+    });
+    const [readUrl] = read.mock.calls[0] as [string, RequestInit];
+    expect(readUrl).toBe('/api/v1/admin/inventory-config');
+
+    const write = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        data: { config: { lowStockThreshold: 3, outOfStockThreshold: 2, version: 1 } },
+        correlationId: 'c1',
+      }),
+    );
+    const writeClient = createClient(write);
+    await expect(
+      writeClient.adminUpdateThresholdConfig({
+        lowStockThreshold: 3,
+        outOfStockThreshold: 2,
+        expectedVersion: 0,
+      }),
+    ).resolves.toMatchObject({ version: 1 });
+    const [writeUrl, writeInit] = write.mock.calls[0] as [string, RequestInit];
+    expect(writeUrl).toBe('/api/v1/admin/inventory-config');
+    expect(writeInit.method).toBe('PATCH');
+    expect((writeInit.headers as Record<string, string>)['Idempotency-Key']).toMatch(
+      /^[0-9a-f-]{36}$/,
+    );
+  });
 });

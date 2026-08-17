@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'inventory_status.dart';
 import 'product_status.dart';
 import 'seller_status.dart';
 
@@ -99,6 +100,21 @@ abstract interface class SellerApiClient {
 
   /// Reads active platform categories (`GET /seller/categories`).
   Future<List<CategorySummary>> listCategories();
+
+  // ----- Module 05 inventory (D-13: strictly READ-ONLY on mobile) -----
+
+  /// Lists the caller's own inventory availability per SKU
+  /// (`GET /seller/inventory?sellerProfileId=`). Returns non-enumerating
+  /// availability rows. Mobile never mutates inventory.
+  Future<List<InventoryStatusEntry>> listOwnInventory(String sellerProfileId);
+
+  /// Reads the caller's own SKU availability detail
+  /// (`GET /seller/inventory/:skuId?sellerProfileId=`). Fails closed on
+  /// unknown or cross-organization SKUs.
+  Future<InventoryStatusEntry> getOwnSkuDetail(
+    String skuId,
+    String sellerProfileId,
+  );
 }
 
 /// HTTP implementation over the M03-M5 API using the platform `HttpClient`.
@@ -214,6 +230,34 @@ class HttpSellerApiClient implements SellerApiClient {
         .map(CategorySummary.fromJson)
         .toList();
     return categories;
+  }
+
+  @override
+  Future<List<InventoryStatusEntry>> listOwnInventory(String sellerProfileId) async {
+    final body = await _request(
+      'GET',
+      '/seller/inventory?sellerProfileId=${Uri.encodeQueryComponent(sellerProfileId)}',
+    );
+    final data = decodeApiBody(body)['data'] as Map<String, dynamic>;
+    final inventory = (data['inventory'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map(InventoryStatusEntry.fromJson)
+        .toList();
+    return inventory;
+  }
+
+  @override
+  Future<InventoryStatusEntry> getOwnSkuDetail(
+    String skuId,
+    String sellerProfileId,
+  ) async {
+    final body = await _request(
+      'GET',
+      '/seller/inventory/$skuId?sellerProfileId=${Uri.encodeQueryComponent(sellerProfileId)}',
+    );
+    final data = decodeApiBody(body)['data'] as Map<String, dynamic>;
+    final inventory = data['inventory'] as Map<String, dynamic>;
+    return InventoryStatusEntry.fromJson(inventory);
   }
 
   Future<String> _request(

@@ -291,6 +291,84 @@ export interface AdminProductReviewInput {
   readonly reasonReference?: string;
 }
 
+// ---------------------------------------------------------------------------
+// Module 05 — Inventory (WEMP-M05-SPEC-001 §15, M05-M5)
+// ---------------------------------------------------------------------------
+
+export type InventoryStockLabel = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+
+export interface InventoryListEntry {
+  readonly skuId: string;
+  readonly onHand: number;
+  readonly reserved: number;
+  readonly available: number;
+  readonly version: number;
+  readonly label?: InventoryStockLabel;
+}
+
+export interface InventoryMovementEntry {
+  readonly movementId: string;
+  readonly movementType: string;
+  readonly delta: number;
+  readonly resultingOnHand: number;
+  readonly resultingReserved: number;
+  readonly actorIdentityId: string;
+  readonly reasonReference?: string;
+  readonly occurredAt: string;
+}
+
+export interface AdminInventoryDetailResult extends InventoryListEntry {
+  readonly sellerProfileId: string;
+  readonly audit: readonly {
+    readonly eventType: string;
+    readonly actorIdentityId: string;
+    readonly occurredAt: string;
+  }[];
+  readonly movements: readonly InventoryMovementEntry[];
+}
+
+export interface InventoryAdjustResult {
+  readonly skuId: string;
+  readonly onHand: number;
+  readonly reserved: number;
+  readonly available: number;
+  readonly version: number;
+}
+
+export type InventoryMovementType = 'STOCK_IN' | 'STOCK_OUT' | 'ADJUSTMENT';
+
+export interface SellerAdjustStockInput {
+  readonly skuId: string;
+  readonly sellerProfileId: string;
+  readonly movementType: InventoryMovementType;
+  /** Positive magnitude (D-08): 1..1,000,000. */
+  readonly delta: number;
+  readonly direction?: 'INCREASE' | 'DECREASE';
+  /** Optimistic concurrency guard. */
+  readonly expectedVersion: number;
+  /** Mandatory on STOCK_OUT/ADJUSTMENT (D-08). */
+  readonly reasonReference?: string;
+}
+
+export interface AdminCorrectStockInput {
+  readonly skuId: string;
+  readonly targetOnHand: number;
+  readonly expectedVersion: number;
+  readonly reasonReference: string;
+}
+
+export interface ThresholdConfigResult {
+  readonly lowStockThreshold: number;
+  readonly outOfStockThreshold: number;
+  readonly version: number;
+}
+
+export interface ThresholdConfigPatchInput {
+  readonly lowStockThreshold: number;
+  readonly outOfStockThreshold: number;
+  readonly expectedVersion: number;
+}
+
 export interface CreateOnboardingInput {
   readonly legalName: string;
   readonly tradeName: string;
@@ -833,6 +911,102 @@ export class SellerApiClient {
       `/admin/products/${encodeURIComponent(productId)}/media`,
     );
     return data.media;
+  }
+
+  // ----- Module 05 — Inventory (WEMP-M05-SPEC-001 §15, M05-M5) -----
+
+  public async listOwnInventory(sellerProfileId: string): Promise<readonly InventoryListEntry[]> {
+    const query = `?sellerProfileId=${encodeURIComponent(sellerProfileId)}`;
+    const data = await this.request<{ inventory: readonly InventoryListEntry[] }>(
+      'GET',
+      `/seller/inventory${query}`,
+    );
+    return data.inventory;
+  }
+
+  public async getOwnSkuDetail(
+    skuId: string,
+    sellerProfileId: string,
+  ): Promise<InventoryListEntry> {
+    const query = `?sellerProfileId=${encodeURIComponent(sellerProfileId)}`;
+    const data = await this.request<{ inventory: InventoryListEntry }>(
+      'GET',
+      `/seller/inventory/${encodeURIComponent(skuId)}${query}`,
+    );
+    return data.inventory;
+  }
+
+  public async getOwnMovementLedger(
+    skuId: string,
+    sellerProfileId: string,
+  ): Promise<readonly InventoryMovementEntry[]> {
+    const query = `?sellerProfileId=${encodeURIComponent(sellerProfileId)}`;
+    const data = await this.request<{ movements: readonly InventoryMovementEntry[] }>(
+      'GET',
+      `/seller/inventory/${encodeURIComponent(skuId)}/movements${query}`,
+    );
+    return data.movements;
+  }
+
+  public async adjustStock(input: SellerAdjustStockInput): Promise<InventoryAdjustResult> {
+    const data = await this.request<{ inventory: InventoryAdjustResult }>(
+      'POST',
+      `/seller/inventory/${encodeURIComponent(input.skuId)}/movements`,
+      { body: input },
+    );
+    return data.inventory;
+  }
+
+  public async adminListInventory(): Promise<readonly InventoryListEntry[]> {
+    const data = await this.request<{ inventory: readonly InventoryListEntry[] }>(
+      'GET',
+      '/admin/inventory',
+    );
+    return data.inventory;
+  }
+
+  public async adminGetSkuDetail(skuId: string): Promise<AdminInventoryDetailResult> {
+    const data = await this.request<{ inventory: AdminInventoryDetailResult }>(
+      'GET',
+      `/admin/inventory/${encodeURIComponent(skuId)}`,
+    );
+    return data.inventory;
+  }
+
+  public async adminGetMovementLedger(skuId: string): Promise<readonly InventoryMovementEntry[]> {
+    const data = await this.request<{ movements: readonly InventoryMovementEntry[] }>(
+      'GET',
+      `/admin/inventory/${encodeURIComponent(skuId)}/movements`,
+    );
+    return data.movements;
+  }
+
+  public async adminCorrectStock(input: AdminCorrectStockInput): Promise<InventoryAdjustResult> {
+    const data = await this.request<{ inventory: InventoryAdjustResult }>(
+      'POST',
+      `/admin/inventory/${encodeURIComponent(input.skuId)}/corrections`,
+      { body: input },
+    );
+    return data.inventory;
+  }
+
+  public async adminGetThresholdConfig(): Promise<ThresholdConfigResult> {
+    const data = await this.request<{ config: ThresholdConfigResult }>(
+      'GET',
+      '/admin/inventory-config',
+    );
+    return data.config;
+  }
+
+  public async adminUpdateThresholdConfig(
+    input: ThresholdConfigPatchInput,
+  ): Promise<ThresholdConfigResult> {
+    const data = await this.request<{ config: ThresholdConfigResult }>(
+      'PATCH',
+      '/admin/inventory-config',
+      { body: input },
+    );
+    return data.config;
   }
 
   // ----- transport -----

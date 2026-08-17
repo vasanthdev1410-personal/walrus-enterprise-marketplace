@@ -1,3 +1,4 @@
+import 'package:walrus_mobile/src/features/seller/data/inventory_status.dart';
 import 'package:walrus_mobile/src/features/seller/data/product_status.dart';
 import 'package:walrus_mobile/src/features/seller/data/seller_api_client.dart';
 import 'package:walrus_mobile/src/features/seller/data/seller_status.dart';
@@ -14,6 +15,7 @@ class FakeSellerApiClient implements SellerApiClient {
   SellerApiException? _error;
   List<ProductSummary> products = <ProductSummary>[];
   List<CategorySummary> categories = <CategorySummary>[];
+  List<InventoryStatusEntry> inventory = <InventoryStatusEntry>[];
   final List<String> calls = <String>[];
 
   void setStatus(SellerStatus status) {
@@ -115,6 +117,37 @@ class FakeSellerApiClient implements SellerApiClient {
   Future<List<CategorySummary>> listCategories() async {
     calls.add('listCategories');
     return categories;
+  }
+
+  @override
+  Future<List<InventoryStatusEntry>> listOwnInventory(String sellerProfileId) async {
+    calls.add('listOwnInventory:$sellerProfileId');
+    final error = _error;
+    if (error != null) {
+      throw error;
+    }
+    return inventory;
+  }
+
+  @override
+  Future<InventoryStatusEntry> getOwnSkuDetail(
+    String skuId,
+    String sellerProfileId,
+  ) async {
+    calls.add('getOwnSkuDetail:$skuId:$sellerProfileId');
+    final error = _error;
+    if (error != null) {
+      throw error;
+    }
+    for (final entry in inventory) {
+      if (entry.skuId == skuId) {
+        return entry;
+      }
+    }
+    throw const SellerApiException(
+      SellerApiErrorKind.notFound,
+      'The requested record could not be found.',
+    );
   }
 }
 

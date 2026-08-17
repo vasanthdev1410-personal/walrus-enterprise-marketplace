@@ -21,19 +21,27 @@ import { ProductCatalogModule } from '../product-catalog/product-catalog.module'
 import { Module02InventoryAdminAuthorizationAdapter } from './application/adapters/module02-inventory-admin-authorization.adapter';
 import { Module02InventoryAuthorizationAdapter } from './application/adapters/module02-inventory-authorization.adapter';
 import { Module04ProductCatalogReadAdapter } from './application/adapters/module04-product-catalog-read.adapter';
+import { InventoryConfigApplicationService } from './application/services/inventory-config-application.service';
 import { InventoryApplicationService } from './application/services/inventory-application.service';
 import { InventoryReadApplicationService } from './application/services/inventory-read-application.service';
 import { InventoryReservationService } from './application/services/inventory-reservation.service';
 import { InventoryStockPolicy } from './domain/policy/inventory-stock-policy';
 import { RecordedRetentionConfigurationAdapter } from './infrastructure/configuration/recorded-retention-configuration.adapter';
 import { RecordedThresholdConfigurationAdapter } from './infrastructure/configuration/recorded-threshold-configuration.adapter';
+import { PrismaInventoryConfigRepository } from './infrastructure/persistence/prisma/repositories/prisma-inventory-config.repository';
 import {
   PrismaInventoryEvidenceReadRepository,
   PrismaInventoryRepository,
 } from './infrastructure/persistence/prisma/repositories/prisma-inventory.repository';
+import { InventorySellerPermissionGuard } from './presentation/guards/inventory-seller-permission.guard';
+import { AdminInventoryController } from './presentation/admin-inventory.controller';
+import { InventoryConfigController } from './presentation/inventory-config.controller';
+import { SellerInventoryController } from './presentation/seller-inventory.controller';
 import {
   INVENTORY_ADMIN_AUTHORIZATION,
   INVENTORY_APPLICATION_SERVICE,
+  INVENTORY_CONFIG_APPLICATION_SERVICE,
+  INVENTORY_CONFIG_REPOSITORY,
   INVENTORY_EVIDENCE_READ_REPOSITORY,
   INVENTORY_READ_APPLICATION_SERVICE,
   INVENTORY_RESERVATION_PORT,
@@ -67,9 +75,32 @@ import {
  */
 @Module({
   imports: [IdentityAuthenticationModule, ProductCatalogModule, AuthorizationCoreModule],
+  controllers: [SellerInventoryController, AdminInventoryController, InventoryConfigController],
   providers: [
+    InventorySellerPermissionGuard,
     { provide: CLOCK, useClass: SystemClockAdapter },
     { provide: UUID_V7_GENERATOR, useClass: SystemUuidV7Generator },
+    PrismaInventoryConfigRepository,
+    {
+      provide: INVENTORY_CONFIG_REPOSITORY,
+      useExisting: PrismaInventoryConfigRepository,
+    },
+    {
+      provide: INVENTORY_CONFIG_APPLICATION_SERVICE,
+      inject: [
+        INVENTORY_CONFIG_REPOSITORY,
+        INVENTORY_ADMIN_AUTHORIZATION,
+        RATE_LIMITER,
+        API_IDEMPOTENCY,
+      ],
+      useFactory: (
+        config: PrismaInventoryConfigRepository,
+        adminAuthorization: Module02InventoryAdminAuthorizationAdapter,
+        rateLimiter: NonProductionRateLimiterPort,
+        idempotency: ApiIdempotencyService,
+      ) =>
+        new InventoryConfigApplicationService(config, adminAuthorization, rateLimiter, idempotency),
+    },
     PrismaInventoryRepository,
     {
       provide: INVENTORY_STOCK_POOL_REPOSITORY,
@@ -92,9 +123,16 @@ import {
       provide: INVENTORY_ADMIN_AUTHORIZATION,
       useClass: Module02InventoryAdminAuthorizationAdapter,
     },
+    // D-14 (M05-M5): the threshold configuration read path and the admin
+    // config surface share one source — `inventory_config_records` via
+    // PrismaInventoryConfigRepository, which falls back to the recorded
+    // owner-approved defaults (env, RECORDED 2026-08-15) until an admin
+    // persists rows. RecordedThresholdConfigurationAdapter is registered
+    // for that fallback delegation.
+    RecordedThresholdConfigurationAdapter,
     {
       provide: INVENTORY_THRESHOLD_CONFIGURATION,
-      useClass: RecordedThresholdConfigurationAdapter,
+      useExisting: PrismaInventoryConfigRepository,
     },
     {
       provide: INVENTORY_RETENTION_CONFIGURATION,
@@ -172,7 +210,7 @@ import {
         module02: Module02InventoryAuthorizationAdapter,
         module04: Module04ProductCatalogReadAdapter,
         adminAuthorization: Module02InventoryAdminAuthorizationAdapter,
-        thresholdConfiguration: RecordedThresholdConfigurationAdapter,
+        thresholdConfiguration: PrismaInventoryConfigRepository,
         policy: InventoryStockPolicy,
         rateLimiter: NonProductionRateLimiterPort,
       ) =>
@@ -193,6 +231,8 @@ import {
     INVENTORY_READ_APPLICATION_SERVICE,
     INVENTORY_RESERVATION_PORT,
     INVENTORY_THRESHOLD_CONFIGURATION,
+    INVENTORY_CONFIG_REPOSITORY,
+    INVENTORY_CONFIG_APPLICATION_SERVICE,
     INVENTORY_RETENTION_CONFIGURATION,
   ],
 })
