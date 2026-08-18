@@ -4,12 +4,15 @@
 
 **Document ID:** WEMP-M05-SPEC-001
 **Version:** Review Draft 1.0
-**Status:** APPROVED (M05-M1 ONLY) — signed by the Product/Architecture
-Owner 2026-08-15. M05-M2…M05-M5 are **NOT** authorized; later milestones
-remain gated per WEMP-M05-APPROVAL-001 §4 on the pending external
-conditions (§3, all **PENDING — NOT RECORDED**).
-**Effective date:** 2026-08-15 (M05-M1 only; later milestones per
-WEMP-M05-APPROVAL-001 §4)
+**Status:** APPROVED (M05-M1 … M05-M4) — signed by the Product/Architecture
+Owner 2026-08-15. Per WEMP-M05-APPROVAL-001 §4, gates M05-M1 … M05-M4 are
+✓ **SATISFIED** (external conditions 1–4 **RECORDED 2026-08-15** per
+WEMP-M05-APPROVAL-001 §3/§6); **M05-M5 is NOT authorized** and remains gated
+per WEMP-M05-APPROVAL-001 §4 (conditions recorded, gate not marked
+SATISFIED).
+**Effective date:** 2026-08-15 (M05-M1 authorized now; M05-M2 … M05-M4
+authorized as their gates in WEMP-M05-APPROVAL-001 §4 were satisfied;
+M05-M5 only when its §4 gate carries the SATISFIED verdict)
 **Classification:** Confidential — Internal Use Only
 
 > This document is not an authorization to implement. It preserves Module 00,

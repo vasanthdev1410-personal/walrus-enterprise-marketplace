@@ -98,9 +98,11 @@ Unapproved decisions remain non-implementable.
 | Decisions | D-01…D-18 owner-approved 2026-08-14 (option A) — preserved verbatim; M05-M1 authorized 2026-08-15 |
 
 **Scope of approval:** milestone **M05-M1 only** (Inventory Domain
-Foundation), signed in WEMP-M05-APPROVAL-001 §5 on 2026-08-15. M05-M2…
-M05-M5 are **NOT** authorized; each remains gated per WEMP-M05-APPROVAL-001
-§4 on the pending external-authority conditions (§3).
+Foundation), signed in WEMP-M05-APPROVAL-001 §5 on 2026-08-15. Per
+WEMP-M05-APPROVAL-001 §4, gates M05-M1 … M05-M4 are ✓ **SATISFIED**
+(external conditions 1–4 recorded 2026-08-15) and those milestones are
+authorized; **M05-M5 is NOT authorized** and remains gated per
+WEMP-M05-APPROVAL-001 §4 (conditions recorded, gate not marked SATISFIED).
 
 **Module 02 owner sign-off (Gate #1) — RECORDED 2026-08-15:** the additive
 `inventory.*` permission identifiers and the third ownership-resolver scope

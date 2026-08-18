@@ -1,19 +1,21 @@
 # Module 05 — Manual Approval Pack
 
 **Document ID:** WEMP-M05-APPROVAL-001
-**Status:** APPROVED (M05-M1 … M05-M3) — signed by the Product/Architecture
+**Status:** APPROVED (M05-M1 … M05-M4) — signed by the Product/Architecture
 Owner 2026-08-15. Decisions D-01…D-18 are owner-approved; external
 conditions 1–4 **RECORDED 2026-08-15** (Module 02 owner sign-off;
 Security/Platform D-11 rate-limit values; D-12 retention durations 2555/2555;
-D-14 threshold values 1/0). M05-M1, M05-M2, and M05-M3 are authorized;
-M05-M4–M05-M5 are **NOT** authorized until their sequential prerequisites
-are satisfied.
+D-14 threshold values 1/0). Per §4, gates M05-M1 … M05-M4 are
+✓ **SATISFIED** (authorized); **M05-M5 remains NOT authorized** — its §4
+gate row records the conditions but does not carry the ✓ SATISFIED verdict.
 **Companion documents:** WEMP-M05-SPEC-001, WEMP-M05-PLAN-001,
 WEMP-M05-AUTHZ-001, and WEMP-M05-DECISIONS-001
-**Implementation authority:** M05-M1 ONLY — granted by the §5 signature
-(2026-08-15). M05-M2…M05-M5 are **NOT** authorized; each remains gated per
-§4 and on the pending external conditions in §3. No Module 00/01/02/03/04
-behavior change; no commit or push without explicit direction
+**Implementation authority:** M05-M1 … M05-M4 — granted by the §5 signature
+(2026-08-15) with the §4 gates ✓ **SATISFIED** (external conditions 1–4
+**RECORDED 2026-08-15** per §3/§6). **M05-M5 is NOT authorized** and
+remains gated per §4 (conditions recorded, gate not marked SATISFIED). No
+Module 00/01/02/03/04 behavior change; no commit or push without explicit
+direction
 
 > Following the Module 02/03/04 approval pattern: this pack lists the proposed
 > artifacts, the resolved decisions, the conditional external-authority
@@ -56,9 +58,9 @@ verbatim.
 | 3   | D-12 jurisdiction-specific retention durations                                                   | Legal/Compliance       | M05-M2 / M05-M3 (enforcement)       | ✓ **RECORDED 2026-08-15** — InventoryMovementRecord 2555 days; InventoryAuditRecord 2555 days; effective for enforcement when M05-M3 implements the retention processor |
 | 4   | D-14 low/out-of-stock threshold values (values pending authority input before label enforcement) | Authority input (D-14) | M05-M3 / M05-M5 (label enforcement) | ✓ **RECORDED 2026-08-15** — LOW_STOCK_THRESHOLD=1; OUT_OF_STOCK_THRESHOLD=0 (owner-approved; fail-closed on missing/invalid config)                                     |
 
-> **Conditions 1–2 (Module 02 owner sign-off; Security/Platform D-11
-> rate-limit values) are RECORDED (2026-08-15).** Conditions 3–4 are **NOT**
-> recorded and must not be silently marked approved.
+> **Conditions 1–4 are RECORDED (2026-08-15)** — Module 02 owner sign-off;
+> Security/Platform D-11 rate-limit values; D-12 retention durations
+> 2555/2555; D-14 threshold values 1/0 — per the table above and §6.
 >
 > **Gate #3 — RECORDED 2026-08-15 (owner-approved D-12 retention values):**
 > the D-12 jurisdiction-specific retention durations were approved and
@@ -114,8 +116,8 @@ verbatim.
 > the D-12 jurisdiction-specific retention durations (gates M05-M2/M05-M3);
 > and (4) the D-14 low/out-of-stock threshold values pending authority input
 > before label enforcement (gates M05-M3/M05-M5). I do not treat any of
-> these as approved by this statement alone. (Conditions 1–2 were
-> subsequently recorded on 2026-08-15; conditions 3–4 remain pending.)
+> these as approved by this statement alone. (Conditions 1–4 were
+> subsequently recorded on 2026-08-15 per §6.)
 >
 > This approval authorizes implementation of milestone M05-M1 only after its
 > §4 gate is satisfied, and each subsequent milestone only after its gates in
@@ -129,9 +131,11 @@ Owner, 2026-08-15 (authorizes M05-M1 only)**
 Date: 2026-08-15
 
 > **Sign-off scope (recorded):** this signature authorizes milestone M05-M1
-> (Inventory Domain Foundation) only. Milestones M05-M2 through M05-M5 are
-> **NOT** authorized and remain gated per §4 on the pending external
-> conditions in §3. After this signature, **conditions 1–2 were RECORDED on
+> (Inventory Domain Foundation) only. Per §4, milestones M05-M2 through
+> M05-M4 became authorized as their gates were ✓ **SATISFIED** once the
+> external conditions were recorded; **M05-M5 remains NOT authorized** (its
+> §4 gate row records the conditions but does not carry the ✓ SATISFIED
+> verdict). After this signature, **conditions 1–2 were RECORDED on
 > 2026-08-15**: the Module 02 owner sign-off (additive `inventory.*`
 > permission identifiers and the third ownership-resolver scope, verified
 > additive and non-weakening) and the Security/Platform confirmation of the
