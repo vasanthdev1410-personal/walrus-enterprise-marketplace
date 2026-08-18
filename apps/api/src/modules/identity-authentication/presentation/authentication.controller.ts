@@ -60,7 +60,7 @@ export class AuthenticationController {
   ) {}
 
   @Post('login')
-  @RateLimit({ limit: 10, windowSeconds: 60 })
+  @RateLimit({ limit: 5, windowSeconds: 60 })
   @ApiOperation({ operationId: 'M01-AUTH-001', summary: 'Authenticate with a password' })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   public async login(
