@@ -40,3 +40,10 @@ terraform.tfstate
 terraform.tfstate.*
 .terraform/
 *.tfplan
+
+# Local scratch/scratch tooling that must never be committed
+tmp/
+
+# Stray host user-profile artifact (e.g. ACER/AppData/Local/Temp) created by
+# ad-hoc deploy tests inside the repo tree
+apps/Users/
