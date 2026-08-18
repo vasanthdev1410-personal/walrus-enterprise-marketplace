@@ -358,6 +358,93 @@ const SEEDED_PERMISSIONS: readonly Permission[] = Object.freeze([
     allowedAction: 'VIEW',
     status: 'ACTIVE',
   }),
+  // --- Module 06 CUSTOMER self-service permissions (WEMP-M06-AUTHZ-001 §2.1) ---
+  // Every one of these is customer-identity-scoped (the approved fourth
+  // ownership-resolver scope): the decision additionally requires that the
+  // target customer profile is owned by the caller's authenticated Identity
+  // (CustomerProfile.identityId match, resolved server-side). Granted only
+  // to the CUSTOMER role; never administrative, never org-scoped.
+  new Permission({
+    permissionId: 'customer.profile.read',
+    name: 'Read own customer profile',
+    protectedResource: 'customer.profile',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'customer.profile.update',
+    name: 'Update own customer profile fields (version-checked)',
+    protectedResource: 'customer.profile',
+    allowedAction: 'UPDATE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'customer.address.read',
+    name: 'List/read own addresses',
+    protectedResource: 'customer.address',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'customer.address.manage',
+    name: 'Create/update/soft-remove own addresses; set defaults',
+    protectedResource: 'customer.address',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'customer.business.read',
+    name: 'Read own optional business profile',
+    protectedResource: 'customer.business',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'customer.business.manage',
+    name: 'Create/update own optional business profile (version-checked)',
+    protectedResource: 'customer.business',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'customer.preference.read',
+    name: 'Read own basic account preferences',
+    protectedResource: 'customer.preference',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'customer.preference.manage',
+    name: 'Update own basic preferences (allow-listed keys, version-checked)',
+    protectedResource: 'customer.preference',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
+  // --- Module 06 administrative permissions (WEMP-M06-AUTHZ-001 §2.2) ---
+  // Granted to ADMIN and SUPER_ADMIN exactly as approved (D-07 no-override
+  // precedent); never customer-identity-scoped and never inheritable by the
+  // CUSTOMER role.
+  new Permission({
+    permissionId: 'customer.read',
+    name: 'Read customer list/detail (non-enumerating)',
+    protectedResource: 'customer',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'customer.lifecycle.manage',
+    name: 'Suspend/reinstate/close customer profiles (mandatory reason)',
+    protectedResource: 'customer.lifecycle',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'customer.audit.view',
+    name: 'View customer audit trail',
+    protectedResource: 'customer.audit',
+    allowedAction: 'VIEW',
+    status: 'ACTIVE',
+  }),
 ]);
 
 /**
@@ -405,6 +492,27 @@ const ORGANIZATION_SCOPED_PERMISSIONS: ReadonlySet<string> = new Set([
   'inventory.adjust.self',
 ]);
 
+/**
+ * The approved customer-identity-scoped CUSTOMER self-service permission set
+ * (WEMP-M06-AUTHZ-001 §4, decision D-07; Module 02 owner sign-off RECORDED
+ * 2026-08-17). A decision for any of these additionally requires that the
+ * caller's authenticated Identity owns the target customer profile
+ * (CustomerProfile.identityId match), resolved through the approved fourth
+ * ownership resolver (customer identity scope). The administrative
+ * `customer.*` permissions are NOT in this set — admins evaluate without a
+ * customer-identity scope.
+ */
+const CUSTOMER_IDENTITY_SCOPED_PERMISSIONS: ReadonlySet<string> = new Set([
+  'customer.profile.read',
+  'customer.profile.update',
+  'customer.address.read',
+  'customer.address.manage',
+  'customer.business.read',
+  'customer.business.manage',
+  'customer.preference.read',
+  'customer.preference.manage',
+]);
+
 export class PermissionCatalog {
   private readonly permissionsById: ReadonlyMap<string, Permission>;
   private readonly allPermissions: readonly Permission[];
@@ -438,5 +546,17 @@ export class PermissionCatalog {
    */
   public isOrganizationScoped(permissionId: string): boolean {
     return ORGANIZATION_SCOPED_PERMISSIONS.has(permissionId);
+  }
+
+  /**
+   * WEMP-M06-AUTHZ-001 §4 (decision D-07; Module 02 owner sign-off RECORDED
+   * 2026-08-17). True when the permission is customer-identity-scoped (the
+   * approved CUSTOMER self-service set, fourth ownership-resolver scope).
+   * Such permissions are granted only when the caller's authenticated
+   * Identity owns the target customer profile — evaluated through the
+   * customer ownership resolver, never from client-provided claims alone.
+   */
+  public isCustomerIdentityScoped(permissionId: string): boolean {
+    return CUSTOMER_IDENTITY_SCOPED_PERMISSIONS.has(permissionId);
   }
 }

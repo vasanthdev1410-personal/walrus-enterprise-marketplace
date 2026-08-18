@@ -42,10 +42,29 @@ describe('RoleCatalog (M02 domain core)', () => {
     expect(superAdmin?.properties.grantedPermissionIds).toContain('identity.superadmin.bootstrap');
   });
 
-  it('gives Customer no authorization-domain permission and SELLER only the approved self-service set (D-11)', () => {
+  it('gives CUSTOMER exactly the approved customer self-service set and SELLER only the approved self-service set (D-11/D-07)', () => {
     const catalog = new RoleCatalog();
 
-    expect(catalog.findByName('CUSTOMER')?.properties.grantedPermissionIds).toEqual([]);
+    // WEMP-M06-AUTHZ-001 §2.1 (D-07, sign-off 2026-08-17): the CUSTOMER role
+    // holds exactly the eight customer-identity-scoped self-service
+    // permissions — never an administrative customer permission.
+    const customer = catalog.findByName('CUSTOMER');
+    if (customer === undefined) {
+      throw new Error('CUSTOMER role must exist');
+    }
+    expect([...customer.properties.grantedPermissionIds].sort()).toEqual([
+      'customer.address.manage',
+      'customer.address.read',
+      'customer.business.manage',
+      'customer.business.read',
+      'customer.preference.manage',
+      'customer.preference.read',
+      'customer.profile.read',
+      'customer.profile.update',
+    ]);
+    expect(customer.properties.grantedPermissionIds).not.toContain('customer.read');
+    expect(customer.properties.grantedPermissionIds).not.toContain('customer.lifecycle.manage');
+    expect(customer.properties.grantedPermissionIds).not.toContain('customer.audit.view');
     const seller = catalog.findByName('SELLER');
     if (seller === undefined) {
       throw new Error('SELLER role must exist');
@@ -93,6 +112,10 @@ describe('RoleCatalog (M02 domain core)', () => {
     // administrative permissions (no override, no escalation).
     expect(seller.properties.grantedPermissionIds).not.toContain('inventory.adjust.admin');
     expect(seller.properties.grantedPermissionIds).not.toContain('inventory.audit.view');
+    // WEMP-M06-AUTHZ-001 §3 (D-07): SELLER never holds any customer
+    // permission — no cross-role borrowing.
+    expect(seller.properties.grantedPermissionIds).not.toContain('customer.profile.read');
+    expect(seller.properties.grantedPermissionIds).not.toContain('customer.read');
   });
 
   it('grants ADMIN and SUPER_ADMIN exactly the approved seller administrative permissions (D-11)', () => {
@@ -115,8 +138,16 @@ describe('RoleCatalog (M02 domain core)', () => {
           // WEMP-M05-AUTHZ-001 §2.2 (D-05): inventory admin grants.
           'inventory.adjust.admin',
           'inventory.audit.view',
+          // WEMP-M06-AUTHZ-001 §2.2 (D-07, sign-off 2026-08-17): customer
+          // admin grants.
+          'customer.read',
+          'customer.lifecycle.manage',
+          'customer.audit.view',
         ]),
       );
+      // No customer self-service permission is granted to ADMIN/SUPER_ADMIN.
+      expect(role?.properties.grantedPermissionIds).not.toContain('customer.profile.read');
+      expect(role?.properties.grantedPermissionIds).not.toContain('customer.address.manage');
       // No seller self-service permission is granted to ADMIN/SUPER_ADMIN.
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.profile.read');
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.verification.submit');

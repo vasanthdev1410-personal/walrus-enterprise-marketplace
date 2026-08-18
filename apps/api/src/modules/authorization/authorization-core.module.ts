@@ -15,6 +15,7 @@ import {
 import type { AuthorizationMutationPort } from './application/ports/authorization-mutation.port';
 import type { PrivilegedEligibilityPort } from './application/ports/privileged-eligibility.port';
 import type { SellerOwnershipResolverPort } from './application/ports/seller-ownership-resolver.port';
+import type { CustomerOwnershipResolverPort } from './application/ports/customer-ownership-resolver.port';
 import { AuthorizationApplicationService } from './application/services/authorization-application.service';
 import { PrivilegedActivationService } from './application/services/privileged-activation.service';
 import { ReadinessInboxService } from './application/services/readiness-inbox.service';
@@ -32,6 +33,7 @@ import {
   IDENTITY_ROLE_ASSIGNMENT_REPOSITORY,
   PRIVILEGED_ELIGIBILITY,
   SELLER_OWNERSHIP_RESOLVER,
+  CUSTOMER_OWNERSHIP_RESOLVER,
   TRUSTED_PEER_CERTIFICATE,
   TRUSTED_WORKLOAD_KEY_RESOLVER,
   TRUSTED_WORKLOAD_REPLAY,
@@ -136,6 +138,11 @@ import { WorkloadAuthorizationBoundaryV2Adapter } from './infrastructure/boundar
         // seller-management module. Optional — when absent, every
         // organization-scoped seller.* decision fails closed.
         { token: SELLER_OWNERSHIP_RESOLVER, optional: true },
+        // WEMP-M06-AUTHZ-001 §4 (D-07, sign-off 2026-08-17): the customer
+        // ownership resolver is provided by the Module 06 customer module.
+        // Optional — when absent, every customer-identity-scoped
+        // customer.* decision fails closed.
+        { token: CUSTOMER_OWNERSHIP_RESOLVER, optional: true },
       ],
       useFactory: (
         assignments: IdentityRoleAssignmentRepository,
@@ -145,6 +152,7 @@ import { WorkloadAuthorizationBoundaryV2Adapter } from './infrastructure/boundar
         identifiers: UuidV7GenerationPort,
         privilegedEligibility: PrivilegedEligibilityPort,
         sellerOwnershipResolver?: SellerOwnershipResolverPort,
+        customerOwnershipResolver?: CustomerOwnershipResolverPort,
       ) => {
         const permissions = new PermissionCatalog();
         const roles = new RoleCatalog();
@@ -158,6 +166,7 @@ import { WorkloadAuthorizationBoundaryV2Adapter } from './infrastructure/boundar
           identifiers,
           privilegedEligibility,
           sellerOwnershipResolver,
+          customerOwnershipResolver,
         );
       },
     },

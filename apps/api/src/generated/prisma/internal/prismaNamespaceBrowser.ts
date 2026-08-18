@@ -114,7 +114,13 @@ export const ModelName = {
   StockPool: 'StockPool',
   InventoryMovementRecord: 'InventoryMovementRecord',
   InventoryAuditRecord: 'InventoryAuditRecord',
-  InventoryConfigRecord: 'InventoryConfigRecord'
+  InventoryConfigRecord: 'InventoryConfigRecord',
+  CustomerProfile: 'CustomerProfile',
+  CustomerStateTransition: 'CustomerStateTransition',
+  CustomerAddress: 'CustomerAddress',
+  CustomerBusinessProfile: 'CustomerBusinessProfile',
+  CustomerPreference: 'CustomerPreference',
+  CustomerAuditRecord: 'CustomerAuditRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1248,6 +1254,105 @@ export const InventoryConfigRecordScalarFieldEnum = {
 } as const
 
 export type InventoryConfigRecordScalarFieldEnum = (typeof InventoryConfigRecordScalarFieldEnum)[keyof typeof InventoryConfigRecordScalarFieldEnum]
+
+
+export const CustomerProfileScalarFieldEnum = {
+  customerProfileId: 'customerProfileId',
+  identityId: 'identityId',
+  state: 'state',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  suspendedAt: 'suspendedAt',
+  closedAt: 'closedAt',
+  correlationId: 'correlationId'
+} as const
+
+export type CustomerProfileScalarFieldEnum = (typeof CustomerProfileScalarFieldEnum)[keyof typeof CustomerProfileScalarFieldEnum]
+
+
+export const CustomerStateTransitionScalarFieldEnum = {
+  transitionId: 'transitionId',
+  customerProfileId: 'customerProfileId',
+  fromState: 'fromState',
+  toState: 'toState',
+  stateVersion: 'stateVersion',
+  actorIdentityId: 'actorIdentityId',
+  actorKind: 'actorKind',
+  reasonReference: 'reasonReference',
+  correlationId: 'correlationId',
+  causationId: 'causationId',
+  sourceReference: 'sourceReference',
+  transitionedAt: 'transitionedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerStateTransitionScalarFieldEnum = (typeof CustomerStateTransitionScalarFieldEnum)[keyof typeof CustomerStateTransitionScalarFieldEnum]
+
+
+export const CustomerAddressScalarFieldEnum = {
+  addressId: 'addressId',
+  customerProfileId: 'customerProfileId',
+  recipientName: 'recipientName',
+  line1: 'line1',
+  line2: 'line2',
+  city: 'city',
+  region: 'region',
+  postalCode: 'postalCode',
+  countryCode: 'countryCode',
+  phone: 'phone',
+  roles: 'roles',
+  isDefaultShipping: 'isDefaultShipping',
+  isDefaultBilling: 'isDefaultBilling',
+  state: 'state',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  removedAt: 'removedAt'
+} as const
+
+export type CustomerAddressScalarFieldEnum = (typeof CustomerAddressScalarFieldEnum)[keyof typeof CustomerAddressScalarFieldEnum]
+
+
+export const CustomerBusinessProfileScalarFieldEnum = {
+  customerBusinessProfileId: 'customerBusinessProfileId',
+  customerProfileId: 'customerProfileId',
+  companyName: 'companyName',
+  registrationLookupDigest: 'registrationLookupDigest',
+  businessType: 'businessType',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CustomerBusinessProfileScalarFieldEnum = (typeof CustomerBusinessProfileScalarFieldEnum)[keyof typeof CustomerBusinessProfileScalarFieldEnum]
+
+
+export const CustomerPreferenceScalarFieldEnum = {
+  preferenceId: 'preferenceId',
+  customerProfileId: 'customerProfileId',
+  preferenceKey: 'preferenceKey',
+  preferenceValue: 'preferenceValue',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CustomerPreferenceScalarFieldEnum = (typeof CustomerPreferenceScalarFieldEnum)[keyof typeof CustomerPreferenceScalarFieldEnum]
+
+
+export const CustomerAuditRecordScalarFieldEnum = {
+  auditEventId: 'auditEventId',
+  customerProfileId: 'customerProfileId',
+  eventType: 'eventType',
+  actorIdentityId: 'actorIdentityId',
+  correlationId: 'correlationId',
+  evidenceDigest: 'evidenceDigest',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerAuditRecordScalarFieldEnum = (typeof CustomerAuditRecordScalarFieldEnum)[keyof typeof CustomerAuditRecordScalarFieldEnum]
 
 
 export const SortOrder = {

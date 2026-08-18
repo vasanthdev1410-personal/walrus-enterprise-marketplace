@@ -56,6 +56,18 @@ export class AuthorizationDecisionEngine {
     return this.permissionCatalog.isOrganizationScoped(permissionId);
   }
 
+  /**
+   * WEMP-M06-AUTHZ-001 §4 (D-07, Module 02 owner sign-off 2026-08-17). True
+   * when the permission is customer-identity-scoped (the approved CUSTOMER
+   * self-service set, fourth ownership-resolver scope): such permissions are
+   * additionally gated on the caller's Identity owning the target customer
+   * profile, resolved by the application layer through the customer
+   * ownership resolver before the engine runs.
+   */
+  public isCustomerIdentityScoped(permissionId: string): boolean {
+    return this.permissionCatalog.isCustomerIdentityScoped(permissionId);
+  }
+
   public evaluate(
     request: AuthorizationRequest,
     assignments: readonly IdentityRoleAssignment[],

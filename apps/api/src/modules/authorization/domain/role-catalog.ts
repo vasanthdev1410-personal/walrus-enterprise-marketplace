@@ -103,6 +103,37 @@ const PRODUCT_ADMIN_PERMISSIONS = [
  */
 const INVENTORY_ADMIN_PERMISSIONS = ['inventory.adjust.admin', 'inventory.audit.view'] as const;
 
+/**
+ * WEMP-M06-AUTHZ-001 §2.1 (approved D-07, Module 02 owner sign-off RECORDED
+ * 2026-08-17). The CUSTOMER self-service permissions granted to the CUSTOMER
+ * role. All are customer-identity-scoped through the approved fourth
+ * ownership resolver (customer identity scope) — the caller's own Identity
+ * must own the target customer profile.
+ */
+const CUSTOMER_PERMISSIONS = [
+  'customer.profile.read',
+  'customer.profile.update',
+  'customer.address.read',
+  'customer.address.manage',
+  'customer.business.read',
+  'customer.business.manage',
+  'customer.preference.read',
+  'customer.preference.manage',
+] as const;
+
+/**
+ * WEMP-M06-AUTHZ-001 §2.2 (approved D-07, Module 02 owner sign-off RECORDED
+ * 2026-08-17). The customer administrative permissions granted to ADMIN and
+ * SUPER_ADMIN exactly as approved — no override, no hidden bypass (D-07
+ * no-override precedent). Never customer-identity-scoped and never granted
+ * to the CUSTOMER role.
+ */
+const CUSTOMER_ADMIN_PERMISSIONS = [
+  'customer.read',
+  'customer.lifecycle.manage',
+  'customer.audit.view',
+] as const;
+
 const SUPER_ADMIN_PERMISSIONS = [
   'recovery.approval.decide',
   'identity.state.change',
@@ -115,6 +146,7 @@ const SUPER_ADMIN_PERMISSIONS = [
   ...SELLER_ADMIN_PERMISSIONS,
   ...PRODUCT_ADMIN_PERMISSIONS,
   ...INVENTORY_ADMIN_PERMISSIONS,
+  ...CUSTOMER_ADMIN_PERMISSIONS,
 ] as const;
 
 const ADMIN_PERMISSIONS = [
@@ -127,6 +159,7 @@ const ADMIN_PERMISSIONS = [
   ...SELLER_ADMIN_PERMISSIONS,
   ...PRODUCT_ADMIN_PERMISSIONS,
   ...INVENTORY_ADMIN_PERMISSIONS,
+  ...CUSTOMER_ADMIN_PERMISSIONS,
 ] as const;
 
 const SEEDED_ROLES: readonly Role[] = Object.freeze([
@@ -161,7 +194,7 @@ const SEEDED_ROLES: readonly Role[] = Object.freeze([
     roleId: new UuidV7(ROLE_IDS.CUSTOMER),
     roleName: 'CUSTOMER',
     state: 'ACTIVE',
-    grantedPermissionIds: [],
+    grantedPermissionIds: [...CUSTOMER_PERMISSIONS],
     aggregateVersion: new AggregateVersion(1),
     createdAt: SEEDED_AT,
     updatedAt: SEEDED_AT,

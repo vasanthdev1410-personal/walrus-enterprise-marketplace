@@ -16,6 +16,17 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'catalog.attribute.manage',
       'catalog.category.manage',
       'catalog.category.read',
+      'customer.address.manage',
+      'customer.address.read',
+      'customer.audit.view',
+      'customer.business.manage',
+      'customer.business.read',
+      'customer.lifecycle.manage',
+      'customer.preference.manage',
+      'customer.preference.read',
+      'customer.profile.read',
+      'customer.profile.update',
+      'customer.read',
       'identity.classification.change',
       'identity.privileged.provision',
       'identity.state.change',
@@ -117,6 +128,51 @@ describe('PermissionCatalog (M02 domain core)', () => {
     expect(catalog.isOrganizationScoped('catalog.category.read')).toBe(false);
     expect(catalog.isOrganizationScoped('recovery.approval.decide')).toBe(false);
     expect(catalog.isOrganizationScoped('orders.export')).toBe(false);
+    // WEMP-M06-AUTHZ-001 §2.1 (D-07, sign-off 2026-08-17): the CUSTOMER
+    // self-service set is customer-identity-scoped, NOT organization-scoped —
+    // customers hold no seller association.
+    for (const id of [
+      'customer.profile.read',
+      'customer.profile.update',
+      'customer.address.read',
+      'customer.address.manage',
+      'customer.business.read',
+      'customer.business.manage',
+      'customer.preference.read',
+      'customer.preference.manage',
+    ]) {
+      expect(catalog.isOrganizationScoped(id)).toBe(false);
+    }
+  });
+
+  it('marks exactly the approved CUSTOMER self-service set as customer-identity-scoped (WEMP-M06-AUTHZ-001 §4)', () => {
+    const catalog = new PermissionCatalog();
+
+    const customerScoped = catalog
+      .all()
+      .filter((permission) => catalog.isCustomerIdentityScoped(permission.properties.permissionId))
+      .map((permission) => permission.properties.permissionId)
+      .sort();
+    expect(customerScoped).toEqual([
+      'customer.address.manage',
+      'customer.address.read',
+      'customer.business.manage',
+      'customer.business.read',
+      'customer.preference.manage',
+      'customer.preference.read',
+      'customer.profile.read',
+      'customer.profile.update',
+    ]);
+    // The administrative customer permissions are never customer-identity-
+    // scoped — admins evaluate without a customer-identity scope.
+    for (const id of ['customer.read', 'customer.lifecycle.manage', 'customer.audit.view']) {
+      expect(catalog.isCustomerIdentityScoped(id)).toBe(false);
+    }
+    // No seller/product/inventory identifier is customer-identity-scoped.
+    expect(catalog.isCustomerIdentityScoped('seller.profile.read')).toBe(false);
+    expect(catalog.isCustomerIdentityScoped('inventory.read')).toBe(false);
+    expect(catalog.isCustomerIdentityScoped('product.read')).toBe(false);
+    expect(catalog.isCustomerIdentityScoped('recovery.approval.decide')).toBe(false);
   });
 
   it('finds a seeded permission by immutable identifier', () => {

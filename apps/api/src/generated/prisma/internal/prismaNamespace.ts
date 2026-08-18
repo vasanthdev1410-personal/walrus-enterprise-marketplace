@@ -460,7 +460,13 @@ export const ModelName = {
   StockPool: 'StockPool',
   InventoryMovementRecord: 'InventoryMovementRecord',
   InventoryAuditRecord: 'InventoryAuditRecord',
-  InventoryConfigRecord: 'InventoryConfigRecord'
+  InventoryConfigRecord: 'InventoryConfigRecord',
+  CustomerProfile: 'CustomerProfile',
+  CustomerStateTransition: 'CustomerStateTransition',
+  CustomerAddress: 'CustomerAddress',
+  CustomerBusinessProfile: 'CustomerBusinessProfile',
+  CustomerPreference: 'CustomerPreference',
+  CustomerAuditRecord: 'CustomerAuditRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -476,7 +482,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "apiIdempotencyRecord" | "identity" | "identityIdentifier" | "credential" | "credentialHistoryRecord" | "passwordHistoryRecord" | "authenticationSecurityClassificationAssignment" | "mfaEnrollment" | "mfaFactor" | "recoveryCodeSet" | "recoveryCodeRecord" | "trustedDevice" | "identityStateTransition" | "session" | "refreshTokenFamily" | "refreshTokenRecord" | "verificationChallenge" | "verificationAttempt" | "otpEvidenceRecord" | "recoveryRequest" | "recoveryEvidenceRecord" | "recoveryApprovalRecord" | "recoveryAttempt" | "recoveryStateTransition" | "recoveryNotificationRecord" | "nonProductionRateLimitRecord" | "basicAuditEventRecord" | "identityRoleAssignment" | "authorizationDecisionRecord" | "trustedWorkloadReplayRecord" | "authorizationApprovalRecord" | "provisioningAuthorityRecord" | "bootstrapControlRecord" | "privilegedActivationSaga" | "identityReadinessAttestation" | "identityReadinessInbox" | "identityReadinessOutbox" | "privilegedEligibilityInvalidationOutbox" | "authorizationAuditParticipant" | "privilegedAccessEligibilityRecord" | "sellerProfile" | "sellerOrganization" | "sellerIdentityAssociation" | "sellerBusinessVerification" | "sellerVerificationEvidence" | "sellerWarehouse" | "sellerAgreement" | "sellerStateTransition" | "sellerBusinessAuditRecord" | "sellerEvidenceLegalHold" | "product" | "productVariant" | "productSku" | "productCategory" | "productAttributeDefinition" | "productAttributeValue" | "productMedia" | "productStateTransition" | "productAuditRecord" | "productPriceHistory" | "stockPool" | "inventoryMovementRecord" | "inventoryAuditRecord" | "inventoryConfigRecord"
+    modelProps: "apiIdempotencyRecord" | "identity" | "identityIdentifier" | "credential" | "credentialHistoryRecord" | "passwordHistoryRecord" | "authenticationSecurityClassificationAssignment" | "mfaEnrollment" | "mfaFactor" | "recoveryCodeSet" | "recoveryCodeRecord" | "trustedDevice" | "identityStateTransition" | "session" | "refreshTokenFamily" | "refreshTokenRecord" | "verificationChallenge" | "verificationAttempt" | "otpEvidenceRecord" | "recoveryRequest" | "recoveryEvidenceRecord" | "recoveryApprovalRecord" | "recoveryAttempt" | "recoveryStateTransition" | "recoveryNotificationRecord" | "nonProductionRateLimitRecord" | "basicAuditEventRecord" | "identityRoleAssignment" | "authorizationDecisionRecord" | "trustedWorkloadReplayRecord" | "authorizationApprovalRecord" | "provisioningAuthorityRecord" | "bootstrapControlRecord" | "privilegedActivationSaga" | "identityReadinessAttestation" | "identityReadinessInbox" | "identityReadinessOutbox" | "privilegedEligibilityInvalidationOutbox" | "authorizationAuditParticipant" | "privilegedAccessEligibilityRecord" | "sellerProfile" | "sellerOrganization" | "sellerIdentityAssociation" | "sellerBusinessVerification" | "sellerVerificationEvidence" | "sellerWarehouse" | "sellerAgreement" | "sellerStateTransition" | "sellerBusinessAuditRecord" | "sellerEvidenceLegalHold" | "product" | "productVariant" | "productSku" | "productCategory" | "productAttributeDefinition" | "productAttributeValue" | "productMedia" | "productStateTransition" | "productAuditRecord" | "productPriceHistory" | "stockPool" | "inventoryMovementRecord" | "inventoryAuditRecord" | "inventoryConfigRecord" | "customerProfile" | "customerStateTransition" | "customerAddress" | "customerBusinessProfile" | "customerPreference" | "customerAuditRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5216,6 +5222,450 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CustomerProfile: {
+      payload: Prisma.$CustomerProfilePayload<ExtArgs>
+      fields: Prisma.CustomerProfileFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerProfileFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerProfileFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerProfileFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerProfileFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload>
+        }
+        findMany: {
+          args: Prisma.CustomerProfileFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload>[]
+        }
+        create: {
+          args: Prisma.CustomerProfileCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload>
+        }
+        createMany: {
+          args: Prisma.CustomerProfileCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerProfileCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerProfileDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload>
+        }
+        update: {
+          args: Prisma.CustomerProfileUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerProfileDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerProfileUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerProfileUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerProfileUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerProfilePayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerProfileAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerProfile>
+        }
+        groupBy: {
+          args: Prisma.CustomerProfileGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerProfileGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerProfileCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerProfileCountAggregateOutputType> | number
+        }
+      }
+    }
+    CustomerStateTransition: {
+      payload: Prisma.$CustomerStateTransitionPayload<ExtArgs>
+      fields: Prisma.CustomerStateTransitionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerStateTransitionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerStateTransitionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerStateTransitionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerStateTransitionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload>
+        }
+        findMany: {
+          args: Prisma.CustomerStateTransitionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload>[]
+        }
+        create: {
+          args: Prisma.CustomerStateTransitionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload>
+        }
+        createMany: {
+          args: Prisma.CustomerStateTransitionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerStateTransitionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerStateTransitionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload>
+        }
+        update: {
+          args: Prisma.CustomerStateTransitionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerStateTransitionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerStateTransitionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerStateTransitionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerStateTransitionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerStateTransitionPayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerStateTransitionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerStateTransition>
+        }
+        groupBy: {
+          args: Prisma.CustomerStateTransitionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerStateTransitionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerStateTransitionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerStateTransitionCountAggregateOutputType> | number
+        }
+      }
+    }
+    CustomerAddress: {
+      payload: Prisma.$CustomerAddressPayload<ExtArgs>
+      fields: Prisma.CustomerAddressFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerAddressFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerAddressFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerAddressFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerAddressFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload>
+        }
+        findMany: {
+          args: Prisma.CustomerAddressFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload>[]
+        }
+        create: {
+          args: Prisma.CustomerAddressCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload>
+        }
+        createMany: {
+          args: Prisma.CustomerAddressCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerAddressCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerAddressDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload>
+        }
+        update: {
+          args: Prisma.CustomerAddressUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerAddressDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerAddressUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerAddressUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerAddressUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAddressPayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerAddressAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerAddress>
+        }
+        groupBy: {
+          args: Prisma.CustomerAddressGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerAddressGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerAddressCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerAddressCountAggregateOutputType> | number
+        }
+      }
+    }
+    CustomerBusinessProfile: {
+      payload: Prisma.$CustomerBusinessProfilePayload<ExtArgs>
+      fields: Prisma.CustomerBusinessProfileFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerBusinessProfileFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerBusinessProfileFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerBusinessProfileFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerBusinessProfileFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload>
+        }
+        findMany: {
+          args: Prisma.CustomerBusinessProfileFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload>[]
+        }
+        create: {
+          args: Prisma.CustomerBusinessProfileCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload>
+        }
+        createMany: {
+          args: Prisma.CustomerBusinessProfileCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerBusinessProfileCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerBusinessProfileDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload>
+        }
+        update: {
+          args: Prisma.CustomerBusinessProfileUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerBusinessProfileDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerBusinessProfileUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerBusinessProfileUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerBusinessProfileUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerBusinessProfilePayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerBusinessProfileAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerBusinessProfile>
+        }
+        groupBy: {
+          args: Prisma.CustomerBusinessProfileGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerBusinessProfileGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerBusinessProfileCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerBusinessProfileCountAggregateOutputType> | number
+        }
+      }
+    }
+    CustomerPreference: {
+      payload: Prisma.$CustomerPreferencePayload<ExtArgs>
+      fields: Prisma.CustomerPreferenceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerPreferenceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerPreferenceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerPreferenceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerPreferenceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload>
+        }
+        findMany: {
+          args: Prisma.CustomerPreferenceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload>[]
+        }
+        create: {
+          args: Prisma.CustomerPreferenceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload>
+        }
+        createMany: {
+          args: Prisma.CustomerPreferenceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerPreferenceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerPreferenceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload>
+        }
+        update: {
+          args: Prisma.CustomerPreferenceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerPreferenceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerPreferenceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerPreferenceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerPreferenceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPreferencePayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerPreferenceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerPreference>
+        }
+        groupBy: {
+          args: Prisma.CustomerPreferenceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerPreferenceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerPreferenceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerPreferenceCountAggregateOutputType> | number
+        }
+      }
+    }
+    CustomerAuditRecord: {
+      payload: Prisma.$CustomerAuditRecordPayload<ExtArgs>
+      fields: Prisma.CustomerAuditRecordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerAuditRecordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerAuditRecordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerAuditRecordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerAuditRecordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload>
+        }
+        findMany: {
+          args: Prisma.CustomerAuditRecordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload>[]
+        }
+        create: {
+          args: Prisma.CustomerAuditRecordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload>
+        }
+        createMany: {
+          args: Prisma.CustomerAuditRecordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerAuditRecordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerAuditRecordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload>
+        }
+        update: {
+          args: Prisma.CustomerAuditRecordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerAuditRecordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerAuditRecordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerAuditRecordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerAuditRecordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerAuditRecordPayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerAuditRecordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerAuditRecord>
+        }
+        groupBy: {
+          args: Prisma.CustomerAuditRecordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerAuditRecordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerAuditRecordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerAuditRecordCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -6372,6 +6822,105 @@ export const InventoryConfigRecordScalarFieldEnum = {
 export type InventoryConfigRecordScalarFieldEnum = (typeof InventoryConfigRecordScalarFieldEnum)[keyof typeof InventoryConfigRecordScalarFieldEnum]
 
 
+export const CustomerProfileScalarFieldEnum = {
+  customerProfileId: 'customerProfileId',
+  identityId: 'identityId',
+  state: 'state',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  suspendedAt: 'suspendedAt',
+  closedAt: 'closedAt',
+  correlationId: 'correlationId'
+} as const
+
+export type CustomerProfileScalarFieldEnum = (typeof CustomerProfileScalarFieldEnum)[keyof typeof CustomerProfileScalarFieldEnum]
+
+
+export const CustomerStateTransitionScalarFieldEnum = {
+  transitionId: 'transitionId',
+  customerProfileId: 'customerProfileId',
+  fromState: 'fromState',
+  toState: 'toState',
+  stateVersion: 'stateVersion',
+  actorIdentityId: 'actorIdentityId',
+  actorKind: 'actorKind',
+  reasonReference: 'reasonReference',
+  correlationId: 'correlationId',
+  causationId: 'causationId',
+  sourceReference: 'sourceReference',
+  transitionedAt: 'transitionedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerStateTransitionScalarFieldEnum = (typeof CustomerStateTransitionScalarFieldEnum)[keyof typeof CustomerStateTransitionScalarFieldEnum]
+
+
+export const CustomerAddressScalarFieldEnum = {
+  addressId: 'addressId',
+  customerProfileId: 'customerProfileId',
+  recipientName: 'recipientName',
+  line1: 'line1',
+  line2: 'line2',
+  city: 'city',
+  region: 'region',
+  postalCode: 'postalCode',
+  countryCode: 'countryCode',
+  phone: 'phone',
+  roles: 'roles',
+  isDefaultShipping: 'isDefaultShipping',
+  isDefaultBilling: 'isDefaultBilling',
+  state: 'state',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  removedAt: 'removedAt'
+} as const
+
+export type CustomerAddressScalarFieldEnum = (typeof CustomerAddressScalarFieldEnum)[keyof typeof CustomerAddressScalarFieldEnum]
+
+
+export const CustomerBusinessProfileScalarFieldEnum = {
+  customerBusinessProfileId: 'customerBusinessProfileId',
+  customerProfileId: 'customerProfileId',
+  companyName: 'companyName',
+  registrationLookupDigest: 'registrationLookupDigest',
+  businessType: 'businessType',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CustomerBusinessProfileScalarFieldEnum = (typeof CustomerBusinessProfileScalarFieldEnum)[keyof typeof CustomerBusinessProfileScalarFieldEnum]
+
+
+export const CustomerPreferenceScalarFieldEnum = {
+  preferenceId: 'preferenceId',
+  customerProfileId: 'customerProfileId',
+  preferenceKey: 'preferenceKey',
+  preferenceValue: 'preferenceValue',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CustomerPreferenceScalarFieldEnum = (typeof CustomerPreferenceScalarFieldEnum)[keyof typeof CustomerPreferenceScalarFieldEnum]
+
+
+export const CustomerAuditRecordScalarFieldEnum = {
+  auditEventId: 'auditEventId',
+  customerProfileId: 'customerProfileId',
+  eventType: 'eventType',
+  actorIdentityId: 'actorIdentityId',
+  correlationId: 'correlationId',
+  evidenceDigest: 'evidenceDigest',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerAuditRecordScalarFieldEnum = (typeof CustomerAuditRecordScalarFieldEnum)[keyof typeof CustomerAuditRecordScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -7362,6 +7911,62 @@ export type ListEnumInventoryConfigStateFieldRefInput<$PrismaModel> = FieldRefIn
 
 
 /**
+ * Reference to a field of type 'CustomerState'
+ */
+export type EnumCustomerStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerState'>
+    
+
+
+/**
+ * Reference to a field of type 'CustomerState[]'
+ */
+export type ListEnumCustomerStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerState[]'>
+    
+
+
+/**
+ * Reference to a field of type 'CustomerAddressRole[]'
+ */
+export type ListEnumCustomerAddressRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerAddressRole[]'>
+    
+
+
+/**
+ * Reference to a field of type 'CustomerAddressRole'
+ */
+export type EnumCustomerAddressRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerAddressRole'>
+    
+
+
+/**
+ * Reference to a field of type 'CustomerAddressState'
+ */
+export type EnumCustomerAddressStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerAddressState'>
+    
+
+
+/**
+ * Reference to a field of type 'CustomerAddressState[]'
+ */
+export type ListEnumCustomerAddressStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerAddressState[]'>
+    
+
+
+/**
+ * Reference to a field of type 'CustomerPreferenceKey'
+ */
+export type EnumCustomerPreferenceKeyFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerPreferenceKey'>
+    
+
+
+/**
+ * Reference to a field of type 'CustomerPreferenceKey[]'
+ */
+export type ListEnumCustomerPreferenceKeyFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CustomerPreferenceKey[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -7589,6 +8194,12 @@ export type GlobalOmitConfig = {
   inventoryMovementRecord?: Prisma.InventoryMovementRecordOmit
   inventoryAuditRecord?: Prisma.InventoryAuditRecordOmit
   inventoryConfigRecord?: Prisma.InventoryConfigRecordOmit
+  customerProfile?: Prisma.CustomerProfileOmit
+  customerStateTransition?: Prisma.CustomerStateTransitionOmit
+  customerAddress?: Prisma.CustomerAddressOmit
+  customerBusinessProfile?: Prisma.CustomerBusinessProfileOmit
+  customerPreference?: Prisma.CustomerPreferenceOmit
+  customerAuditRecord?: Prisma.CustomerAuditRecordOmit
 }
 
 /* Types for Logging */

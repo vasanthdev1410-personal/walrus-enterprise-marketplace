@@ -27,7 +27,7 @@ describe('Module 01 Limited Phase 1 persistence model', () => {
   it('contains the approved Module 01, Module 02 and Module 03 persistence records', () => {
     const models = [...schema.matchAll(/^model\s+(\w+)\s+\{/gm)].map((match) => match[1]);
 
-    expect(models).toHaveLength(64);
+    expect(models).toHaveLength(70);
     expect(models).toEqual(
       expect.arrayContaining([
         'Identity',
@@ -82,6 +82,13 @@ describe('Module 01 Limited Phase 1 persistence model', () => {
         'InventoryMovementRecord',
         'InventoryAuditRecord',
         'InventoryConfigRecord',
+        // Approved Module 06 (customer management, WEMP-M06-SPEC-001 §13).
+        'CustomerProfile',
+        'CustomerStateTransition',
+        'CustomerAddress',
+        'CustomerBusinessProfile',
+        'CustomerPreference',
+        'CustomerAuditRecord',
       ]),
     );
   });
@@ -94,7 +101,6 @@ describe('Module 01 Limited Phase 1 persistence model', () => {
       'RecoveryAuditRecord',
       'PrivacyRequest',
       'ConsentRecord',
-      'CustomerProfile',
       'Role',
       'Permission',
     ];

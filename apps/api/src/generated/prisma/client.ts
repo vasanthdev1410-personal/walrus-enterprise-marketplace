@@ -359,3 +359,33 @@ export type InventoryAuditRecord = Prisma.InventoryAuditRecordModel
  * 
  */
 export type InventoryConfigRecord = Prisma.InventoryConfigRecordModel
+/**
+ * Model CustomerProfile
+ * 
+ */
+export type CustomerProfile = Prisma.CustomerProfileModel
+/**
+ * Model CustomerStateTransition
+ * 
+ */
+export type CustomerStateTransition = Prisma.CustomerStateTransitionModel
+/**
+ * Model CustomerAddress
+ * 
+ */
+export type CustomerAddress = Prisma.CustomerAddressModel
+/**
+ * Model CustomerBusinessProfile
+ * 
+ */
+export type CustomerBusinessProfile = Prisma.CustomerBusinessProfileModel
+/**
+ * Model CustomerPreference
+ * 
+ */
+export type CustomerPreference = Prisma.CustomerPreferenceModel
+/**
+ * Model CustomerAuditRecord
+ * 
+ */
+export type CustomerAuditRecord = Prisma.CustomerAuditRecordModel

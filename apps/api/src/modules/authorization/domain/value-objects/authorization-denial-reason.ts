@@ -19,6 +19,10 @@ export const AUTHORIZATION_DENIAL_REASONS = [
   'SCOPE_RESOURCE_MISSING',
   'SCOPE_NOT_ASSOCIATED',
   'SCOPE_SELLER_TERMINAL',
+  // WEMP-M06-AUTHZ-001 §4 (D-07, Module 02 owner sign-off 2026-08-17):
+  // customer-identity scope failures — the target customer profile is
+  // CLOSED (terminal), so the self-service decision denies.
+  'SCOPE_CUSTOMER_TERMINAL',
 ] as const;
 
 export type AuthorizationDenialReason = (typeof AUTHORIZATION_DENIAL_REASONS)[number];

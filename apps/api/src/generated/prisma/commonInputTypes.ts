@@ -1442,6 +1442,57 @@ export type EnumInventoryConfigStateWithAggregatesFilter<$PrismaModel = never> =
   _max?: Prisma.NestedEnumInventoryConfigStateFilter<$PrismaModel>
 }
 
+export type EnumCustomerStateFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerState | Prisma.EnumCustomerStateFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerState[] | Prisma.ListEnumCustomerStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerState[] | Prisma.ListEnumCustomerStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerStateFilter<$PrismaModel> | $Enums.CustomerState
+}
+
+export type EnumCustomerStateWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerState | Prisma.EnumCustomerStateFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerState[] | Prisma.ListEnumCustomerStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerState[] | Prisma.ListEnumCustomerStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerStateWithAggregatesFilter<$PrismaModel> | $Enums.CustomerState
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCustomerStateFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCustomerStateFilter<$PrismaModel>
+}
+
+export type EnumCustomerAddressStateFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerAddressState | Prisma.EnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerAddressState[] | Prisma.ListEnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerAddressState[] | Prisma.ListEnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerAddressStateFilter<$PrismaModel> | $Enums.CustomerAddressState
+}
+
+export type EnumCustomerAddressStateWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerAddressState | Prisma.EnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerAddressState[] | Prisma.ListEnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerAddressState[] | Prisma.ListEnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerAddressStateWithAggregatesFilter<$PrismaModel> | $Enums.CustomerAddressState
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCustomerAddressStateFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCustomerAddressStateFilter<$PrismaModel>
+}
+
+export type EnumCustomerPreferenceKeyFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerPreferenceKey | Prisma.EnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerPreferenceKey[] | Prisma.ListEnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerPreferenceKey[] | Prisma.ListEnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerPreferenceKeyFilter<$PrismaModel> | $Enums.CustomerPreferenceKey
+}
+
+export type EnumCustomerPreferenceKeyWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerPreferenceKey | Prisma.EnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerPreferenceKey[] | Prisma.ListEnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerPreferenceKey[] | Prisma.ListEnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerPreferenceKeyWithAggregatesFilter<$PrismaModel> | $Enums.CustomerPreferenceKey
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCustomerPreferenceKeyFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCustomerPreferenceKeyFilter<$PrismaModel>
+}
+
 export type NestedUuidFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -2877,6 +2928,57 @@ export type NestedEnumInventoryConfigStateWithAggregatesFilter<$PrismaModel = ne
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumInventoryConfigStateFilter<$PrismaModel>
   _max?: Prisma.NestedEnumInventoryConfigStateFilter<$PrismaModel>
+}
+
+export type NestedEnumCustomerStateFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerState | Prisma.EnumCustomerStateFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerState[] | Prisma.ListEnumCustomerStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerState[] | Prisma.ListEnumCustomerStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerStateFilter<$PrismaModel> | $Enums.CustomerState
+}
+
+export type NestedEnumCustomerStateWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerState | Prisma.EnumCustomerStateFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerState[] | Prisma.ListEnumCustomerStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerState[] | Prisma.ListEnumCustomerStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerStateWithAggregatesFilter<$PrismaModel> | $Enums.CustomerState
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCustomerStateFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCustomerStateFilter<$PrismaModel>
+}
+
+export type NestedEnumCustomerAddressStateFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerAddressState | Prisma.EnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerAddressState[] | Prisma.ListEnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerAddressState[] | Prisma.ListEnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerAddressStateFilter<$PrismaModel> | $Enums.CustomerAddressState
+}
+
+export type NestedEnumCustomerAddressStateWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerAddressState | Prisma.EnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerAddressState[] | Prisma.ListEnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerAddressState[] | Prisma.ListEnumCustomerAddressStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerAddressStateWithAggregatesFilter<$PrismaModel> | $Enums.CustomerAddressState
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCustomerAddressStateFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCustomerAddressStateFilter<$PrismaModel>
+}
+
+export type NestedEnumCustomerPreferenceKeyFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerPreferenceKey | Prisma.EnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerPreferenceKey[] | Prisma.ListEnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerPreferenceKey[] | Prisma.ListEnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerPreferenceKeyFilter<$PrismaModel> | $Enums.CustomerPreferenceKey
+}
+
+export type NestedEnumCustomerPreferenceKeyWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CustomerPreferenceKey | Prisma.EnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  in?: $Enums.CustomerPreferenceKey[] | Prisma.ListEnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CustomerPreferenceKey[] | Prisma.ListEnumCustomerPreferenceKeyFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCustomerPreferenceKeyWithAggregatesFilter<$PrismaModel> | $Enums.CustomerPreferenceKey
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCustomerPreferenceKeyFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCustomerPreferenceKeyFilter<$PrismaModel>
 }
 
 

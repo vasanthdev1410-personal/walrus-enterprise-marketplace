@@ -12,6 +12,7 @@ import type { IdentityRoleAssignmentRepository } from '../../domain/repositories
 import { PermissionCatalog } from '../../domain/permission-catalog';
 import { RoleCatalog } from '../../domain/role-catalog';
 import type { SellerOwnershipResolverPort } from '../ports/seller-ownership-resolver.port';
+import type { CustomerOwnershipResolverPort } from '../ports/customer-ownership-resolver.port';
 import { AuthorizationApplicationService } from './authorization-application.service';
 
 const ACTOR = new UuidV7('0191310f-789a-7123-8123-000000000001');
@@ -55,6 +56,7 @@ function createFixture(
   roles?: RoleCatalog,
   identifiers: { next: () => UuidV7 } = { next: () => NEW_ASSIGNMENT_ID },
   resolver?: SellerOwnershipResolverPort,
+  customerResolver?: CustomerOwnershipResolverPort,
 ): AuthorizationFixture {
   const findById = jest.fn<Promise<unknown>, [unknown]>();
   const findByIdentityId = jest.fn<Promise<readonly unknown[]>, [unknown]>();
@@ -93,6 +95,7 @@ function createFixture(
     identifiers,
     { isEligible: jest.fn().mockResolvedValue(true) },
     resolver,
+    customerResolver,
   );
   return {
     service,
@@ -122,6 +125,38 @@ function scope(
     sellerState: 'ACTIVE',
     associationRole: 'OWNER',
     associationState: 'ACTIVE',
+    ...overrides,
+  } as never;
+}
+
+function customerAssignment(
+  overrides: Partial<IdentityRoleAssignment['properties']> = {},
+): IdentityRoleAssignment {
+  return new IdentityRoleAssignment({
+    assignmentId: ASSIGNMENT_ID,
+    identityId: TARGET,
+    roleName: 'CUSTOMER',
+    assignmentState: 'ACTIVE',
+    assignedByIdentityId: ACTOR,
+    assignedAt: NOW,
+    aggregateVersion: new AggregateVersion(1),
+    createdAt: NOW,
+    updatedAt: NOW,
+    ...overrides,
+  });
+}
+
+function customerScope(
+  overrides: Partial<{
+    customerProfileId: UuidV7;
+    identityId: UuidV7;
+    customerState: 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
+  }> = {},
+): never {
+  return {
+    customerProfileId: SELLER_PROFILE_ID,
+    identityId: TARGET,
+    customerState: 'ACTIVE',
     ...overrides,
   } as never;
 }
@@ -619,6 +654,198 @@ describe('AuthorizationApplicationService (M02)', () => {
 
       expect(decision.granted).toBe(true);
       expect(resolver.resolveSellerScope).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('authorize — customer identity scope (WEMP-M06-AUTHZ-001 §4, D-07)', () => {
+    const customerResolver: jest.Mocked<CustomerOwnershipResolverPort> = {
+      resolveCustomerScope: jest.fn(),
+    };
+
+    it('grants a customer-identity-scoped permission when the CUSTOMER role and identity ownership both pass', async () => {
+      const { service, findActiveByIdentityId, recordInsert } = createFixture(
+        undefined,
+        undefined,
+        undefined,
+        customerResolver,
+      );
+      findActiveByIdentityId.mockResolvedValue([customerAssignment()]);
+      customerResolver.resolveCustomerScope.mockResolvedValue(customerScope());
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'customer.profile.read',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(true);
+      const record = (recordInsert.mock.calls[0]?.[0] as { properties: Record<string, unknown> })
+        .properties;
+      expect(record).toMatchObject({
+        permissionId: 'customer.profile.read',
+        decisionOutcome: 'GRANTED',
+        resourceType: 'customer.profile',
+        resourceReference: SELLER_PROFILE_ID.value,
+      });
+    });
+
+    it('denies a CUSTOMER accessing another customer (SCOPE_NOT_ASSOCIATED, horizontal escalation)', async () => {
+      const { service, findActiveByIdentityId, recordInsert } = createFixture(
+        undefined,
+        undefined,
+        undefined,
+        customerResolver,
+      );
+      findActiveByIdentityId.mockResolvedValue([customerAssignment()]);
+      customerResolver.resolveCustomerScope.mockResolvedValue(null);
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'customer.profile.read',
+        resourceReference: new UuidV7('0191310f-789a-7123-8123-0000000000cd'),
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('SCOPE_NOT_ASSOCIATED');
+      const record = (recordInsert.mock.calls[0]?.[0] as { properties: Record<string, unknown> })
+        .properties;
+      expect(record).toMatchObject({
+        decisionOutcome: 'DENIED',
+        denialReason: 'SCOPE_NOT_ASSOCIATED',
+        resourceType: 'customer.profile',
+        resourceReference: '0191310f-789a-7123-8123-0000000000cd',
+      });
+    });
+
+    it('denies a missing resource reference (SCOPE_RESOURCE_MISSING)', async () => {
+      const { service, findActiveByIdentityId } = createFixture(
+        undefined,
+        undefined,
+        undefined,
+        customerResolver,
+      );
+      findActiveByIdentityId.mockResolvedValue([customerAssignment()]);
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'customer.profile.read',
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('SCOPE_RESOURCE_MISSING');
+    });
+
+    it('fails closed when the customer ownership resolver is unavailable (SCOPE_RESOLUTION_UNAVAILABLE)', async () => {
+      const { service, findActiveByIdentityId } = createFixture();
+      findActiveByIdentityId.mockResolvedValue([customerAssignment()]);
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'customer.profile.read',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('SCOPE_RESOLUTION_UNAVAILABLE');
+    });
+
+    it('denies when the customer profile is CLOSED (SCOPE_CUSTOMER_TERMINAL)', async () => {
+      const { service, findActiveByIdentityId } = createFixture(
+        undefined,
+        undefined,
+        undefined,
+        customerResolver,
+      );
+      findActiveByIdentityId.mockResolvedValue([customerAssignment()]);
+      customerResolver.resolveCustomerScope.mockResolvedValue(
+        customerScope({ customerState: 'CLOSED' }),
+      );
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'customer.profile.read',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('SCOPE_CUSTOMER_TERMINAL');
+    });
+
+    it('denies when the resolver fails (SCOPE_RESOLUTION_UNAVAILABLE, fail closed)', async () => {
+      const { service, findActiveByIdentityId } = createFixture(
+        undefined,
+        undefined,
+        undefined,
+        customerResolver,
+      );
+      findActiveByIdentityId.mockResolvedValue([customerAssignment()]);
+      customerResolver.resolveCustomerScope.mockRejectedValue(new Error('storage down'));
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'customer.profile.read',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('SCOPE_RESOLUTION_UNAVAILABLE');
+    });
+
+    it('denies a customer-identity-scoped permission when the role does not cover it even with valid ownership', async () => {
+      const { service, findActiveByIdentityId } = createFixture(
+        undefined,
+        undefined,
+        undefined,
+        customerResolver,
+      );
+      findActiveByIdentityId.mockResolvedValue([assignment({ roleName: 'SELLER' })]);
+      customerResolver.resolveCustomerScope.mockResolvedValue(customerScope());
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'customer.profile.read',
+        resourceReference: SELLER_PROFILE_ID,
+      });
+
+      expect(decision.granted).toBe(false);
+      expect(decision.properties.denialReason).toBe('PERMISSION_NOT_GRANTED');
+    });
+
+    it('does not apply the customer-identity gate to administrative customer permissions', async () => {
+      const { service, findActiveByIdentityId } = createFixture(
+        undefined,
+        undefined,
+        undefined,
+        customerResolver,
+      );
+      findActiveByIdentityId.mockResolvedValue([assignment({ roleName: 'ADMIN' })]);
+      // No resourceReference supplied and the resolver is never consulted.
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'customer.lifecycle.manage',
+      });
+
+      expect(decision.granted).toBe(true);
+      expect(customerResolver.resolveCustomerScope).not.toHaveBeenCalled();
+    });
+
+    it('grants an administrative customer permission to SUPER_ADMIN exactly as approved (no override needed)', async () => {
+      const { service, findActiveByIdentityId } = createFixture(
+        undefined,
+        undefined,
+        undefined,
+        customerResolver,
+      );
+      findActiveByIdentityId.mockResolvedValue([assignment({ roleName: 'SUPER_ADMIN' })]);
+
+      const decision = await service.authorize({
+        subjectIdentityId: TARGET,
+        permissionId: 'customer.audit.view',
+      });
+
+      expect(decision.granted).toBe(true);
+      expect(customerResolver.resolveCustomerScope).not.toHaveBeenCalled();
     });
   });
 

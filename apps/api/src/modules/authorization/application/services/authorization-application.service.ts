@@ -7,6 +7,7 @@ import type {
 import type { AuthorizationMutationPort } from '../ports/authorization-mutation.port';
 import type { PrivilegedEligibilityPort } from '../ports/privileged-eligibility.port';
 import type { SellerOwnershipResolverPort } from '../ports/seller-ownership-resolver.port';
+import type { CustomerOwnershipResolverPort } from '../ports/customer-ownership-resolver.port';
 import { OptimisticConcurrencyError } from '../../../identity-authentication/domain/shared/errors/optimistic-concurrency.error';
 import { AggregateVersion } from '../../../identity-authentication/domain/shared/value-objects/aggregate-version';
 import { UuidV7 } from '../../../identity-authentication/domain/shared/value-objects/uuid-v7';
@@ -125,10 +126,14 @@ export class AuthorizationApplicationService {
     @Inject(UUID_V7_GENERATOR) private readonly identifiers: UuidV7GenerationPort,
     private readonly privilegedEligibility?: PrivilegedEligibilityPort,
     private readonly sellerOwnershipResolver?: SellerOwnershipResolverPort,
+    private readonly customerOwnershipResolver?: CustomerOwnershipResolverPort,
   ) {}
 
   public async authorize(command: AuthorizeCommand): Promise<AuthorizationDecision> {
     const now = this.clock.now();
+    if (this.engine.isCustomerIdentityScoped(command.permissionId)) {
+      return this.authorizeCustomerIdentityScoped(command, now);
+    }
     if (this.engine.isOrganizationScoped(command.permissionId)) {
       return this.authorizeOrganizationScoped(command, now);
     }
@@ -419,9 +424,50 @@ export class AuthorizationApplicationService {
     return this.evaluateAndRecord(command, now);
   }
 
+  /**
+   * Customer-identity-scoped evaluation (WEMP-M06-AUTHZ-001 §4, D-07;
+   * Module 02 owner sign-off RECORDED 2026-08-17). The requested
+   * `customer.*` self-service permission is granted only when the ownership
+   * resolver confirms the caller's Identity owns the target customer
+   * profile (CustomerProfile.identityId match) and the profile is not in the
+   * terminal CLOSED state. Every failure mode denies with a distinct
+   * internal reason and is fully audited. Fail closed: a missing resolver, a
+   * missing resource reference, a resolution failure, or a terminal profile
+   * all deny. The audit record uses resourceType 'customer.profile'.
+   */
+  private async authorizeCustomerIdentityScoped(
+    command: AuthorizeCommand,
+    now: Date,
+  ): Promise<AuthorizationDecision> {
+    const resolver = this.customerOwnershipResolver;
+    if (resolver === undefined) {
+      return this.denyAndRecord(command, now, 'SCOPE_RESOLUTION_UNAVAILABLE', 'customer.profile');
+    }
+    if (command.resourceReference === undefined) {
+      return this.denyAndRecord(command, now, 'SCOPE_RESOURCE_MISSING', 'customer.profile');
+    }
+    let scope;
+    try {
+      scope = await resolver.resolveCustomerScope(
+        command.subjectIdentityId,
+        command.resourceReference,
+      );
+    } catch {
+      return this.denyAndRecord(command, now, 'SCOPE_RESOLUTION_UNAVAILABLE', 'customer.profile');
+    }
+    if (scope === null) {
+      return this.denyAndRecord(command, now, 'SCOPE_NOT_ASSOCIATED', 'customer.profile');
+    }
+    if (scope.customerState === 'CLOSED') {
+      return this.denyAndRecord(command, now, 'SCOPE_CUSTOMER_TERMINAL', 'customer.profile');
+    }
+    return this.evaluateAndRecord(command, now, 'customer.profile');
+  }
+
   private async evaluateAndRecord(
     command: AuthorizeCommand,
     now: Date,
+    resourceType = 'seller.profile',
   ): Promise<AuthorizationDecision> {
     const activeAssignments = await this.assignments.findActiveByIdentityId(
       command.subjectIdentityId,
@@ -468,7 +514,7 @@ export class AuthorizationApplicationService {
         ...(command.resourceReference === undefined
           ? {}
           : {
-              resourceType: 'seller.profile',
+              resourceType,
               resourceReference: command.resourceReference.value,
             }),
         ...(correlationId === undefined ? {} : { correlationId }),
@@ -483,6 +529,7 @@ export class AuthorizationApplicationService {
     command: AuthorizeCommand,
     now: Date,
     denialReason: AuthorizationDenialReason,
+    resourceType = 'seller.profile',
   ): Promise<AuthorizationDecision> {
     const decision = new AuthorizationDecision({
       outcome: 'DENIED',
@@ -509,7 +556,7 @@ export class AuthorizationApplicationService {
         ...(command.resourceReference === undefined
           ? {}
           : {
-              resourceType: 'seller.profile',
+              resourceType,
               resourceReference: command.resourceReference.value,
             }),
         ...(correlationId === undefined ? {} : { correlationId }),

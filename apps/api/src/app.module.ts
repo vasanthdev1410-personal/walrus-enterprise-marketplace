@@ -15,6 +15,7 @@ import { AuthorizationCoreModule } from './modules/authorization/authorization-c
 import { SellerManagementModule } from './modules/seller-management/seller-management.module';
 import { ProductCatalogModule } from './modules/product-catalog/product-catalog.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { CustomerModule } from './modules/customer/customer.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
     SellerManagementModule,
     ProductCatalogModule,
     InventoryModule,
+    CustomerModule,
   ],
   controllers: [HealthController],
   providers: [

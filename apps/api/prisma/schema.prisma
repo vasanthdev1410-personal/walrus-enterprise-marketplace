@@ -1715,3 +1715,136 @@ model InventoryConfigRecord {
   @@unique([configKey, state])
   @@map("inventory_config_records")
 }
+
+// ============================================================================
+// Module 06 — Customer Management (WEMP-M06-SPEC-001 §13, decisions D-01..D-15)
+// Additive only: no Module 00/01/02/03/04/05 table is modified. identity_id
+// and actor_identity_id are logical UUIDv7 references with NO cross-module
+// foreign keys (storage isolation, A-06). CustomerStateTransition and
+// CustomerAuditRecord are append-only (D-02/D-08); retention (D-15:
+// CUSTOMER_RECORD_RETENTION_DAYS = 2555) is enforced by the application-layer
+// retention processor (M06-M3), never by this schema.
+// ============================================================================
+
+enum CustomerState {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum CustomerAddressRole {
+  SHIPPING
+  BILLING
+}
+
+enum CustomerAddressState {
+  ACTIVE
+  REMOVED
+}
+
+enum CustomerPreferenceKey {
+  language
+  currency
+  locale
+}
+
+model CustomerProfile {
+  customerProfileId  String              @id @map("customer_profile_id") @db.Uuid
+  identityId         String              @map("identity_id") @db.Uuid
+  state              CustomerState       @map("state")
+  aggregateVersion   Int                 @map("aggregate_version")
+  createdAt          DateTime            @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime            @map("updated_at") @db.Timestamptz(6)
+  suspendedAt        DateTime?           @map("suspended_at") @db.Timestamptz(6)
+  closedAt           DateTime?           @map("closed_at") @db.Timestamptz(6)
+  correlationId      String?             @map("correlation_id") @db.Uuid
+
+  @@unique([identityId])
+  @@unique([customerProfileId, aggregateVersion])
+  @@map("customer_profiles")
+}
+
+model CustomerStateTransition {
+  transitionId      String        @id @map("transition_id") @db.Uuid
+  customerProfileId String        @map("customer_profile_id") @db.Uuid
+  fromState         CustomerState @map("from_state")
+  toState           CustomerState @map("to_state")
+  stateVersion      Int           @map("state_version")
+  actorIdentityId   String        @map("actor_identity_id") @db.Uuid
+  actorKind         String        @map("actor_kind") @db.Text
+  reasonReference   String        @map("reason_reference") @db.Text
+  correlationId     String?       @map("correlation_id") @db.Uuid
+  causationId       String?       @map("causation_id") @db.Uuid
+  sourceReference   String?       @map("source_reference") @db.Text
+  transitionedAt    DateTime      @map("transitioned_at") @db.Timestamptz(6)
+  createdAt         DateTime      @map("created_at") @db.Timestamptz(6)
+
+  @@unique([customerProfileId, stateVersion])
+  @@index([customerProfileId, transitionedAt(sort: Desc)])
+  @@map("customer_state_transitions")
+}
+
+model CustomerAddress {
+  addressId          String                @id @map("address_id") @db.Uuid
+  customerProfileId  String                @map("customer_profile_id") @db.Uuid
+  recipientName      String                @map("recipient_name") @db.Text
+  line1              String                @map("line1") @db.Text
+  line2              String?               @map("line2") @db.Text
+  city               String                @map("city") @db.Text
+  region             String?               @map("region") @db.Text
+  postalCode         String                @map("postal_code") @db.Text
+  countryCode        String                @map("country_code") @db.Text
+  phone              String?               @map("phone") @db.Text
+  roles              CustomerAddressRole[] @map("roles")
+  isDefaultShipping  Boolean               @map("is_default_shipping")
+  isDefaultBilling   Boolean               @map("is_default_billing")
+  state              CustomerAddressState  @map("state")
+  aggregateVersion   Int                   @map("aggregate_version")
+  createdAt          DateTime              @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime              @map("updated_at") @db.Timestamptz(6)
+  removedAt          DateTime?             @map("removed_at") @db.Timestamptz(6)
+
+  @@index([customerProfileId, state])
+  @@map("customer_addresses")
+}
+
+model CustomerBusinessProfile {
+  customerBusinessProfileId String   @id @map("customer_business_profile_id") @db.Uuid
+  customerProfileId         String   @map("customer_profile_id") @db.Uuid
+  companyName               String   @map("company_name") @db.Text
+  registrationLookupDigest  String?  @map("registration_lookup_digest") @db.Text
+  businessType              String?  @map("business_type") @db.Text
+  aggregateVersion          Int      @map("aggregate_version")
+  createdAt                 DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([customerProfileId])
+  @@map("customer_business_profiles")
+}
+
+model CustomerPreference {
+  preferenceId      String                @id @map("preference_id") @db.Uuid
+  customerProfileId String                @map("customer_profile_id") @db.Uuid
+  preferenceKey     CustomerPreferenceKey @map("preference_key")
+  preferenceValue   String                @map("preference_value") @db.Text
+  aggregateVersion  Int                   @map("aggregate_version")
+  createdAt         DateTime              @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime              @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([customerProfileId, preferenceKey])
+  @@map("customer_preferences")
+}
+
+model CustomerAuditRecord {
+  auditEventId      String   @id @map("audit_event_id") @db.Uuid
+  customerProfileId String   @map("customer_profile_id") @db.Uuid
+  eventType         String   @map("event_type") @db.Text
+  actorIdentityId   String   @map("actor_identity_id") @db.Uuid
+  correlationId     String?  @map("correlation_id") @db.Uuid
+  evidenceDigest    String?  @map("evidence_digest") @db.Text
+  occurredAt        DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt         DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([customerProfileId, occurredAt(sort: Desc)])
+  @@map("customer_audit_records")
+}

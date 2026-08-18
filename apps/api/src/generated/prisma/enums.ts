@@ -667,3 +667,37 @@ export const InventoryConfigState = {
 } as const
 
 export type InventoryConfigState = (typeof InventoryConfigState)[keyof typeof InventoryConfigState]
+
+
+export const CustomerState = {
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  CLOSED: 'CLOSED'
+} as const
+
+export type CustomerState = (typeof CustomerState)[keyof typeof CustomerState]
+
+
+export const CustomerAddressRole = {
+  SHIPPING: 'SHIPPING',
+  BILLING: 'BILLING'
+} as const
+
+export type CustomerAddressRole = (typeof CustomerAddressRole)[keyof typeof CustomerAddressRole]
+
+
+export const CustomerAddressState = {
+  ACTIVE: 'ACTIVE',
+  REMOVED: 'REMOVED'
+} as const
+
+export type CustomerAddressState = (typeof CustomerAddressState)[keyof typeof CustomerAddressState]
+
+
+export const CustomerPreferenceKey = {
+  language: 'language',
+  currency: 'currency',
+  locale: 'locale'
+} as const
+
+export type CustomerPreferenceKey = (typeof CustomerPreferenceKey)[keyof typeof CustomerPreferenceKey]
