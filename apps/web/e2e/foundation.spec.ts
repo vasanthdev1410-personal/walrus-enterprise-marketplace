@@ -6,5 +6,5 @@ test('serves the web foundation and health endpoint', async ({ page, request }) 
   await expect(health.json()).resolves.toMatchObject({ service: 'web', status: 'UP' });
 
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Customer Storefront' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Customer portal' })).toBeVisible();
 });

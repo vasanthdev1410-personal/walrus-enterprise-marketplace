@@ -7,8 +7,8 @@
 **Status:** **APPROVED — Module 02 owner sign-off RECORDED 2026-08-17** for
 the additive `customer.*` catalog and the fourth ownership resolver
 (WEMP-M06-APPROVAL-001 §3/§6; D-17). M06-M4 implements the Module 02
-additions; M06-M5 remains gated on the Security/Platform D-10 rate-limit
-confirmation (**PENDING — NOT RECORDED**).
+additions; M06-M5 authorized 2026-08-18 (Security/Platform D-10 rate-limit
+confirmation **RECORDED 2026-08-18**).
 **Effective date:** 2026-08-17 (M06-M4 implemented and validated)
 **Classification:** Confidential — Internal Use Only
 
@@ -163,7 +163,7 @@ denial. Existing Module 02/03/04/05 rows are unchanged (shown as `—`).
 | Condition                                                                                  | Owner             | Status                                                           | Gate          |
 | ------------------------------------------------------------------------------------------ | ----------------- | ---------------------------------------------------------------- | ------------- |
 | Additive `customer.*` permission identifiers + fourth ownership-resolver scope (D-07/A-07) | Module 02 owner   | **RECORDED 2026-08-17** — additive non-weakening sign-off (D-17) | M06-M4        |
-| D-10 production rate-limit values (self reads 60/hr, self mutations 30/hr, admin 50/hr)    | Security/Platform | **PENDING — NOT RECORDED**                                       | M06-M5        |
+| D-10 production rate-limit values (self reads 60/hr, self mutations 30/hr, admin 50/hr)    | Security/Platform | **RECORDED 2026-08-18** — 60/30/50 per hour confirmed            | M06-M5        |
 | D-09 jurisdiction-specific retention durations for customer records                        | Legal/Compliance  | **PENDING — NOT RECORDED** (no duration invented in M06)         | M06-M2/M06-M3 |
 
 **End of review draft.** This proposal authorizes no implementation,
@@ -171,6 +171,6 @@ migration, commit, or deployment. **Module 02 owner sign-off RECORDED
 2026-08-17** (D-17): the additive `customer.*` catalog and the fourth
 ownership-resolver scope are approved and implemented by M06-M4; every
 `customer.*` evaluation now runs through the Module 02 engine with the
-customer-identity ownership resolver (fail closed). M06-M5 remains gated on
-the Security/Platform D-10 rate-limit confirmation (**PENDING — NOT
-RECORDED**).
+customer-identity ownership resolver (fail closed). M06-M5 authorized
+2026-08-18 — Security/Platform D-10 rate-limit confirmation **RECORDED
+2026-08-18** (60/30/50 per hour).

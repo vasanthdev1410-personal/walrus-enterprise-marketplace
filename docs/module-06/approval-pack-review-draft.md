@@ -1,17 +1,16 @@
 # Module 06 — Manual Approval Pack
 
 **Document ID:** WEMP-M06-APPROVAL-001
-**Status:** APPROVED (M06-M1 + M06-M2 + M06-M3 + M06-M4) — signed by the
-Product/Architecture Owner 2026-08-17. M06-M5 is **NOT** authorized and
-remains gated per §4 on the pending external conditions in §3
-(Security/Platform D-10 rate-limit confirmation — **PENDING — NOT
-RECORDED**).
+**Status:** APPROVED (M06-M1 + M06-M2 + M06-M3 + M06-M4 + M06-M5) — signed by the
+Product/Architecture Owner 2026-08-17; Security/Platform D-10 rate-limit
+values **RECORDED 2026-08-18** (§3/§6). Per §4, gates M06-M1 … M06-M5 are
+✓ **SATISFIED** (authorized); **M06-M5 authorized 2026-08-18**.
 **Companion documents:** WEMP-M06-SPEC-001, WEMP-M06-PLAN-001,
 WEMP-M06-AUTHZ-001, and WEMP-M06-DECISIONS-001
-**Implementation authority:** M06-M1 + M06-M2 + M06-M3 + M06-M4 — granted
-by the §5 signatures (2026-08-17) and the recorded Module 02 owner sign-off
-(§3/§6, 2026-08-17). M06-M5 is **NOT** authorized and remains gated per §4
-and on the pending Security/Platform rate-limit confirmation in §3. M06-M4
+**Implementation authority:** M06-M1 + M06-M2 + M06-M3 + M06-M4 + M06-M5 — granted
+by the §5 signatures (2026-08-17), the recorded Module 02 owner sign-off
+(§3/§6, 2026-08-17), and the Security/Platform D-10 rate-limit
+confirmation **RECORDED 2026-08-18** (§3/§6). M06-M4
 is the only milestone that changes Module 02 — additive `customer.*` catalog
 entries and the fourth ownership-resolver scope only (D-07/A-07), approved
 by the Module 02 owner sign-off recorded 2026-08-17. No commit or push
@@ -55,28 +54,29 @@ WEMP-M06-DECISIONS-001 §2/§5.
 (audit/evidence; retention/privacy; rate limiting; concurrency/idempotency;
 cross-module contract shapes) — binding only upon the §5 signature.
 
-## 3. External-authority conditions (condition 1 RECORDED; condition 2 PENDING; condition 3 OWNER-RESOLVED)
+## 3. External-authority conditions (conditions 1–2 RECORDED; condition 3 OWNER-RESOLVED)
 
 | #   | Condition                                                                                  | Required from     | Gate(s)                       | Fail-closed behavior until recorded                                                                                                                                                                                                                  |
 | --- | ------------------------------------------------------------------------------------------ | ----------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Additive `customer.*` permission identifiers + fourth ownership-resolver scope (D-07/A-07) | Module 02 owner   | M06-M4                        | **RECORDED 2026-08-17** — Module 02 owner sign-off recorded (WEMP-M06-AUTHZ-001 §7); additive non-weakening `customer.*` catalog + fourth resolver scope implemented in M06-M4                                                                       |
-| 2   | D-10 production rate-limit values (self reads 60/hr, self mutations 30/hr, admin 50/hr)    | Security/Platform | M06-M5                        | **PENDING — NOT RECORDED** — platform fail-closed default (A-11) until confirmed                                                                                                                                                                     |
+| 2   | D-10 production rate-limit values (self reads 60/hr, self mutations 30/hr, admin 50/hr)    | Security/Platform | M06-M5                        | ✓ **RECORDED 2026-08-18** — 60/30/50 per hour confirmed; policy effective when M06-M5 APIs are exposed                                                                                                                                               |
 | 3   | D-09 jurisdiction-specific retention durations for customer records                        | Legal/Compliance  | M06-M2 / M06-M3 (enforcement) | **OWNER-RESOLVED 2026-08-17 (D-15)** — CUSTOMER_RECORD_RETENTION_DAYS = 2555 for the audit/history categories (CustomerStateTransition, CustomerAuditRecord); enforced by the application-layer retention processor (M06-M3), never by the migration |
 
-> Condition 1 is **RECORDED 2026-08-17** and condition 3 is **OWNER-RESOLVED
-> 2026-08-17 (D-15)**; only condition 2 (Security/Platform D-10 rate-limit
-> values) remains **PENDING — NOT RECORDED**. No milestone whose gate depends
-> on a pending condition may begin.
+> Conditions 1–3 are all recorded: condition 1 (Module 02 owner sign-off)
+> **RECORDED 2026-08-17**; condition 2 (Security/Platform D-10 rate-limit
+> values) **RECORDED 2026-08-18**; condition 3 **OWNER-RESOLVED 2026-08-17
+> (D-15)**. No milestone whose gate depends on a pending condition remains;
+> no pending external condition blocks M06-M5.
 
 ## 4. Milestone gating after approval
 
-| Milestone                          | Gate                                                                                                                                                                        |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M06-M1 Customer Domain Foundation  | ✓ **SATISFIED** — §5 approval signed 2026-08-17 (D-01/D-02/D-04/D-05/D-06/D-08/D-11/D-13 owner-approved/resolved) — **M06-M1 authorized 2026-08-17**                        |
-| M06-M2 Customer Persistence        | ✓ **SATISFIED** — §5 approval signed 2026-08-17 + D-15 retention (CUSTOMER_RECORD_RETENTION_DAYS = 2555) recorded — **M06-M2 authorized 2026-08-17**                        |
-| M06-M3 Customer Application        | ✓ **SATISFIED** — §5 approval signed 2026-08-17 (D-15 retention config source in place; application-layer retention mechanism in M06-M3) — **M06-M3 authorized 2026-08-17** |
-| M06-M4 Authorization & Integration | ✓ **SATISFIED** — §5 approval + Module 02 owner sign-off (condition 1) **RECORDED 2026-08-17** — **M06-M4 authorized 2026-08-17**                                           |
-| M06-M5 APIs & Web/Mobile           | §5 approval + Module 02 sign-off (condition 1, **RECORDED 2026-08-17**) + Security/Platform D-10 confirmation (condition 2, **PENDING — NOT RECORDED**)                     |
+| Milestone                          | Gate                                                                                                                                                                                                      |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M06-M1 Customer Domain Foundation  | ✓ **SATISFIED** — §5 approval signed 2026-08-17 (D-01/D-02/D-04/D-05/D-06/D-08/D-11/D-13 owner-approved/resolved) — **M06-M1 authorized 2026-08-17**                                                      |
+| M06-M2 Customer Persistence        | ✓ **SATISFIED** — §5 approval signed 2026-08-17 + D-15 retention (CUSTOMER_RECORD_RETENTION_DAYS = 2555) recorded — **M06-M2 authorized 2026-08-17**                                                      |
+| M06-M3 Customer Application        | ✓ **SATISFIED** — §5 approval signed 2026-08-17 (D-15 retention config source in place; application-layer retention mechanism in M06-M3) — **M06-M3 authorized 2026-08-17**                               |
+| M06-M4 Authorization & Integration | ✓ **SATISFIED** — §5 approval + Module 02 owner sign-off (condition 1) **RECORDED 2026-08-17** — **M06-M4 authorized 2026-08-17**                                                                         |
+| M06-M5 APIs & Web/Mobile           | ✓ **SATISFIED** — §5 approval + Module 02 sign-off (condition 1, **RECORDED 2026-08-17**) + Security/Platform D-10 confirmation (condition 2, **RECORDED 2026-08-18**) — **M06-M5 authorized 2026-08-18** |
 
 ## 5. Final owner approval statement (sign to authorize)
 
@@ -115,11 +115,11 @@ Owner, 2026-08-17 (authorizes M06-M1 only)**
 Date: 2026-08-17
 
 > **Sign-off scope (recorded):** the §5 signature authorizes milestone M06-M1
-> (Customer Domain Foundation) only. Milestones M06-M2 through M06-M5 are
-> **NOT** authorized and remain gated per §4 on the pending external
-> conditions in §3 (Module 02 owner sign-off; Security/Platform D-10
-> rate-limit confirmation; Legal/Compliance D-09 customer-record retention
-> durations — all **PENDING — NOT RECORDED**).
+> (Customer Domain Foundation) only. Per §4, milestones M06-M2 through
+> M06-M5 became authorized as their gates were ✓ **SATISFIED** once the
+> external conditions were recorded (Module 02 owner sign-off 2026-08-17;
+> Security/Platform D-10 rate-limit values 2026-08-18; D-09 customer-record
+> retention OWNER-RESOLVED 2026-08-17 via D-15).
 
 Signed (Product/Architecture Owner): ✓ **SIGNED — Product/Architecture
 Owner, 2026-08-17 (authorizes M06-M2 only)**
@@ -132,9 +132,10 @@ Date: 2026-08-17
 > (CUSTOMER_RECORD_RETENTION_DAYS = 2555 for the audit/history categories
 > CustomerStateTransition and CustomerAuditRecord). The D-09
 > Legal/Compliance retention condition for those categories is resolved by
-> D-15; M06-M3…M06-M5 remain **NOT authorized** and stay gated per §4
-> (M06-M4: Module 02 owner sign-off; M06-M5: Module 02 sign-off + D-10
-> rate-limit confirmation — all **PENDING — NOT RECORDED**).
+> D-15; per §4, M06-M3…M06-M5 became authorized as their gates were
+> ✓ **SATISFIED** once the external conditions were recorded (M06-M4:
+> Module 02 owner sign-off 2026-08-17; M06-M5: Module 02 sign-off
+> 2026-08-17 + D-10 rate-limit confirmation 2026-08-18).
 
 Signed (Product/Architecture Owner): ✓ **SIGNED — Product/Architecture
 Owner, 2026-08-17 (authorizes M06-M3 only)**
@@ -147,14 +148,15 @@ Date: 2026-08-17
 > address book management with one-default-per-role (D-04), business
 > profile 0..1 (D-05), allow-listed preferences (D-06), append-only
 > transition/audit recording (D-08), idempotency (A-09), optimistic
-> concurrency (D-11), D-10 rate-limit port integration (values pending
-> Security/Platform confirmation — fail-closed default A-11), and the
+> concurrency (D-11), D-10 rate-limit port integration (values
+> subsequently CONFIRMED 2026-08-18), and the
 > D-15 retention mechanism (CUSTOMER_RECORD_RETENTION_DAYS = 2555). No
 > presentation layer, no Module 02 changes, no cart/order/payment/
 > shipping/notification behavior (A-13), no direct role mutation (D-03).
-> M06-M4…M06-M5 remain **NOT authorized** (M06-M4: Module 02 owner
-> sign-off; M06-M5: Module 02 sign-off + D-10 rate-limit confirmation —
-> all **PENDING — NOT RECORDED**).
+> per §4, M06-M4…M06-M5 became authorized as their gates were
+> ✓ **SATISFIED** once the external conditions were recorded (M06-M4:
+> Module 02 owner sign-off 2026-08-17; M06-M5: Module 02 sign-off
+> 2026-08-17 + D-10 rate-limit confirmation 2026-08-18).
 
 Signed (Product/Architecture Owner): ✓ **SIGNED — Product/Architecture
 Owner, 2026-08-17 (authorizes M06-M4 only)**
@@ -173,23 +175,24 @@ Date: 2026-08-17
 > additions at the port boundary. No customer HTTP surface (M06-M5); no
 > M07/M08/M10 wiring; no cart/order/payment/shipping/notification
 > behavior (A-13); no new role; no wildcard; no hidden SUPER_ADMIN bypass.
-> M06-M5 remains **NOT authorized** (Security/Platform D-10 rate-limit
-> confirmation — **PENDING — NOT RECORDED**).
+> M06-M5 authorized 2026-08-18 (Security/Platform D-10 rate-limit
+> confirmation — **RECORDED 2026-08-18**).
 
 ## 6. External-authority sign-off record
 
-| Condition                                   | Required from     | Status                                                                                                  | Date       |
-| ------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------- | ---------- |
-| `customer.*` + fourth resolver (D-07/A-07)  | Module 02 owner   | **RECORDED 2026-08-17** — additive non-weakening sign-off (WEMP-M06-AUTHZ-001 §7)                       | 2026-08-17 |
-| D-10 rate-limit values                      | Security/Platform | **PENDING — NOT RECORDED**                                                                              | —          |
-| D-09 retention durations (customer records) | Legal/Compliance  | **RESOLVED 2026-08-17 (D-15)** — CUSTOMER_RECORD_RETENTION_DAYS = 2555 for the audit/history categories | 2026-08-17 |
+| Condition                                   | Required from     | Status                                                                                                                           | Date       |
+| ------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `customer.*` + fourth resolver (D-07/A-07)  | Module 02 owner   | **RECORDED 2026-08-17** — additive non-weakening sign-off (WEMP-M06-AUTHZ-001 §7)                                                | 2026-08-17 |
+| D-10 rate-limit values                      | Security/Platform | **RECORDED 2026-08-18** — self reads 60/hr, self mutations 30/hr, admin 50/hr confirmed (matches WEMP-M06-SPEC-001 §18 and D-10) | 2026-08-18 |
+| D-09 retention durations (customer records) | Legal/Compliance  | **RESOLVED 2026-08-17 (D-15)** — CUSTOMER_RECORD_RETENTION_DAYS = 2555 for the audit/history categories                          | 2026-08-17 |
 
-> **Sign-off record (2026-08-17):** the §5 signatures authorize **M06-M1,
-> M06-M2, M06-M3 and M06-M4**. The Module 02 owner sign-off for the
-> additive `customer.*` catalog + fourth ownership-resolver scope is
-> **RECORDED 2026-08-17** (§3/§6). The remaining external condition is
-> **PENDING — NOT RECORDED**: Security/Platform D-10 rate-limit
-> confirmation, which blocks M06-M5 only.
+> **Sign-off record (2026-08-17, updated 2026-08-18):** the §5 signatures
+> authorize **M06-M1, M06-M2, M06-M3 and M06-M4**; the Module 02 owner
+> sign-off for the additive `customer.*` catalog + fourth ownership-resolver
+> scope is **RECORDED 2026-08-17** (§3/§6). The Security/Platform D-10
+> rate-limit confirmation was **RECORDED 2026-08-18** (self reads 60/hr,
+> self mutations 30/hr, admin 50/hr), which satisfies the final M06-M5
+> gate — M06-M5 is authorized 2026-08-18.
 
 ## 7. Compliance with Module 02 security guarantees (unchanged)
 

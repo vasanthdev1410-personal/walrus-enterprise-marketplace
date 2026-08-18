@@ -11,14 +11,18 @@ import { AdminProductList } from '@/src/features/admin-catalog/components/admin-
 import { AdminInventoryDetail } from '@/src/features/admin-inventory/components/admin-inventory-surface';
 import { AdminInventoryList } from '@/src/features/admin-inventory/components/admin-inventory-surface';
 import { AdminThresholdConfigPanel } from '@/src/features/admin-inventory/components/admin-inventory-surface';
+import { AdminCustomerDetail } from '@/src/features/admin-customer/components/admin-customer-surface';
+import { AdminCustomerList } from '@/src/features/admin-customer/components/admin-customer-surface';
+import { CustomerApiProvider } from '@/src/features/customer/customer-api-provider';
 
-type AdminSection = 'sellers' | 'products' | 'inventory' | 'thresholds';
+type AdminSection = 'sellers' | 'products' | 'inventory' | 'thresholds' | 'customers';
 
 const NAV: readonly { readonly id: AdminSection; readonly label: string }[] = [
   { id: 'sellers', label: 'Sellers' },
   { id: 'products', label: 'Products' },
   { id: 'inventory', label: 'Inventory' },
   { id: 'thresholds', label: 'Inventory thresholds' },
+  { id: 'customers', label: 'Customers' },
 ];
 
 /**
@@ -32,12 +36,14 @@ export default function AdminPortalPage(): ReactNode {
   const [selectedSellerId, setSelectedSellerId] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   function switchSection(target: AdminSection): void {
     setSection(target);
     setSelectedSellerId(null);
     setSelectedProductId(null);
     setSelectedSkuId(null);
+    setSelectedCustomerId(null);
   }
 
   return (
@@ -128,6 +134,24 @@ export default function AdminPortalPage(): ReactNode {
           </>
         )}
         {section === 'thresholds' && <AdminThresholdConfigPanel />}
+        {section === 'customers' && (
+          <CustomerApiProvider>
+            {selectedCustomerId === null ? (
+              <AdminCustomerList
+                onSelect={(customerProfileId: string) => {
+                  setSelectedCustomerId(customerProfileId);
+                }}
+              />
+            ) : (
+              <AdminCustomerDetail
+                customerProfileId={selectedCustomerId}
+                onBack={() => {
+                  setSelectedCustomerId(null);
+                }}
+              />
+            )}
+          </CustomerApiProvider>
+        )}
       </SellerApiProvider>
     </PortalShell>
   );

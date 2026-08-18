@@ -12,6 +12,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Customer module boundary'));
     await tester.pumpAndSettle();
-    expect(find.text('Customer boundary'), findsOneWidget);
+    expect(find.text('Customer'), findsOneWidget);
   });
 }

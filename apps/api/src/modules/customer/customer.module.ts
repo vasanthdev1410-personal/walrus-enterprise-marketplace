@@ -30,13 +30,18 @@ import { CustomerAddressPolicy } from './domain/policy/customer-address.policy';
 import { CustomerBusinessProfilePolicy } from './domain/policy/customer-business.policy';
 import { CustomerRetentionPolicy } from './domain/policy/customer-retention.policy';
 import { PrismaCustomerOwnershipResolver } from './infrastructure/persistence/prisma/prisma-customer-ownership-resolver';
+import { PrismaCustomerAdminReadRepository } from './infrastructure/persistence/prisma/repositories/prisma-customer-admin-read.repository';
 import { PrismaCustomerProfileRepository } from './infrastructure/persistence/prisma/repositories/prisma-customer-profile.repository';
 import { PrismaCustomerRetentionDeletionRepository } from './infrastructure/persistence/prisma/repositories/prisma-customer-retention-deletion.repository';
 import { RecordedCustomerRetentionConfigurationAdapter } from './infrastructure/configuration/recorded-customer-retention-configuration.adapter';
+import { CustomerAdminReadApplicationService } from './application/services/customer-admin-read-application.service';
 import { CustomerSelfServicePermissionGuard } from './presentation/guards/customer-self-service-permission.guard';
+import { AdminCustomerController } from './presentation/admin-customer.controller';
+import { CustomerSelfServiceController } from './presentation/customer-self-service.controller';
 import {
   CUSTOMER_ADDRESS_APPLICATION_SERVICE,
   CUSTOMER_ADMIN_AUTHORIZATION,
+  CUSTOMER_ADMIN_READ_APPLICATION_SERVICE,
   CUSTOMER_BUSINESS_PROFILE_APPLICATION_SERVICE,
   CUSTOMER_LIFECYCLE_APPLICATION_SERVICE,
   CUSTOMER_PREFERENCE_APPLICATION_SERVICE,
@@ -55,7 +60,10 @@ import {
  * adapter replacing the M06-M3 deny-all placeholder), and the customer
  * self-service permission guard (AAL2 → permission guard → ownership). The
  * M06-M3 application services are wired with the real adapters at the port
- * boundary. No controllers (M06-M5); no M07/M08/M10 wiring (A-13).
+ * boundary. M06-M5 adds the presentation layer: the customer self-service
+ * and admin customer controllers (WEMP-M06-SPEC-001 §14) and the admin read
+ * application service (non-enumerating list/detail/audit, D-10 admin
+ * 50/hour). No M07/M08/M10 wiring (A-13).
  *
  * Fail closed: without the resolver or a grant, every customer.* decision
  * denies. Module 06 never evaluates roles itself (A-02) and never reads
@@ -64,6 +72,7 @@ import {
 @Global()
 @Module({
   imports: [IdentityAuthenticationModule, AuthorizationCoreModule],
+  controllers: [CustomerSelfServiceController, AdminCustomerController],
   providers: [
     { provide: CLOCK, useClass: SystemClockAdapter },
     { provide: UUID_V7_GENERATOR, useClass: SystemUuidV7Generator },
@@ -222,6 +231,16 @@ import {
           rateLimiter,
         ),
     },
+    PrismaCustomerAdminReadRepository,
+    {
+      provide: CUSTOMER_ADMIN_READ_APPLICATION_SERVICE,
+      inject: [PrismaCustomerAdminReadRepository, CUSTOMER_ADMIN_AUTHORIZATION, RATE_LIMITER],
+      useFactory: (
+        repository: PrismaCustomerAdminReadRepository,
+        adminAuthorization: Module02CustomerAdminAuthorizationAdapter,
+        rateLimiter: NonProductionRateLimiterPort,
+      ) => new CustomerAdminReadApplicationService(repository, adminAuthorization, rateLimiter),
+    },
     {
       provide: CUSTOMER_RETENTION_APPLICATION_SERVICE,
       inject: [
@@ -264,7 +283,9 @@ import {
     CUSTOMER_BUSINESS_PROFILE_APPLICATION_SERVICE,
     CUSTOMER_PREFERENCE_APPLICATION_SERVICE,
     CUSTOMER_RETENTION_APPLICATION_SERVICE,
+    CUSTOMER_ADMIN_READ_APPLICATION_SERVICE,
     PrismaCustomerProfileRepository,
+    PrismaCustomerAdminReadRepository,
   ],
 })
 // NestJS modules are declarative metadata containers and intentionally have no members.

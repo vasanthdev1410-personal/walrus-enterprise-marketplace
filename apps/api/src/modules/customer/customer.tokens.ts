@@ -22,3 +22,7 @@ export const CUSTOMER_PREFERENCE_APPLICATION_SERVICE = Symbol(
 export const CUSTOMER_RETENTION_APPLICATION_SERVICE = Symbol(
   'CUSTOMER_RETENTION_APPLICATION_SERVICE',
 );
+// --- M06-M5 admin read token (consumed by the admin presentation surface) ---
+export const CUSTOMER_ADMIN_READ_APPLICATION_SERVICE = Symbol(
+  'CUSTOMER_ADMIN_READ_APPLICATION_SERVICE',
+);

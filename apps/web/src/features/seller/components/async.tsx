@@ -15,8 +15,18 @@ export type AsyncState<T> =
  * Runs an async loader and tracks loading/ready/error. The loader is expected
  * to be stable (`useCallback`) so the effect re-runs only when the loader or
  * dependencies change. All API failures are normalized to safe client states.
+ *
+ * `toKind` maps a rejected value to a safe error kind. It defaults to
+ * recognizing `SellerApiError`; feature surfaces whose client throws a
+ * different typed error (e.g. the Module 06 `CustomerApiError`, whose kind
+ * union is identical) pass their own mapper so error states render the
+ * correct safe message instead of collapsing to SERVER.
  */
-export function useAsync<T>(load: () => Promise<T>, deps: readonly unknown[]): AsyncState<T> {
+export function useAsync<T>(
+  load: () => Promise<T>,
+  deps: readonly unknown[],
+  toKind: (error: unknown) => SellerApiErrorKind = sellerErrorKind,
+): AsyncState<T> {
   const [state, setState] = useState<AsyncState<T>>({ status: 'loading' });
 
   useEffect(() => {
@@ -28,8 +38,7 @@ export function useAsync<T>(load: () => Promise<T>, deps: readonly unknown[]): A
       },
       (error: unknown) => {
         if (cancelled) return;
-        const kind: SellerApiErrorKind = error instanceof SellerApiError ? error.kind : 'SERVER';
-        setState({ status: 'error', kind });
+        setState({ status: 'error', kind: toKind(error) });
       },
     );
     return () => {
@@ -41,6 +50,10 @@ export function useAsync<T>(load: () => Promise<T>, deps: readonly unknown[]): A
   }, deps);
 
   return state;
+}
+
+function sellerErrorKind(error: unknown): SellerApiErrorKind {
+  return error instanceof SellerApiError ? error.kind : 'SERVER';
 }
 
 export function LoadingNotice(): ReactNode {

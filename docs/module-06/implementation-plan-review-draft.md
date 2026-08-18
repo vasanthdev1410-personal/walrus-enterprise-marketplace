@@ -4,14 +4,13 @@
 
 **Document ID:** WEMP-M06-PLAN-001
 **Version:** Review Draft 1.0
-**Status:** APPROVED (M06-M1 + M06-M2 + M06-M3 + M06-M4) — signed by the
+**Status:** APPROVED (M06-M1 + M06-M2 + M06-M3 + M06-M4 + M06-M5) — signed by the
 Product/Architecture Owner 2026-08-17; the M06-M4 authorization gate
-(Module 02 owner sign-off, D-07/A-07) **RECORDED 2026-08-17**. M06-M5 is
-**NOT** authorized and remains gated per WEMP-M06-APPROVAL-001 §4 on the
-pending Security/Platform D-10 rate-limit confirmation (**PENDING — NOT
-RECORDED**).
+(Module 02 owner sign-off, D-07/A-07) **RECORDED 2026-08-17**; the
+Security/Platform D-10 rate-limit confirmation **RECORDED 2026-08-18** —
+M06-M5 authorized 2026-08-18.
 **Effective date:** 2026-08-17 (M06-M1, M06-M2, M06-M3 and M06-M4
-authorized; M06-M5 only when its gate in WEMP-M06-APPROVAL-001 §4 is
+authorized); 2026-08-18 (M06-M5, its gate in WEMP-M06-APPROVAL-001 §4
 satisfied)
 **Classification:** Confidential — Internal Use Only
 
@@ -121,7 +120,8 @@ their milestones per WEMP-M06-DECISIONS-001 §2.
   PostgreSQL `FOR UPDATE` where contended — D-11); validation incl. DTO
   allow-listing (whitelist, reject unknown fields); append-only
   transition/audit recording (D-08); rate-limit port integration (D-10 —
-  values pending Security/Platform confirmation, fail-closed default A-11);
+  values CONFIRMED 2026-08-18: self reads 60/hr, self mutations 30/hr,
+  admin 50/hr);
   retention mechanism (D-09 — **RESOLVED 2026-08-17 via D-15:**
   CUSTOMER_RECORD_RETENTION_DAYS = 2555 for
   CustomerStateTransition/CustomerAuditRecord; enforcement fail-closed).
@@ -219,8 +219,8 @@ their milestones per WEMP-M06-DECISIONS-001 §2.
 - **Security acceptance:** every endpoint behind AAL2 + permission guard;
   generic non-disclosing errors; DTO allow-listing (mass-assignment
   protection); **no surface exposed before M06-M4 implements the Module 02
-  additions (sign-off PENDING) and the Security/Platform D-10 rate-limit
-  confirmation (PENDING)**; retention enforcement requires valid D-09
+  additions (sign-off RECORDED 2026-08-17) and the Security/Platform D-10
+  rate-limit confirmation (RECORDED 2026-08-18)**; retention enforcement requires valid D-09
   config (fail closed); cross-customer access denied end-to-end.
 - **Acceptance criteria:** e2e specs green; OpenAPI surface matches §14;
   coverage thresholds met; web build/tests/E2E green; mobile tests green
@@ -228,7 +228,7 @@ their milestones per WEMP-M06-DECISIONS-001 §2.
   repository gate passes.
 - **Authorization gate:** Module 02 sign-off (D-07/A-07) — **RECORDED
   2026-08-17** — + Security/Platform rate-limit confirmation (D-10/A-11) —
-  **PENDING — NOT RECORDED** (blocks M06-M5 only).
+  **RECORDED 2026-08-18** (satisfied).
 - **Explicit exclusions:** no advanced UI design; no cart/order/payment/
   shipping/notification surfaces (A-13); no mobile mutation.
 - **Definition of done:** full gate green; web + mobile surfaces render

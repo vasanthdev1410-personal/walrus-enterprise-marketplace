@@ -4,13 +4,13 @@
 
 **Document ID:** WEMP-M06-SPEC-001
 **Version:** Review Draft 1.0
-**Status:** APPROVED (M06-M1 + M06-M2 + M06-M3 + M06-M4) — signed by the
+**Status:** APPROVED (M06-M1 + M06-M2 + M06-M3 + M06-M4 + M06-M5) — signed by the
 Product/Architecture Owner 2026-08-17; Module 02 owner sign-off for the
 additive `customer.*` catalog and the fourth ownership-resolver scope
-**RECORDED 2026-08-17** (WEMP-M06-AUTHZ-001 §7). M06-M5 is **NOT**
-authorized and remains gated per WEMP-M06-APPROVAL-001 §4 on the pending
-Security/Platform D-10 rate-limit confirmation (**PENDING — NOT RECORDED**).
-**Effective date:** 2026-08-17 (M06-M1, M06-M2, M06-M3 and M06-M4)
+**RECORDED 2026-08-17** (WEMP-M06-AUTHZ-001 §7); Security/Platform D-10
+rate-limit values **RECORDED 2026-08-18** (WEMP-M06-APPROVAL-001 §3/§6) —
+M06-M5 authorized 2026-08-18.
+**Effective date:** 2026-08-17 (M06-M1, M06-M2, M06-M3 and M06-M4); 2026-08-18 (M06-M5)
 **Classification:** Confidential — Internal Use Only
 
 > This document is not an authorization to implement. It preserves Module 00,
@@ -407,12 +407,13 @@ read-only surface at M06-M5.
 
 ## 18. Rate limiting (decision D-10; A-11)
 
-**RESOLVED — architecture-supported default (WEMP-M06-DECISIONS-001 D-10):**
-mirror the approved D-11 classes pending Security/Platform confirmation at
-the M06-M5 gate — customer self-service **reads 60/hour**, self-service
-**mutations 30/hour**, admin **read/lifecycle/audit 50/hour**. Reuses the
-repository rate-limit port; fail-closed default (A-11) until the M06-specific
-policy is confirmed.
+**CONFIRMED — Security/Platform confirmation RECORDED 2026-08-18
+(WEMP-M06-APPROVAL-001 §3/§6):** the architecture-supported default D-10
+policy is confirmed — customer self-service **reads 60/hour**, self-service
+**mutations 30/hour**, admin **read/lifecycle/audit 50/hour** (mirroring the
+approved D-11 classes). Reuses the repository rate-limit port; the
+fail-closed default (A-11) is superseded once the M06-M5 APIs are exposed
+with these confirmed values.
 
 ## 19. Data retention and privacy (decision D-09; A-15)
 
@@ -491,7 +492,7 @@ D-12 are **OWNER-APPROVED (2026-08-17, owner inputs for authoring)**; D-08 …
 D-11 and D-13 are **RESOLVED — architecture-supported defaults** (binding
 upon the approval statement). External-authority conditions recorded against
 specific milestones: Module 02 owner sign-off (D-07/A-07 — M06-M4);
-Security/Platform rate-limit confirmation (D-10/A-11 — M06-M5);
+Security/Platform rate-limit confirmation (D-10/A-11 — M06-M5, **RECORDED 2026-08-18**);
 Legal/Compliance customer-record retention durations (D-09/A-15 — M06-M2).
 
 **End of review draft.** This specification authorizes no implementation,
