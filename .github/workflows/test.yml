@@ -7,6 +7,30 @@ permissions: { contents: read }
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.7-alpine
+        env:
+          POSTGRES_DB: walrus
+          POSTGRES_USER: walrus
+          POSTGRES_PASSWORD: local-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U walrus -d walrus"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:8.4.0-alpine
+        command: ['redis-server', '--requirepass', 'local-password']
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli -a local-password ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
