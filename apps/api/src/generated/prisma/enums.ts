@@ -711,3 +711,16 @@ export const CartState = {
 } as const
 
 export type CartState = (typeof CartState)[keyof typeof CartState]
+
+
+export const OrderState = {
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  PAID: 'PAID',
+  SHIPPED: 'SHIPPED',
+  DELIVERED: 'DELIVERED',
+  CANCELLED: 'CANCELLED',
+  CLOSED: 'CLOSED'
+} as const
+
+export type OrderState = (typeof OrderState)[keyof typeof OrderState]

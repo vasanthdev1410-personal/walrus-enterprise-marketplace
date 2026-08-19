@@ -409,3 +409,23 @@ export type CartStateTransition = Prisma.CartStateTransitionModel
  * 
  */
 export type CartAuditRecord = Prisma.CartAuditRecordModel
+/**
+ * Model Order
+ * 
+ */
+export type Order = Prisma.OrderModel
+/**
+ * Model OrderLine
+ * 
+ */
+export type OrderLine = Prisma.OrderLineModel
+/**
+ * Model OrderStateTransition
+ * 
+ */
+export type OrderStateTransition = Prisma.OrderStateTransitionModel
+/**
+ * Model OrderAuditRecord
+ * 
+ */
+export type OrderAuditRecord = Prisma.OrderAuditRecordModel

@@ -1510,6 +1510,23 @@ export type EnumCartStateWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumCartStateFilter<$PrismaModel>
 }
 
+export type EnumOrderStateFilter<$PrismaModel = never> = {
+  equals?: $Enums.OrderState | Prisma.EnumOrderStateFieldRefInput<$PrismaModel>
+  in?: $Enums.OrderState[] | Prisma.ListEnumOrderStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.OrderState[] | Prisma.ListEnumOrderStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumOrderStateFilter<$PrismaModel> | $Enums.OrderState
+}
+
+export type EnumOrderStateWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.OrderState | Prisma.EnumOrderStateFieldRefInput<$PrismaModel>
+  in?: $Enums.OrderState[] | Prisma.ListEnumOrderStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.OrderState[] | Prisma.ListEnumOrderStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumOrderStateWithAggregatesFilter<$PrismaModel> | $Enums.OrderState
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumOrderStateFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumOrderStateFilter<$PrismaModel>
+}
+
 export type NestedUuidFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -3013,6 +3030,23 @@ export type NestedEnumCartStateWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumCartStateFilter<$PrismaModel>
   _max?: Prisma.NestedEnumCartStateFilter<$PrismaModel>
+}
+
+export type NestedEnumOrderStateFilter<$PrismaModel = never> = {
+  equals?: $Enums.OrderState | Prisma.EnumOrderStateFieldRefInput<$PrismaModel>
+  in?: $Enums.OrderState[] | Prisma.ListEnumOrderStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.OrderState[] | Prisma.ListEnumOrderStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumOrderStateFilter<$PrismaModel> | $Enums.OrderState
+}
+
+export type NestedEnumOrderStateWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.OrderState | Prisma.EnumOrderStateFieldRefInput<$PrismaModel>
+  in?: $Enums.OrderState[] | Prisma.ListEnumOrderStateFieldRefInput<$PrismaModel>
+  notIn?: $Enums.OrderState[] | Prisma.ListEnumOrderStateFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumOrderStateWithAggregatesFilter<$PrismaModel> | $Enums.OrderState
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumOrderStateFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumOrderStateFilter<$PrismaModel>
 }
 
 
