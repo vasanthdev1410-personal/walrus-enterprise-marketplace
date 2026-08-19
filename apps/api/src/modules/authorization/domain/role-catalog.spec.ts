@@ -53,6 +53,11 @@ describe('RoleCatalog (M02 domain core)', () => {
       throw new Error('CUSTOMER role must exist');
     }
     expect([...customer.properties.grantedPermissionIds].sort()).toEqual([
+      'cart.clear',
+      'cart.item.add',
+      'cart.item.remove',
+      'cart.item.update',
+      'cart.read',
       'customer.address.manage',
       'customer.address.read',
       'customer.business.manage',
@@ -143,11 +148,17 @@ describe('RoleCatalog (M02 domain core)', () => {
           'customer.read',
           'customer.lifecycle.manage',
           'customer.audit.view',
+          // WEMP-M07-AUTHZ-001 §2.2 (D-09, sign-off 2026-08-19): cart admin grants.
+          'cart.admin.read',
+          'cart.admin.manage',
         ]),
       );
       // No customer self-service permission is granted to ADMIN/SUPER_ADMIN.
       expect(role?.properties.grantedPermissionIds).not.toContain('customer.profile.read');
       expect(role?.properties.grantedPermissionIds).not.toContain('customer.address.manage');
+      // No cart self-service permission is granted to ADMIN/SUPER_ADMIN.
+      expect(role?.properties.grantedPermissionIds).not.toContain('cart.read');
+      expect(role?.properties.grantedPermissionIds).not.toContain('cart.item.add');
       // No seller self-service permission is granted to ADMIN/SUPER_ADMIN.
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.profile.read');
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.verification.submit');

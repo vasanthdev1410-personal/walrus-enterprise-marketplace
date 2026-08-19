@@ -4,7 +4,7 @@
 
 **Document ID:** WEMP-M07-PLAN-001
 **Version:** Review Draft 1.0
-**Status:** M07-M1…M07-M3 AUTHORIZED (2026-08-18); M07-M4…M07-M5 NOT AUTHORIZED
+**Status:** M07-M1…M07-M4 AUTHORIZED (2026-08-19); M07-M5 NOT AUTHORIZED
 **Effective date:** 2026-08-18 (M07-M1…M07-M3)
 **Classification:** Confidential — Internal Use Only
 
@@ -79,7 +79,7 @@ price revalidation; inventory reservation wiring; idempotency (A-09).
 
 ---
 
-### M07-M4 — Authorization & Cross-Module Integration (NOT AUTHORIZED)
+### M07-M4 — Authorization & Cross-Module Integration (AUTHORIZED 2026-08-19)
 
 **Scope:** Module 02 permission integration; cart.* catalog; ownership
 resolver wiring.
@@ -116,7 +116,7 @@ CustomerCartWebSurface; MobileCartReadSurface; E2E tests; Playwright tests.
 | M07-M1    | Owner approval (D-01…D-08)                  | ✓ SATISFIED — 2026-08-18 |
 | M07-M2    | M07-M1 complete + persistence decisions     | ✓ SATISFIED — 2026-08-18 |
 | M07-M3    | M07-M2 complete + application decisions     | ✓ SATISFIED — 2026-08-18 |
-| M07-M4    | M07-M3 complete + Module 02 sign-off (D-09) | NOT AUTHORIZED           |
+| M07-M4    | M07-M3 complete + Module 02 sign-off (D-09) | ✓ SATISFIED — 2026-08-19 |
 | M07-M5    | M07-M4 complete + Security/Platform D-10    | NOT AUTHORIZED           |
 
 ---

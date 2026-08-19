@@ -445,6 +445,65 @@ const SEEDED_PERMISSIONS: readonly Permission[] = Object.freeze([
     allowedAction: 'VIEW',
     status: 'ACTIVE',
   }),
+  // --- Module 07 CART self-service permissions (WEMP-M07-AUTHZ-001 §2.1, D-09) ---
+  // Every one of these is customer-identity-scoped (the approved fourth
+  // ownership-resolver scope): the decision additionally requires that the
+  // caller's authenticated Identity owns the target customer profile
+  // (CustomerProfile.identityId match, resolved server-side). Granted only
+  // to the CUSTOMER role; never administrative, never org-scoped.
+  new Permission({
+    permissionId: 'cart.read',
+    name: 'Read own active cart with lines',
+    protectedResource: 'cart',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'cart.item.add',
+    name: 'Add SKU to own cart',
+    protectedResource: 'cart.item',
+    allowedAction: 'CREATE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'cart.item.update',
+    name: 'Update line quantity in own cart',
+    protectedResource: 'cart.item',
+    allowedAction: 'UPDATE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'cart.item.remove',
+    name: 'Remove line from own cart',
+    protectedResource: 'cart.item',
+    allowedAction: 'DELETE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'cart.clear',
+    name: 'Clear all lines from own cart',
+    protectedResource: 'cart',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
+  // --- Module 07 CART administrative permissions (WEMP-M07-AUTHZ-001 §2.2, D-09) ---
+  // Granted to ADMIN and SUPER_ADMIN exactly as approved (D-09 no-override
+  // precedent); never customer-identity-scoped and never inheritable by the
+  // CUSTOMER role.
+  new Permission({
+    permissionId: 'cart.admin.read',
+    name: 'Admin read any customer cart (non-enumerating)',
+    protectedResource: 'cart.admin',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'cart.admin.manage',
+    name: 'Admin lifecycle operations on any cart (freeze/unfreeze/delete)',
+    protectedResource: 'cart.admin',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
 ]);
 
 /**
@@ -511,6 +570,15 @@ const CUSTOMER_IDENTITY_SCOPED_PERMISSIONS: ReadonlySet<string> = new Set([
   'customer.business.manage',
   'customer.preference.read',
   'customer.preference.manage',
+  // WEMP-M07-AUTHZ-001 §4 (D-09, Module 02 owner sign-off RECORDED 2026-08-19):
+  // the CUSTOMER self-service cart set — customer-identity-scoped through the
+  // approved fourth ownership resolver (customer identity scope). The
+  // administrative cart.* permissions are NOT in this set.
+  'cart.read',
+  'cart.item.add',
+  'cart.item.update',
+  'cart.item.remove',
+  'cart.clear',
 ]);
 
 export class PermissionCatalog {

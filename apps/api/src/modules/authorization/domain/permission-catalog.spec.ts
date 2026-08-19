@@ -13,6 +13,13 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'authorization.permission.view',
       'authorization.role.assign',
       'authorization.role.revoke',
+      'cart.admin.manage',
+      'cart.admin.read',
+      'cart.clear',
+      'cart.item.add',
+      'cart.item.remove',
+      'cart.item.update',
+      'cart.read',
       'catalog.attribute.manage',
       'catalog.category.manage',
       'catalog.category.read',
@@ -143,6 +150,11 @@ describe('PermissionCatalog (M02 domain core)', () => {
     ]) {
       expect(catalog.isOrganizationScoped(id)).toBe(false);
     }
+    // WEMP-M07-AUTHZ-001 §2.1 (D-09, sign-off 2026-08-19): the CUSTOMER
+    // self-service cart set is customer-identity-scoped, NOT org-scoped.
+    for (const id of ['cart.read', 'cart.item.add', 'cart.item.update', 'cart.item.remove', 'cart.clear']) {
+      expect(catalog.isOrganizationScoped(id)).toBe(false);
+    }
   });
 
   it('marks exactly the approved CUSTOMER self-service set as customer-identity-scoped (WEMP-M06-AUTHZ-001 §4)', () => {
@@ -154,6 +166,11 @@ describe('PermissionCatalog (M02 domain core)', () => {
       .map((permission) => permission.properties.permissionId)
       .sort();
     expect(customerScoped).toEqual([
+      'cart.clear',
+      'cart.item.add',
+      'cart.item.remove',
+      'cart.item.update',
+      'cart.read',
       'customer.address.manage',
       'customer.address.read',
       'customer.business.manage',
@@ -166,6 +183,15 @@ describe('PermissionCatalog (M02 domain core)', () => {
     // The administrative customer permissions are never customer-identity-
     // scoped — admins evaluate without a customer-identity scope.
     for (const id of ['customer.read', 'customer.lifecycle.manage', 'customer.audit.view']) {
+      expect(catalog.isCustomerIdentityScoped(id)).toBe(false);
+    }
+    // WEMP-M07-AUTHZ-001 §2.1 (D-09, sign-off 2026-08-19): the CUSTOMER
+    // self-service cart set is customer-identity-scoped (fourth scope).
+    for (const id of ['cart.read', 'cart.item.add', 'cart.item.update', 'cart.item.remove', 'cart.clear']) {
+      expect(catalog.isCustomerIdentityScoped(id)).toBe(true);
+    }
+    // The administrative cart permissions are never customer-identity-scoped.
+    for (const id of ['cart.admin.read', 'cart.admin.manage']) {
       expect(catalog.isCustomerIdentityScoped(id)).toBe(false);
     }
     // No seller/product/inventory identifier is customer-identity-scoped.

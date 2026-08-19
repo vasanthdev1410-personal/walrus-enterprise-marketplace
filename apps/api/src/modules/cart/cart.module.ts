@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { InventoryModule } from '../inventory/inventory.module';
 import { ProductCatalogModule } from '../product-catalog/product-catalog.module';
+import { AuthorizationCoreModule } from '../authorization/authorization-core.module';
+import { AUTHORIZATION_APPLICATION_SERVICE } from '../authorization/authorization.tokens';
 import type {
   ClockPort,
   UuidV7GenerationPort,
@@ -18,25 +20,35 @@ import type { InventoryReservationPort } from '../inventory/domain/ports/invento
 import { INVENTORY_RESERVATION_PORT } from '../inventory/inventory.tokens';
 import type { ProductCatalogReadPort } from '../product-catalog/domain/ports/product-catalog-read.port';
 import { PRODUCT_CATALOG_READ } from '../product-catalog/product-catalog.tokens';
+import type { AuthorizationApplicationService } from '../authorization/application/services/authorization-application.service';
 import type { CustomerProfileReadPort } from '../customer/domain/ports/customer-profile-read.port';
+import type { CustomerProfileRepository } from '../customer/domain/ports/customer-repository.port';
+import { CUSTOMER_PROFILE_REPOSITORY } from '../customer/customer.tokens';
 import {
   CART_RETENTION_CONFIGURATION,
   CART_APPLICATION_SERVICE,
   CART_INVENTORY_RESERVATION_ADAPTER,
   CART_PRODUCT_CATALOG_READ_ADAPTER,
   CART_CUSTOMER_PROFILE_READ_ADAPTER,
+  CART_ADMIN_AUTHORIZATION,
+  CART_SELF_SERVICE_PERMISSION_GUARD,
+  CART_ADMIN_PERMISSION_GUARD,
 } from './cart.tokens';
 import { CartApplicationService } from './application/services/cart-application.service';
 import { CartLifecycle } from './domain/lifecycle/cart-lifecycle';
 import { CartRetentionPolicy } from './domain/policy/cart-retention.policy';
 import { CartInventoryReservationAdapter } from './infrastructure/adapters/cart-inventory-reservation.adapter';
 import { CartProductCatalogReadAdapter } from './infrastructure/adapters/cart-product-catalog-read.adapter';
-import { FailClosedCustomerProfileReadAdapter } from './infrastructure/adapters/fail-closed-customer-profile-read.adapter';
+import { Module06CustomerProfileReadAdapter } from './infrastructure/adapters/module06-customer-profile-read.adapter';
+import { Module02CartAdminAuthorizationAdapter } from './application/adapters/module02-cart-admin-authorization.adapter';
+import type { CartAdminAuthorizationPort } from './application/ports/cart-admin-authorization.port';
 import { RecordedCartRetentionConfigurationAdapter } from './infrastructure/configuration/recorded-cart-retention-configuration.adapter';
 import { PrismaCartRepository } from './infrastructure/persistence/prisma/repositories/prisma-cart-repository';
+import { CartSelfServicePermissionGuard } from './presentation/guards/cart-self-service-permission.guard';
+import { CartAdminPermissionGuard } from './presentation/guards/cart-admin-permission.guard';
 
 /**
- * WEMP-M07-PLAN-001 M07-M2/M07-M3. Module 07 wiring.
+ * WEMP-M07-PLAN-001 M07-M2/M07-M3/M07-M4. Module 07 wiring.
  *
  * M07-M2 provides:
  * - PrismaCartRepository (implements CartRepository port)
@@ -47,17 +59,28 @@ import { PrismaCartRepository } from './infrastructure/persistence/prisma/reposi
  * - CartApplicationService (primary use-case orchestrator)
  * - CartInventoryReservationAdapter (wraps M05 InventoryReservationPort)
  * - CartProductCatalogReadAdapter (wraps M04 ProductCatalogReadPort)
- * - FailClosedCustomerProfileReadAdapter (fail-closed until M07-M4)
  * - CartLifecycle (domain lifecycle state machine)
  *
- * The repository is @Global so that future M07-M4/M05 layers can inject it.
+ * M07-M4 adds:
+ * - Module06CustomerProfileReadAdapter (real Module 06 adapter, replaces fail-closed)
+ * - Module02CartAdminAuthorizationAdapter (real Module 02 admin authorization)
+ * - CartSelfServicePermissionGuard (customer-identity-scoped permission guard)
+ * - CartAdminPermissionGuard (admin permission guard)
  *
- * Fail closed: the customer profile read adapter denies everything until
- * M07-M4 wires the real Module 06 adapter (A-10).
+ * Fail closed: the customer profile read adapter resolves only ACTIVE
+ * profiles (fail closed for unknown/SUSPENDED/CLOSED). The admin
+ * authorization adapter denies when the engine cannot decide. The
+ * permission guards deny when no claims, no permission metadata, or
+ * denied decision.
  */
 @Global()
 @Module({
-  imports: [IdentityAuthenticationModule, InventoryModule, ProductCatalogModule],
+  imports: [
+    IdentityAuthenticationModule,
+    InventoryModule,
+    ProductCatalogModule,
+    AuthorizationCoreModule,
+  ],
   providers: [
     {
       provide: CART_RETENTION_CONFIGURATION,
@@ -77,9 +100,33 @@ import { PrismaCartRepository } from './infrastructure/persistence/prisma/reposi
       inject: [PRODUCT_CATALOG_READ],
       useFactory: (catalog: ProductCatalogReadPort) => new CartProductCatalogReadAdapter(catalog),
     },
+    // M07-M4: real Module 06 customer profile read adapter (replaces fail-closed).
     {
       provide: CART_CUSTOMER_PROFILE_READ_ADAPTER,
-      useClass: FailClosedCustomerProfileReadAdapter,
+      inject: [CUSTOMER_PROFILE_REPOSITORY],
+      useFactory: (customers: CustomerProfileRepository) =>
+        new Module06CustomerProfileReadAdapter(customers),
+    },
+    // M07-M4: real Module 02 cart admin authorization adapter.
+    {
+      provide: CART_ADMIN_AUTHORIZATION,
+      useClass: Module02CartAdminAuthorizationAdapter,
+    },
+    // M07-M4: permission guards (registered as providers so they can be
+    // used as useGuards() in future M07-M5 controllers).
+    {
+      provide: CART_SELF_SERVICE_PERMISSION_GUARD,
+      inject: [AUTHORIZATION_APPLICATION_SERVICE, CUSTOMER_PROFILE_REPOSITORY],
+      useFactory: (
+        authorization: AuthorizationApplicationService,
+        customers: CustomerProfileRepository,
+      ) => new CartSelfServicePermissionGuard(authorization, customers),
+    },
+    {
+      provide: CART_ADMIN_PERMISSION_GUARD,
+      inject: [CART_ADMIN_AUTHORIZATION],
+      useFactory: (adminAuth: CartAdminAuthorizationPort) =>
+        new CartAdminPermissionGuard(adminAuth),
     },
     {
       provide: CART_APPLICATION_SERVICE,
@@ -103,7 +150,7 @@ import { PrismaCartRepository } from './infrastructure/persistence/prisma/reposi
         rateLimiter: NonProductionRateLimiterPort,
         reservation: CartInventoryReservationAdapter,
         productCatalog: CartProductCatalogReadAdapter,
-        customerProfileRead: FailClosedCustomerProfileReadAdapter,
+        customerProfileRead: Module06CustomerProfileReadAdapter,
       ) =>
         new CartApplicationService(
           repository,
@@ -126,6 +173,9 @@ import { PrismaCartRepository } from './infrastructure/persistence/prisma/reposi
     CART_INVENTORY_RESERVATION_ADAPTER,
     CART_PRODUCT_CATALOG_READ_ADAPTER,
     CART_CUSTOMER_PROFILE_READ_ADAPTER,
+    CART_ADMIN_AUTHORIZATION,
+    CART_SELF_SERVICE_PERMISSION_GUARD,
+    CART_ADMIN_PERMISSION_GUARD,
   ],
 })
 // NestJS modules are declarative metadata containers and intentionally have no members.

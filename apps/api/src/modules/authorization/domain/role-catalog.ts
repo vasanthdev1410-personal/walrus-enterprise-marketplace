@@ -119,6 +119,14 @@ const CUSTOMER_PERMISSIONS = [
   'customer.business.manage',
   'customer.preference.read',
   'customer.preference.manage',
+  // WEMP-M07-AUTHZ-001 §2.1 (D-09, Module 02 owner sign-off RECORDED
+  // 2026-08-19): the CUSTOMER self-service cart permissions, customer-
+  // identity-scoped through the approved fourth ownership resolver.
+  'cart.read',
+  'cart.item.add',
+  'cart.item.update',
+  'cart.item.remove',
+  'cart.clear',
 ] as const;
 
 /**
@@ -132,6 +140,11 @@ const CUSTOMER_ADMIN_PERMISSIONS = [
   'customer.read',
   'customer.lifecycle.manage',
   'customer.audit.view',
+  // WEMP-M07-AUTHZ-001 §2.2 (D-09, Module 02 owner sign-off RECORDED
+  // 2026-08-19): the administrative cart permissions granted to ADMIN and
+  // SUPER_ADMIN exactly as approved — no override, no hidden bypass.
+  'cart.admin.read',
+  'cart.admin.manage',
 ] as const;
 
 const SUPER_ADMIN_PERMISSIONS = [
