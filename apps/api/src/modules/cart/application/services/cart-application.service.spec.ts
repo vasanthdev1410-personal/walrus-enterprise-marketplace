@@ -183,7 +183,7 @@ function createMockRepository(
     findAuditRecords: () => Promise.resolve([]),
     insert: overrides.insert ?? (() => Promise.resolve()),
     save: overrides.save ?? (() => Promise.resolve()),
-  } as CartRepository;
+  };
 }
 
 function createService(

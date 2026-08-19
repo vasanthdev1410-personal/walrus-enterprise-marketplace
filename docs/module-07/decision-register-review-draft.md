@@ -74,7 +74,7 @@ milestones listed. Unapproved decisions remain non-implementable.
 | M07-M2 Persistence                 | ✓ **SATISFIED** — §5 approval signed 2026-08-18; D-06/D-11 OWNER-APPROVED (retention configurable per D-11) — **M07-M2 authorized 2026-08-18**          |
 | M07-M3 Application Services        | ✓ **SATISFIED** — §5 approval signed 2026-08-18; D-06/D-07/D-08/D-12/D-13/D-17 OWNER-APPROVED — **M07-M3 authorized 2026-08-18**                      |
 | M07-M4 Authorization & Integration | ✓ **SATISFIED** — §5 approval signed 2026-08-18; Module 02 owner sign-off (D-09, **RECORDED 2026-08-19**) — **M07-M4 authorized 2026-08-19**                        |
-| M07-M5 APIs & Web/Mobile           | §5 approval + Module 02 sign-off (D-09, **PENDING**) + Security/Platform D-10 confirmation (D-10, **PENDING — NOT RECORDED**) — **NOT YET AUTHORIZED** |
+| M07-M5 APIs & Web/Mobile           | ✓ **SATISFIED** — §5 approval signed 2026-08-18; Module 02 sign-off (D-09, **RECORDED 2026-08-19**); Security/Platform D-10 confirmation (D-10, **RECORDED 2026-08-19**) — **M07-M5 authorized 2026-08-19** |
 
 ## 5. Final owner approval statement (sign to authorize)
 
@@ -84,9 +84,8 @@ Date: 2026-08-18
 
 > **Sign-off scope (recorded):** the §5 signature authorizes milestones
 > M07-M1 (Domain Foundation), M07-M2 (Persistence), and M07-M3 (Application
-> Services). Milestones M07-M4 and M07-M5 are **NOT** authorized and remain
-> gated per §4 on the pending external conditions in §3 (Module 02 owner
-> sign-off; Security/Platform D-10 rate-limit confirmation).
+> Services). Milestones M07-M4 and M07-M5 are authorized via subsequent
+> sign-offs (D-09 recorded 2026-08-19; D-10 recorded 2026-08-19).
 
 Signed (Product/Architecture Owner): ✓ **SIGNED — Product/Architecture
 Owner, 2026-08-18 (authorizes M07-M1…M07-M3)**
@@ -96,11 +95,11 @@ Owner, 2026-08-18 (authorizes M07-M1…M07-M3)**
 | Condition                                     | Required from     | Status                                                | Date |
 | --------------------------------------------- | ----------------- | ----------------------------------------------------- | ---- |
 | `cart.*` permission identifiers (D-09)        | Module 02 owner   | **RECORDED 2026-08-19** — additive non-weakening sign-off (D-09) | 2026-08-19 |
-| D-10 rate-limit values (60/120/50)            | Security/Platform | **PENDING — NOT RECORDED**                            | —    |
+| D-10 rate-limit values (60/120/50)            | Security/Platform | **RECORDED 2026-08-19** — 60/120/50 per hour confirmed; cart buckets isolated from M06 | 2026-08-19 |
 | D-11 retention durations (cart audit, 90-day) | Legal/Compliance  | **PENDING — NOT RECORDED** (may reuse D-15 precedent) | —    |
 
 > **Sign-off record (2026-08-19):** the §5 signatures authorize **M07-M1
-> through M07-M4**. The Module 02 owner sign-off for the additive `cart.*`
+> through M07-M5**. The Module 02 owner sign-off for the additive `cart.*`
 > permission catalog is **RECORDED 2026-08-19** (D-09). The
-> Security/Platform D-10 rate-limit confirmation is **PENDING — NOT
-> RECORDED** (D-10), which blocks M07-M5.
+> Security/Platform D-10 rate-limit confirmation is **RECORDED 2026-08-19**
+> (D-10: 60/120/50 per hour, cart buckets isolated from M06).

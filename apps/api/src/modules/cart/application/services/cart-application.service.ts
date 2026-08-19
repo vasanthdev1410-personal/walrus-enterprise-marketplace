@@ -13,7 +13,6 @@ import { CartLine } from '../../domain/entities/cart-line';
 import type { CartLifecycle } from '../../domain/lifecycle/cart-lifecycle';
 import type { CartReservationPort } from '../../domain/ports/cart-reservation.port';
 import type { CartRepository } from '../../domain/ports/cart-repository.port';
-import type { CartLineId } from '../../domain/value-objects/cart-line-id';
 import { MoneyAmount } from '../../domain/value-objects/money-amount';
 import { Quantity } from '../../domain/value-objects/quantity';
 
@@ -116,7 +115,7 @@ export class CartApplicationService {
     await this.rateLimitMutate(command.actorIdentityId);
     await this.requireActiveCustomer(command.customerProfileId);
 
-    let cart = await this.repository.findActiveByCustomerProfileId(command.customerProfileId);
+    const cart = await this.repository.findActiveByCustomerProfileId(command.customerProfileId);
 
     // Enforce ACTIVE-only mutation (D-07) and version guard (D-16).
     if (cart !== null) {

@@ -1,15 +1,24 @@
 import {
   CanActivate,
+  CustomDecorator,
   ExecutionContext,
   ForbiddenException,
   Inject,
   Injectable,
+  SetMetadata,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { UuidV7 } from '../../../identity-authentication/domain/shared/value-objects/uuid-v7';
 import type { AuthenticatedRequest } from '../../../identity-authentication/presentation/authentication-context';
+import type { CartAdminAction } from '../../application/ports/cart-admin-authorization.port';
 import type { CartAdminAuthorizationPort } from '../../application/ports/cart-admin-authorization.port';
 import { CART_ADMIN_AUTHORIZATION } from '../../cart.tokens';
+
+/**
+ * Sets the required admin action on a handler for the CartAdminPermissionGuard.
+ */
+export const RequireAdminAction = (action: CartAdminAction): CustomDecorator =>
+  SetMetadata('cart:adminAction', action);
 
 /**
  * WEMP-M07-AUTHZ-001 §2.2 (D-09, Module 02 owner sign-off RECORDED 2026-08-19;

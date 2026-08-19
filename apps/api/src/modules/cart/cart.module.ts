@@ -21,7 +21,6 @@ import { INVENTORY_RESERVATION_PORT } from '../inventory/inventory.tokens';
 import type { ProductCatalogReadPort } from '../product-catalog/domain/ports/product-catalog-read.port';
 import { PRODUCT_CATALOG_READ } from '../product-catalog/product-catalog.tokens';
 import type { AuthorizationApplicationService } from '../authorization/application/services/authorization-application.service';
-import type { CustomerProfileReadPort } from '../customer/domain/ports/customer-profile-read.port';
 import type { CustomerProfileRepository } from '../customer/domain/ports/customer-repository.port';
 import { CUSTOMER_PROFILE_REPOSITORY } from '../customer/customer.tokens';
 import {
@@ -46,6 +45,8 @@ import { RecordedCartRetentionConfigurationAdapter } from './infrastructure/conf
 import { PrismaCartRepository } from './infrastructure/persistence/prisma/repositories/prisma-cart-repository';
 import { CartSelfServicePermissionGuard } from './presentation/guards/cart-self-service-permission.guard';
 import { CartAdminPermissionGuard } from './presentation/guards/cart-admin-permission.guard';
+import { CartSelfServiceController } from './presentation/cart-self-service.controller';
+import { CartAdminController } from './presentation/cart-admin.controller';
 
 /**
  * WEMP-M07-PLAN-001 M07-M2/M07-M3/M07-M4. Module 07 wiring.
@@ -81,6 +82,7 @@ import { CartAdminPermissionGuard } from './presentation/guards/cart-admin-permi
     ProductCatalogModule,
     AuthorizationCoreModule,
   ],
+  controllers: [CartSelfServiceController, CartAdminController],
   providers: [
     {
       provide: CART_RETENTION_CONFIGURATION,
