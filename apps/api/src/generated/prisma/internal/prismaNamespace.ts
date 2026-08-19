@@ -466,7 +466,11 @@ export const ModelName = {
   CustomerAddress: 'CustomerAddress',
   CustomerBusinessProfile: 'CustomerBusinessProfile',
   CustomerPreference: 'CustomerPreference',
-  CustomerAuditRecord: 'CustomerAuditRecord'
+  CustomerAuditRecord: 'CustomerAuditRecord',
+  Cart: 'Cart',
+  CartLine: 'CartLine',
+  CartStateTransition: 'CartStateTransition',
+  CartAuditRecord: 'CartAuditRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -482,7 +486,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "apiIdempotencyRecord" | "identity" | "identityIdentifier" | "credential" | "credentialHistoryRecord" | "passwordHistoryRecord" | "authenticationSecurityClassificationAssignment" | "mfaEnrollment" | "mfaFactor" | "recoveryCodeSet" | "recoveryCodeRecord" | "trustedDevice" | "identityStateTransition" | "session" | "refreshTokenFamily" | "refreshTokenRecord" | "verificationChallenge" | "verificationAttempt" | "otpEvidenceRecord" | "recoveryRequest" | "recoveryEvidenceRecord" | "recoveryApprovalRecord" | "recoveryAttempt" | "recoveryStateTransition" | "recoveryNotificationRecord" | "nonProductionRateLimitRecord" | "basicAuditEventRecord" | "identityRoleAssignment" | "authorizationDecisionRecord" | "trustedWorkloadReplayRecord" | "authorizationApprovalRecord" | "provisioningAuthorityRecord" | "bootstrapControlRecord" | "privilegedActivationSaga" | "identityReadinessAttestation" | "identityReadinessInbox" | "identityReadinessOutbox" | "privilegedEligibilityInvalidationOutbox" | "authorizationAuditParticipant" | "privilegedAccessEligibilityRecord" | "sellerProfile" | "sellerOrganization" | "sellerIdentityAssociation" | "sellerBusinessVerification" | "sellerVerificationEvidence" | "sellerWarehouse" | "sellerAgreement" | "sellerStateTransition" | "sellerBusinessAuditRecord" | "sellerEvidenceLegalHold" | "product" | "productVariant" | "productSku" | "productCategory" | "productAttributeDefinition" | "productAttributeValue" | "productMedia" | "productStateTransition" | "productAuditRecord" | "productPriceHistory" | "stockPool" | "inventoryMovementRecord" | "inventoryAuditRecord" | "inventoryConfigRecord" | "customerProfile" | "customerStateTransition" | "customerAddress" | "customerBusinessProfile" | "customerPreference" | "customerAuditRecord"
+    modelProps: "apiIdempotencyRecord" | "identity" | "identityIdentifier" | "credential" | "credentialHistoryRecord" | "passwordHistoryRecord" | "authenticationSecurityClassificationAssignment" | "mfaEnrollment" | "mfaFactor" | "recoveryCodeSet" | "recoveryCodeRecord" | "trustedDevice" | "identityStateTransition" | "session" | "refreshTokenFamily" | "refreshTokenRecord" | "verificationChallenge" | "verificationAttempt" | "otpEvidenceRecord" | "recoveryRequest" | "recoveryEvidenceRecord" | "recoveryApprovalRecord" | "recoveryAttempt" | "recoveryStateTransition" | "recoveryNotificationRecord" | "nonProductionRateLimitRecord" | "basicAuditEventRecord" | "identityRoleAssignment" | "authorizationDecisionRecord" | "trustedWorkloadReplayRecord" | "authorizationApprovalRecord" | "provisioningAuthorityRecord" | "bootstrapControlRecord" | "privilegedActivationSaga" | "identityReadinessAttestation" | "identityReadinessInbox" | "identityReadinessOutbox" | "privilegedEligibilityInvalidationOutbox" | "authorizationAuditParticipant" | "privilegedAccessEligibilityRecord" | "sellerProfile" | "sellerOrganization" | "sellerIdentityAssociation" | "sellerBusinessVerification" | "sellerVerificationEvidence" | "sellerWarehouse" | "sellerAgreement" | "sellerStateTransition" | "sellerBusinessAuditRecord" | "sellerEvidenceLegalHold" | "product" | "productVariant" | "productSku" | "productCategory" | "productAttributeDefinition" | "productAttributeValue" | "productMedia" | "productStateTransition" | "productAuditRecord" | "productPriceHistory" | "stockPool" | "inventoryMovementRecord" | "inventoryAuditRecord" | "inventoryConfigRecord" | "customerProfile" | "customerStateTransition" | "customerAddress" | "customerBusinessProfile" | "customerPreference" | "customerAuditRecord" | "cart" | "cartLine" | "cartStateTransition" | "cartAuditRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5666,6 +5670,302 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Cart: {
+      payload: Prisma.$CartPayload<ExtArgs>
+      fields: Prisma.CartFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CartFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CartFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload>
+        }
+        findFirst: {
+          args: Prisma.CartFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CartFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload>
+        }
+        findMany: {
+          args: Prisma.CartFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload>[]
+        }
+        create: {
+          args: Prisma.CartCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload>
+        }
+        createMany: {
+          args: Prisma.CartCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CartCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload>[]
+        }
+        delete: {
+          args: Prisma.CartDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload>
+        }
+        update: {
+          args: Prisma.CartUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload>
+        }
+        deleteMany: {
+          args: Prisma.CartDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CartUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CartUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload>[]
+        }
+        upsert: {
+          args: Prisma.CartUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartPayload>
+        }
+        aggregate: {
+          args: Prisma.CartAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCart>
+        }
+        groupBy: {
+          args: Prisma.CartGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CartGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CartCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CartCountAggregateOutputType> | number
+        }
+      }
+    }
+    CartLine: {
+      payload: Prisma.$CartLinePayload<ExtArgs>
+      fields: Prisma.CartLineFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CartLineFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CartLineFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload>
+        }
+        findFirst: {
+          args: Prisma.CartLineFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CartLineFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload>
+        }
+        findMany: {
+          args: Prisma.CartLineFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload>[]
+        }
+        create: {
+          args: Prisma.CartLineCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload>
+        }
+        createMany: {
+          args: Prisma.CartLineCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CartLineCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload>[]
+        }
+        delete: {
+          args: Prisma.CartLineDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload>
+        }
+        update: {
+          args: Prisma.CartLineUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload>
+        }
+        deleteMany: {
+          args: Prisma.CartLineDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CartLineUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CartLineUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload>[]
+        }
+        upsert: {
+          args: Prisma.CartLineUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartLinePayload>
+        }
+        aggregate: {
+          args: Prisma.CartLineAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCartLine>
+        }
+        groupBy: {
+          args: Prisma.CartLineGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CartLineGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CartLineCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CartLineCountAggregateOutputType> | number
+        }
+      }
+    }
+    CartStateTransition: {
+      payload: Prisma.$CartStateTransitionPayload<ExtArgs>
+      fields: Prisma.CartStateTransitionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CartStateTransitionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CartStateTransitionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload>
+        }
+        findFirst: {
+          args: Prisma.CartStateTransitionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CartStateTransitionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload>
+        }
+        findMany: {
+          args: Prisma.CartStateTransitionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload>[]
+        }
+        create: {
+          args: Prisma.CartStateTransitionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload>
+        }
+        createMany: {
+          args: Prisma.CartStateTransitionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CartStateTransitionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload>[]
+        }
+        delete: {
+          args: Prisma.CartStateTransitionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload>
+        }
+        update: {
+          args: Prisma.CartStateTransitionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload>
+        }
+        deleteMany: {
+          args: Prisma.CartStateTransitionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CartStateTransitionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CartStateTransitionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload>[]
+        }
+        upsert: {
+          args: Prisma.CartStateTransitionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartStateTransitionPayload>
+        }
+        aggregate: {
+          args: Prisma.CartStateTransitionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCartStateTransition>
+        }
+        groupBy: {
+          args: Prisma.CartStateTransitionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CartStateTransitionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CartStateTransitionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CartStateTransitionCountAggregateOutputType> | number
+        }
+      }
+    }
+    CartAuditRecord: {
+      payload: Prisma.$CartAuditRecordPayload<ExtArgs>
+      fields: Prisma.CartAuditRecordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CartAuditRecordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CartAuditRecordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload>
+        }
+        findFirst: {
+          args: Prisma.CartAuditRecordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CartAuditRecordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload>
+        }
+        findMany: {
+          args: Prisma.CartAuditRecordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload>[]
+        }
+        create: {
+          args: Prisma.CartAuditRecordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload>
+        }
+        createMany: {
+          args: Prisma.CartAuditRecordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CartAuditRecordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload>[]
+        }
+        delete: {
+          args: Prisma.CartAuditRecordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload>
+        }
+        update: {
+          args: Prisma.CartAuditRecordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload>
+        }
+        deleteMany: {
+          args: Prisma.CartAuditRecordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CartAuditRecordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CartAuditRecordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload>[]
+        }
+        upsert: {
+          args: Prisma.CartAuditRecordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CartAuditRecordPayload>
+        }
+        aggregate: {
+          args: Prisma.CartAuditRecordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCartAuditRecord>
+        }
+        groupBy: {
+          args: Prisma.CartAuditRecordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CartAuditRecordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CartAuditRecordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CartAuditRecordCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -6921,6 +7221,75 @@ export const CustomerAuditRecordScalarFieldEnum = {
 export type CustomerAuditRecordScalarFieldEnum = (typeof CustomerAuditRecordScalarFieldEnum)[keyof typeof CustomerAuditRecordScalarFieldEnum]
 
 
+export const CartScalarFieldEnum = {
+  cartId: 'cartId',
+  customerProfileId: 'customerProfileId',
+  state: 'state',
+  totalLines: 'totalLines',
+  totalItems: 'totalItems',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  expiresAt: 'expiresAt',
+  correlationId: 'correlationId'
+} as const
+
+export type CartScalarFieldEnum = (typeof CartScalarFieldEnum)[keyof typeof CartScalarFieldEnum]
+
+
+export const CartLineScalarFieldEnum = {
+  cartLineId: 'cartLineId',
+  cartId: 'cartId',
+  skuId: 'skuId',
+  productId: 'productId',
+  skuCode: 'skuCode',
+  quantity: 'quantity',
+  unitPriceAmount: 'unitPriceAmount',
+  unitPriceCurrency: 'unitPriceCurrency',
+  snapshotTaxIncluded: 'snapshotTaxIncluded',
+  productUnavailable: 'productUnavailable',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CartLineScalarFieldEnum = (typeof CartLineScalarFieldEnum)[keyof typeof CartLineScalarFieldEnum]
+
+
+export const CartStateTransitionScalarFieldEnum = {
+  transitionId: 'transitionId',
+  cartId: 'cartId',
+  fromState: 'fromState',
+  toState: 'toState',
+  stateVersion: 'stateVersion',
+  actorIdentityId: 'actorIdentityId',
+  actorKind: 'actorKind',
+  reasonReference: 'reasonReference',
+  correlationId: 'correlationId',
+  causationId: 'causationId',
+  sourceReference: 'sourceReference',
+  transitionedAt: 'transitionedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CartStateTransitionScalarFieldEnum = (typeof CartStateTransitionScalarFieldEnum)[keyof typeof CartStateTransitionScalarFieldEnum]
+
+
+export const CartAuditRecordScalarFieldEnum = {
+  auditEventId: 'auditEventId',
+  cartId: 'cartId',
+  customerProfileId: 'customerProfileId',
+  eventType: 'eventType',
+  actorIdentityId: 'actorIdentityId',
+  correlationId: 'correlationId',
+  evidenceDigest: 'evidenceDigest',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CartAuditRecordScalarFieldEnum = (typeof CartAuditRecordScalarFieldEnum)[keyof typeof CartAuditRecordScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -7967,6 +8336,20 @@ export type ListEnumCustomerPreferenceKeyFieldRefInput<$PrismaModel> = FieldRefI
 
 
 /**
+ * Reference to a field of type 'CartState'
+ */
+export type EnumCartStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CartState'>
+    
+
+
+/**
+ * Reference to a field of type 'CartState[]'
+ */
+export type ListEnumCartStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CartState[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -8200,6 +8583,10 @@ export type GlobalOmitConfig = {
   customerBusinessProfile?: Prisma.CustomerBusinessProfileOmit
   customerPreference?: Prisma.CustomerPreferenceOmit
   customerAuditRecord?: Prisma.CustomerAuditRecordOmit
+  cart?: Prisma.CartOmit
+  cartLine?: Prisma.CartLineOmit
+  cartStateTransition?: Prisma.CartStateTransitionOmit
+  cartAuditRecord?: Prisma.CartAuditRecordOmit
 }
 
 /* Types for Logging */

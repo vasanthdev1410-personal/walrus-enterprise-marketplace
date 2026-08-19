@@ -367,3 +367,23 @@ export type CustomerPreference = Prisma.CustomerPreferenceModel
  * 
  */
 export type CustomerAuditRecord = Prisma.CustomerAuditRecordModel
+/**
+ * Model Cart
+ * 
+ */
+export type Cart = Prisma.CartModel
+/**
+ * Model CartLine
+ * 
+ */
+export type CartLine = Prisma.CartLineModel
+/**
+ * Model CartStateTransition
+ * 
+ */
+export type CartStateTransition = Prisma.CartStateTransitionModel
+/**
+ * Model CartAuditRecord
+ * 
+ */
+export type CartAuditRecord = Prisma.CartAuditRecordModel

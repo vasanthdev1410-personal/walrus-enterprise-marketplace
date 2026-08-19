@@ -1848,3 +1848,90 @@ model CustomerAuditRecord {
   @@index([customerProfileId, occurredAt(sort: Desc)])
   @@map("customer_audit_records")
 }
+
+// --- Module 07: Shopping Cart (WEMP-M07-SPEC-001) ---
+// Additive only: no Module 00/01/02/03/04/05/06 table is modified.
+// All cross-module references are logical UUIDv7 values (storage isolation, A-05).
+// Retention: D-11 retention durations configurable (CART_RECORD_RETENTION_DAYS,
+// default 90 days) — enforced by the application-layer retention processor (M07-M3),
+// never by this migration.
+
+enum CartState {
+  ACTIVE
+  CHECKED_OUT
+  ARCHIVED
+  AUTO_EXPIRED
+}
+
+model Cart {
+  cartId            String      @id @map("cart_id") @db.Uuid
+  customerProfileId String      @map("customer_profile_id") @db.Uuid
+  state             CartState   @map("state")
+  totalLines        Int         @map("total_lines")
+  totalItems        Int         @map("total_items")
+  aggregateVersion  Int         @map("aggregate_version")
+  createdAt         DateTime    @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime    @map("updated_at") @db.Timestamptz(6)
+  expiresAt         DateTime?   @map("expires_at") @db.Timestamptz(6)
+  correlationId     String?     @map("correlation_id") @db.Uuid
+
+  @@unique([customerProfileId])
+  @@unique([cartId, aggregateVersion])
+  @@map("carts")
+}
+
+model CartLine {
+  cartLineId          String   @id @map("cart_line_id") @db.Uuid
+  cartId              String   @map("cart_id") @db.Uuid
+  skuId               String   @map("sku_id") @db.Uuid
+  productId           String   @map("product_id") @db.Uuid
+  skuCode             String   @map("sku_code") @db.Text
+  quantity            Int      @map("quantity")
+  unitPriceAmount     Int      @map("unit_price_amount")
+  unitPriceCurrency   String   @map("unit_price_currency") @db.Text
+  snapshotTaxIncluded Boolean  @map("snapshot_tax_included")
+  productUnavailable  Boolean  @map("product_unavailable")
+  aggregateVersion    Int      @map("aggregate_version")
+  createdAt           DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([cartId, skuId])
+  @@index([cartId])
+  @@map("cart_lines")
+}
+
+model CartStateTransition {
+  transitionId     String    @id @map("transition_id") @db.Uuid
+  cartId           String    @map("cart_id") @db.Uuid
+  fromState        CartState @map("from_state")
+  toState          CartState @map("to_state")
+  stateVersion     Int       @map("state_version")
+  actorIdentityId  String    @map("actor_identity_id") @db.Uuid
+  actorKind        String    @map("actor_kind") @db.Text
+  reasonReference  String    @map("reason_reference") @db.Text
+  correlationId    String?   @map("correlation_id") @db.Uuid
+  causationId      String?   @map("causation_id") @db.Uuid
+  sourceReference  String?   @map("source_reference") @db.Text
+  transitionedAt   DateTime  @map("transitioned_at") @db.Timestamptz(6)
+  createdAt        DateTime  @map("created_at") @db.Timestamptz(6)
+
+  @@unique([cartId, stateVersion])
+  @@index([cartId, transitionedAt(sort: Desc)])
+  @@map("cart_state_transitions")
+}
+
+model CartAuditRecord {
+  auditEventId       String   @id @map("audit_event_id") @db.Uuid
+  cartId             String   @map("cart_id") @db.Uuid
+  customerProfileId  String   @map("customer_profile_id") @db.Uuid
+  eventType          String   @map("event_type") @db.Text
+  actorIdentityId    String   @map("actor_identity_id") @db.Uuid
+  correlationId      String?  @map("correlation_id") @db.Uuid
+  evidenceDigest     String?  @map("evidence_digest") @db.Text
+  occurredAt         DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt          DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([cartId, occurredAt(sort: Desc)])
+  @@index([customerProfileId, occurredAt(sort: Desc)])
+  @@map("cart_audit_records")
+}

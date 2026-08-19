@@ -701,3 +701,13 @@ export const CustomerPreferenceKey = {
 } as const
 
 export type CustomerPreferenceKey = (typeof CustomerPreferenceKey)[keyof typeof CustomerPreferenceKey]
+
+
+export const CartState = {
+  ACTIVE: 'ACTIVE',
+  CHECKED_OUT: 'CHECKED_OUT',
+  ARCHIVED: 'ARCHIVED',
+  AUTO_EXPIRED: 'AUTO_EXPIRED'
+} as const
+
+export type CartState = (typeof CartState)[keyof typeof CartState]

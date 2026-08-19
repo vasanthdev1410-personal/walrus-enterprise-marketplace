@@ -120,7 +120,11 @@ export const ModelName = {
   CustomerAddress: 'CustomerAddress',
   CustomerBusinessProfile: 'CustomerBusinessProfile',
   CustomerPreference: 'CustomerPreference',
-  CustomerAuditRecord: 'CustomerAuditRecord'
+  CustomerAuditRecord: 'CustomerAuditRecord',
+  Cart: 'Cart',
+  CartLine: 'CartLine',
+  CartStateTransition: 'CartStateTransition',
+  CartAuditRecord: 'CartAuditRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1353,6 +1357,75 @@ export const CustomerAuditRecordScalarFieldEnum = {
 } as const
 
 export type CustomerAuditRecordScalarFieldEnum = (typeof CustomerAuditRecordScalarFieldEnum)[keyof typeof CustomerAuditRecordScalarFieldEnum]
+
+
+export const CartScalarFieldEnum = {
+  cartId: 'cartId',
+  customerProfileId: 'customerProfileId',
+  state: 'state',
+  totalLines: 'totalLines',
+  totalItems: 'totalItems',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  expiresAt: 'expiresAt',
+  correlationId: 'correlationId'
+} as const
+
+export type CartScalarFieldEnum = (typeof CartScalarFieldEnum)[keyof typeof CartScalarFieldEnum]
+
+
+export const CartLineScalarFieldEnum = {
+  cartLineId: 'cartLineId',
+  cartId: 'cartId',
+  skuId: 'skuId',
+  productId: 'productId',
+  skuCode: 'skuCode',
+  quantity: 'quantity',
+  unitPriceAmount: 'unitPriceAmount',
+  unitPriceCurrency: 'unitPriceCurrency',
+  snapshotTaxIncluded: 'snapshotTaxIncluded',
+  productUnavailable: 'productUnavailable',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CartLineScalarFieldEnum = (typeof CartLineScalarFieldEnum)[keyof typeof CartLineScalarFieldEnum]
+
+
+export const CartStateTransitionScalarFieldEnum = {
+  transitionId: 'transitionId',
+  cartId: 'cartId',
+  fromState: 'fromState',
+  toState: 'toState',
+  stateVersion: 'stateVersion',
+  actorIdentityId: 'actorIdentityId',
+  actorKind: 'actorKind',
+  reasonReference: 'reasonReference',
+  correlationId: 'correlationId',
+  causationId: 'causationId',
+  sourceReference: 'sourceReference',
+  transitionedAt: 'transitionedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CartStateTransitionScalarFieldEnum = (typeof CartStateTransitionScalarFieldEnum)[keyof typeof CartStateTransitionScalarFieldEnum]
+
+
+export const CartAuditRecordScalarFieldEnum = {
+  auditEventId: 'auditEventId',
+  cartId: 'cartId',
+  customerProfileId: 'customerProfileId',
+  eventType: 'eventType',
+  actorIdentityId: 'actorIdentityId',
+  correlationId: 'correlationId',
+  evidenceDigest: 'evidenceDigest',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CartAuditRecordScalarFieldEnum = (typeof CartAuditRecordScalarFieldEnum)[keyof typeof CartAuditRecordScalarFieldEnum]
 
 
 export const SortOrder = {
