@@ -5,8 +5,8 @@
 **Document ID:** WEMP-M07-DECISIONS-001
 **Version:** Review Draft 1.0
 **Status:** OWNER-APPROVED (D-01…D-18) — signed by the Product/Architecture
-Owner 2026-08-18. M07-M1 authorized 2026-08-18.
-**Effective date:** 2026-08-18 (M07-M1)
+Owner 2026-08-18. M07-M1…M07-M3 authorized 2026-08-18.
+**Effective date:** 2026-08-18 (M07-M1…M07-M3)
 **Classification:** Confidential — Internal Use Only
 
 > Every business/security decision required by Module 07 is recorded here.
@@ -71,25 +71,25 @@ milestones listed. Unapproved decisions remain non-implementable.
 | Milestone                          | Gate                                                                                                                                                   |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | M07-M1 Domain Foundation           | ✓ **SATISFIED** — §5 approval signed 2026-08-18 (D-01/D-02/D-03/D-04/D-05/D-06/D-07/D-08 owner-approved) — **M07-M1 authorized 2026-08-18**            |
-| M07-M2 Persistence                 | §5 approval + D-06/D-11 persistence-layer decisions — **NOT YET AUTHORIZED**                                                                           |
-| M07-M3 Application Services        | §5 approval + D-06/D-07/D-08/D-12/D-13/D-17 application-layer decisions — **NOT YET AUTHORIZED**                                                       |
+| M07-M2 Persistence                 | ✓ **SATISFIED** — §5 approval signed 2026-08-18; D-06/D-11 OWNER-APPROVED (retention configurable per D-11) — **M07-M2 authorized 2026-08-18**          |
+| M07-M3 Application Services        | ✓ **SATISFIED** — §5 approval signed 2026-08-18; D-06/D-07/D-08/D-12/D-13/D-17 OWNER-APPROVED — **M07-M3 authorized 2026-08-18**                      |
 | M07-M4 Authorization & Integration | §5 approval + Module 02 owner sign-off (D-09, **PENDING — NOT RECORDED**) — **NOT YET AUTHORIZED**                                                     |
 | M07-M5 APIs & Web/Mobile           | §5 approval + Module 02 sign-off (D-09, **PENDING**) + Security/Platform D-10 confirmation (D-10, **PENDING — NOT RECORDED**) — **NOT YET AUTHORIZED** |
 
 ## 5. Final owner approval statement (sign to authorize)
 
-**Signed — Product/Architecture Owner, 2026-08-18 (authorizes M07-M1 only)**
+**Signed — Product/Architecture Owner, 2026-08-18 (authorizes M07-M1…M07-M3)**
 
 Date: 2026-08-18
 
-> **Sign-off scope (recorded):** the §5 signature authorizes milestone M07-M1
-> (Shopping Cart Domain Foundation) only. Milestones M07-M2 through M07-M5 are
-> **NOT** authorized and remain gated per §4 on the pending external
-> conditions in §3 (Module 02 owner sign-off; Security/Platform D-10
-> rate-limit confirmation).
+> **Sign-off scope (recorded):** the §5 signature authorizes milestones
+> M07-M1 (Domain Foundation), M07-M2 (Persistence), and M07-M3 (Application
+> Services). Milestones M07-M4 and M07-M5 are **NOT** authorized and remain
+> gated per §4 on the pending external conditions in §3 (Module 02 owner
+> sign-off; Security/Platform D-10 rate-limit confirmation).
 
 Signed (Product/Architecture Owner): ✓ **SIGNED — Product/Architecture
-Owner, 2026-08-18 (authorizes M07-M1 only)**
+Owner, 2026-08-18 (authorizes M07-M1…M07-M3)**
 
 ## 6. External-authority sign-off record
 
@@ -100,7 +100,7 @@ Owner, 2026-08-18 (authorizes M07-M1 only)**
 | D-11 retention durations (cart audit, 90-day) | Legal/Compliance  | **PENDING — NOT RECORDED** (may reuse D-15 precedent) | —    |
 
 > **Sign-off record (2026-08-18):** the §5 signatures authorize **M07-M1
-> only**. The Module 02 owner sign-off for the additive `cart.*` permission
-> catalog is **PENDING — NOT RECORDED** (D-09), which blocks M07-M4. The
-> Security/Platform D-10 rate-limit confirmation is **PENDING — NOT
-> RECORDED** (D-10), which blocks M07-M5.
+> through M07-M3**. The Module 02 owner sign-off for the additive `cart.*`
+> permission catalog is **PENDING — NOT RECORDED** (D-09), which blocks
+> M07-M4. The Security/Platform D-10 rate-limit confirmation is **PENDING
+> — NOT RECORDED** (D-10), which blocks M07-M5.

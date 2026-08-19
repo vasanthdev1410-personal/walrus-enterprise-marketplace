@@ -4,8 +4,8 @@
 
 **Document ID:** WEMP-M07-PLAN-001
 **Version:** Review Draft 1.0
-**Status:** M07-M1 AUTHORIZED (2026-08-18); M07-M2…M07-M5 NOT AUTHORIZED
-**Effective date:** 2026-08-18 (M07-M1)
+**Status:** M07-M1…M07-M3 AUTHORIZED (2026-08-18); M07-M4…M07-M5 NOT AUTHORIZED
+**Effective date:** 2026-08-18 (M07-M1…M07-M3)
 **Classification:** Confidential — Internal Use Only
 
 ---
@@ -60,21 +60,21 @@ idempotency, no rate limiting.
 
 ---
 
-### M07-M2 — Persistence (NOT AUTHORIZED)
+### M07-M2 — Persistence (AUTHORIZED 2026-08-18)
 
 **Scope:** Prisma schema, migration, repository adapters.
 
-**Planned deliverables:** Cart/CartLine/CartStateTransition/CartAuditRecord
+**Deliverables:** Cart/CartLine/CartStateTransition/CartAuditRecord
 tables; PrismaCartRepository; Prisma schema validation.
 
 ---
 
-### M07-M3 — Application Services (NOT AUTHORIZED)
+### M07-M3 — Application Services (AUTHORIZED 2026-08-18)
 
 **Scope:** Use cases: add item, update quantity, remove item, clear cart,
 checkout handoff, cart expiry, item validation.
 
-**Planned deliverables:** CartApplicationService; CartExpirationService;
+**Deliverables:** CartApplicationService; CartExpirationService;
 price revalidation; inventory reservation wiring; idempotency (A-09).
 
 ---
@@ -114,8 +114,8 @@ CustomerCartWebSurface; MobileCartReadSurface; E2E tests; Playwright tests.
 | Milestone | Gate                                        | Status                   |
 | --------- | ------------------------------------------- | ------------------------ |
 | M07-M1    | Owner approval (D-01…D-08)                  | ✓ SATISFIED — 2026-08-18 |
-| M07-M2    | M07-M1 complete + persistence decisions     | NOT AUTHORIZED           |
-| M07-M3    | M07-M2 complete + application decisions     | NOT AUTHORIZED           |
+| M07-M2    | M07-M1 complete + persistence decisions     | ✓ SATISFIED — 2026-08-18 |
+| M07-M3    | M07-M2 complete + application decisions     | ✓ SATISFIED — 2026-08-18 |
 | M07-M4    | M07-M3 complete + Module 02 sign-off (D-09) | NOT AUTHORIZED           |
 | M07-M5    | M07-M4 complete + Security/Platform D-10    | NOT AUTHORIZED           |
 

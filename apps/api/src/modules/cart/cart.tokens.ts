@@ -1,2 +1,10 @@
 // --- M07-M2 retention configuration token ---
 export const CART_RETENTION_CONFIGURATION = Symbol('CART_RETENTION_CONFIGURATION');
+
+// --- M07-M3 application service tokens ---
+export const CART_APPLICATION_SERVICE = Symbol('CART_APPLICATION_SERVICE');
+
+// --- M07-M3 cross-module adapter tokens ---
+export const CART_INVENTORY_RESERVATION_ADAPTER = Symbol('CART_INVENTORY_RESERVATION_ADAPTER');
+export const CART_PRODUCT_CATALOG_READ_ADAPTER = Symbol('CART_PRODUCT_CATALOG_READ_ADAPTER');
+export const CART_CUSTOMER_PROFILE_READ_ADAPTER = Symbol('CART_CUSTOMER_PROFILE_READ_ADAPTER');
