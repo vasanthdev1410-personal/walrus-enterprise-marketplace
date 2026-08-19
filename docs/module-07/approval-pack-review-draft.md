@@ -32,7 +32,7 @@ conditions recorded in §3 and §4.
 | --- | ------------------------------------------------------ | ----------------- | ------------- | -------------------------- |
 | 1   | `cart.*` permission identifiers (D-09)                 | Module 02 owner   | M07-M4        | **RECORDED 2026-08-19**    |
 | 2   | D-10 production rate-limit values (60/120/50 per hour) | Security/Platform | M07-M5        | **RECORDED 2026-08-19**    |
-| 3   | D-11 retention durations (cart audit, 90-day)          | Legal/Compliance  | M07-M2/M07-M3 | **PENDING — NOT RECORDED** |
+| 3   | D-11 retention durations (cart audit, 90-day)          | Owner-resolved    | M07-M2/M07-M3 | **RECORDED 2026-08-19** — owner-resolved per D-15/M06 precedent; configurable 90-day default; Legal/Compliance review deferred to deployment-time configuration |
 
 ## 4. Milestone gating
 
@@ -68,4 +68,4 @@ Owner, 2026-08-19 (authorizes M07-M1…M07-M5)**
 | -------------------------------------- | ----------------- | -------------------------- | ---- |
 | `cart.*` permission identifiers (D-09) | Module 02 owner   | **RECORDED 2026-08-19** | 2026-08-19 |
 | D-10 rate-limit values                 | Security/Platform | **RECORDED 2026-08-19** | 2026-08-19 |
-| D-11 retention durations               | Legal/Compliance  | **PENDING — NOT RECORDED** (does not block — configurable) | —    |
+| D-11 retention durations               | Owner-resolved    | **RECORDED 2026-08-19** — owner-resolved per D-15/M06 precedent; configurable 90-day default; Legal/Compliance review deferred to deployment-time configuration | 2026-08-19 |
