@@ -429,3 +429,28 @@ export type OrderStateTransition = Prisma.OrderStateTransitionModel
  * 
  */
 export type OrderAuditRecord = Prisma.OrderAuditRecordModel
+/**
+ * Model Payment
+ * 
+ */
+export type Payment = Prisma.PaymentModel
+/**
+ * Model PaymentAttempt
+ * 
+ */
+export type PaymentAttempt = Prisma.PaymentAttemptModel
+/**
+ * Model PaymentRefund
+ * 
+ */
+export type PaymentRefund = Prisma.PaymentRefundModel
+/**
+ * Model PaymentStateTransition
+ * 
+ */
+export type PaymentStateTransition = Prisma.PaymentStateTransitionModel
+/**
+ * Model PaymentAuditRecord
+ * 
+ */
+export type PaymentAuditRecord = Prisma.PaymentAuditRecordModel

@@ -128,7 +128,12 @@ export const ModelName = {
   Order: 'Order',
   OrderLine: 'OrderLine',
   OrderStateTransition: 'OrderStateTransition',
-  OrderAuditRecord: 'OrderAuditRecord'
+  OrderAuditRecord: 'OrderAuditRecord',
+  Payment: 'Payment',
+  PaymentAttempt: 'PaymentAttempt',
+  PaymentRefund: 'PaymentRefund',
+  PaymentStateTransition: 'PaymentStateTransition',
+  PaymentAuditRecord: 'PaymentAuditRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1502,6 +1507,89 @@ export const OrderAuditRecordScalarFieldEnum = {
 } as const
 
 export type OrderAuditRecordScalarFieldEnum = (typeof OrderAuditRecordScalarFieldEnum)[keyof typeof OrderAuditRecordScalarFieldEnum]
+
+
+export const PaymentScalarFieldEnum = {
+  paymentId: 'paymentId',
+  orderId: 'orderId',
+  customerProfileId: 'customerProfileId',
+  state: 'state',
+  amountCents: 'amountCents',
+  currency: 'currency',
+  provider: 'provider',
+  providerOrderId: 'providerOrderId',
+  providerPaymentId: 'providerPaymentId',
+  idempotencyKey: 'idempotencyKey',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  correlationId: 'correlationId'
+} as const
+
+export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
+
+
+export const PaymentAttemptScalarFieldEnum = {
+  paymentAttemptId: 'paymentAttemptId',
+  paymentId: 'paymentId',
+  providerPaymentId: 'providerPaymentId',
+  outcome: 'outcome',
+  providerResponseDigest: 'providerResponseDigest',
+  attemptedAt: 'attemptedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PaymentAttemptScalarFieldEnum = (typeof PaymentAttemptScalarFieldEnum)[keyof typeof PaymentAttemptScalarFieldEnum]
+
+
+export const PaymentRefundScalarFieldEnum = {
+  paymentRefundId: 'paymentRefundId',
+  paymentId: 'paymentId',
+  amountCents: 'amountCents',
+  currency: 'currency',
+  state: 'state',
+  providerRefundId: 'providerRefundId',
+  aggregateVersion: 'aggregateVersion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PaymentRefundScalarFieldEnum = (typeof PaymentRefundScalarFieldEnum)[keyof typeof PaymentRefundScalarFieldEnum]
+
+
+export const PaymentStateTransitionScalarFieldEnum = {
+  transitionId: 'transitionId',
+  paymentId: 'paymentId',
+  fromState: 'fromState',
+  toState: 'toState',
+  stateVersion: 'stateVersion',
+  actorIdentityId: 'actorIdentityId',
+  actorKind: 'actorKind',
+  reasonReference: 'reasonReference',
+  correlationId: 'correlationId',
+  causationId: 'causationId',
+  sourceReference: 'sourceReference',
+  transitionedAt: 'transitionedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PaymentStateTransitionScalarFieldEnum = (typeof PaymentStateTransitionScalarFieldEnum)[keyof typeof PaymentStateTransitionScalarFieldEnum]
+
+
+export const PaymentAuditRecordScalarFieldEnum = {
+  auditEventId: 'auditEventId',
+  paymentId: 'paymentId',
+  orderId: 'orderId',
+  customerProfileId: 'customerProfileId',
+  eventType: 'eventType',
+  actorIdentityId: 'actorIdentityId',
+  correlationId: 'correlationId',
+  evidenceDigest: 'evidenceDigest',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PaymentAuditRecordScalarFieldEnum = (typeof PaymentAuditRecordScalarFieldEnum)[keyof typeof PaymentAuditRecordScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -1,0 +1,3 @@
+// --- M09-M2 persistence tokens ---
+export const PAYMENT_RETENTION_CONFIGURATION = Symbol('PAYMENT_RETENTION_CONFIGURATION');
+export const PAYMENT_REPOSITORY = Symbol('PAYMENT_REPOSITORY');

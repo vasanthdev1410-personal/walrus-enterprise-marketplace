@@ -724,3 +724,36 @@ export const OrderState = {
 } as const
 
 export type OrderState = (typeof OrderState)[keyof typeof OrderState]
+
+
+export const PaymentState = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  CAPTURED: 'CAPTURED',
+  FAILED: 'FAILED',
+  REFUND_PENDING: 'REFUND_PENDING',
+  REFUNDED: 'REFUNDED',
+  EXPIRED: 'EXPIRED'
+} as const
+
+export type PaymentState = (typeof PaymentState)[keyof typeof PaymentState]
+
+
+export const PaymentAttemptOutcome = {
+  INITIATED: 'INITIATED',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  TIMEOUT: 'TIMEOUT'
+} as const
+
+export type PaymentAttemptOutcome = (typeof PaymentAttemptOutcome)[keyof typeof PaymentAttemptOutcome]
+
+
+export const RefundState = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  REFUNDED: 'REFUNDED',
+  FAILED: 'FAILED'
+} as const
+
+export type RefundState = (typeof RefundState)[keyof typeof RefundState]
