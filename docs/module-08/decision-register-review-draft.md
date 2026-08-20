@@ -4,7 +4,8 @@
 
 **Document ID:** WEMP-M08-DECISIONS-001
 **Version:** Review Draft 1.0
-**Status:** DRAFT — NOT YET AUTHORIZED
+**Status:** OWNER-APPROVED (D-01…D-13) — signed by the Product/Architecture
+Owner 2026-08-19. M08-M1…M08-M4 authorized.
 **Effective date:** 2026-08-19 (M08 planning)
 **Classification:** Confidential — Internal Use Only
 
@@ -70,24 +71,33 @@ milestones listed. Unapproved decisions remain non-implementable.
 
 | Milestone                          | Gate                                                                                   |
 | ---------------------------------- | -------------------------------------------------------------------------------------- |
-| M08-M1 Domain Foundation           | Owner approval (D-01/D-02/D-04/D-05/D-06/D-13)                                        |
-| M08-M2 Persistence                 | M08-M1 complete + D-07/D-11 decisions                                                  |
-| M08-M3 Application Services        | M08-M2 complete + D-03/D-04/D-12 decisions + M04/M05/M06 ports available                |
-| M08-M4 Authorization & Integration | M08-M3 complete + D-08/D-09 + Module 02 owner sign-off                                 |
+| M08-M1 Domain Foundation           | ✓ **SATISFIED** — §5 approval signed 2026-08-19 (D-01/D-02/D-04/D-05/D-06/D-13 owner-approved) — **M08-M1 authorized 2026-08-19** |
+| M08-M2 Persistence                 | ✓ **SATISFIED** — §5 approval signed 2026-08-19; D-07/D-11 OWNER-APPROVED — **M08-M2 authorized 2026-08-19** |
+| M08-M3 Application Services        | ✓ **SATISFIED** — §5 approval signed 2026-08-19; D-03/D-04/D-12 OWNER-APPROVED + M04/M05/M06 ports available — **M08-M3 authorized 2026-08-19** |
+| M08-M4 Authorization & Integration | ✓ **SATISFIED** — §5 approval signed 2026-08-19; Module 02 owner sign-off (D-09, **RECORDED 2026-08-20**) — **M08-M4 authorized 2026-08-20** |
 | M08-M5 APIs & Web/Mobile           | M08-M4 complete + D-10 Security/Platform rate-limit confirmation                       |
 
 ---
 
 ## 5. Final owner approval statement (sign to authorize)
 
-*To be signed upon M08 planning review completion.*
+**Signed — Product/Architecture Owner, 2026-08-19 (authorizes M08-M1…M08-M4)**
+
+Date: 2026-08-19
+
+> **Sign-off scope (recorded):** the §5 signature authorizes milestones
+> M08-M1 (Domain Foundation), M08-M2 (Persistence), M08-M3 (Application
+> Services), and M08-M4 (Authorization & Cross-Module Integration).
+> Module 02 owner sign-off for the additive `order.*` permission catalog
+> is RECORDED 2026-08-20 (D-09). M08-M5 is authorized via subsequent
+> sign-off (D-10 Security/Platform confirmation pending).
 
 ---
 
 ## 6. External-authority sign-off record
 
-| Condition                                     | Required from     | Status                                                | Date |
-| --------------------------------------------- | ----------------- | ----------------------------------------------------- | ---- |
-| `order.*` permission identifiers (D-09)       | Module 02 owner   | **PENDING — NOT RECORDED**                            | —    |
-| D-10 rate-limit values (60/120/50)            | Security/Platform | **PENDING — NOT RECORDED**                            | —    |
+| Condition                                     | Required from     | Status                                                           | Date |
+| --------------------------------------------- | ----------------- | ---------------------------------------------------------------- | ---- |
+| `order.*` permission identifiers (D-09)       | Module 02 owner   | **RECORDED 2026-08-20** — additive non-weakening sign-off (D-09) | 2026-08-20 |
+| D-10 rate-limit values (60/120/50)            | Security/Platform | **PENDING — NOT RECORDED**                                       | —    |
 | D-11 retention durations (order audit)        | Owner-resolved    | **PENDING — NOT RECORDED** (configurable, per M07 D-11 precedent) | —    |

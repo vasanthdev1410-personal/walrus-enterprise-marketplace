@@ -504,6 +504,44 @@ const SEEDED_PERMISSIONS: readonly Permission[] = Object.freeze([
     allowedAction: 'MANAGE',
     status: 'ACTIVE',
   }),
+  // --- Module 08 ORDER self-service permissions (WEMP-M08-AUTHZ-001 §2.1, D-08) ---
+  // Every one of these is customer-identity-scoped (the approved fourth
+  // ownership-resolver scope): the decision additionally requires that the
+  // caller's authenticated Identity owns the target customer profile
+  // (CustomerProfile.identityId match, resolved server-side). Granted only
+  // to the CUSTOMER role; never administrative, never org-scoped.
+  new Permission({
+    permissionId: 'order.read',
+    name: 'Read own orders and order details',
+    protectedResource: 'order',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'order.create',
+    name: 'Create a new order from cart checkout snapshot',
+    protectedResource: 'order',
+    allowedAction: 'CREATE',
+    status: 'ACTIVE',
+  }),
+  // --- Module 08 ORDER administrative permissions (WEMP-M08-AUTHZ-001 §2.2, D-08) ---
+  // Granted to ADMIN and SUPER_ADMIN exactly as approved (D-08 no-override
+  // precedent); never customer-identity-scoped and never inheritable by the
+  // CUSTOMER role.
+  new Permission({
+    permissionId: 'order.admin.read',
+    name: 'Admin read any customer order (non-enumerating)',
+    protectedResource: 'order.admin',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'order.admin.manage',
+    name: 'Admin lifecycle operations on any order (transition/cancel)',
+    protectedResource: 'order.admin',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
 ]);
 
 /**
@@ -579,6 +617,12 @@ const CUSTOMER_IDENTITY_SCOPED_PERMISSIONS: ReadonlySet<string> = new Set([
   'cart.item.update',
   'cart.item.remove',
   'cart.clear',
+  // WEMP-M08-AUTHZ-001 §4 (D-08, Module 02 owner sign-off RECORDED
+  // 2026-08-20): the CUSTOMER self-service order set — customer-identity-
+  // scoped through the approved fourth ownership resolver. The
+  // administrative order.* permissions are NOT in this set.
+  'order.read',
+  'order.create',
 ]);
 
 export class PermissionCatalog {

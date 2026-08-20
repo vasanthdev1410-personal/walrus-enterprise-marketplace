@@ -66,6 +66,8 @@ describe('RoleCatalog (M02 domain core)', () => {
       'customer.preference.read',
       'customer.profile.read',
       'customer.profile.update',
+      'order.create',
+      'order.read',
     ]);
     expect(customer.properties.grantedPermissionIds).not.toContain('customer.read');
     expect(customer.properties.grantedPermissionIds).not.toContain('customer.lifecycle.manage');
@@ -121,6 +123,12 @@ describe('RoleCatalog (M02 domain core)', () => {
     // permission — no cross-role borrowing.
     expect(seller.properties.grantedPermissionIds).not.toContain('customer.profile.read');
     expect(seller.properties.grantedPermissionIds).not.toContain('customer.read');
+    // WEMP-M08-AUTHZ-001 §3 (D-08): SELLER never holds any order
+    // permission — no cross-role borrowing.
+    expect(seller.properties.grantedPermissionIds).not.toContain('order.read');
+    expect(seller.properties.grantedPermissionIds).not.toContain('order.create');
+    expect(seller.properties.grantedPermissionIds).not.toContain('order.admin.read');
+    expect(seller.properties.grantedPermissionIds).not.toContain('order.admin.manage');
   });
 
   it('grants ADMIN and SUPER_ADMIN exactly the approved seller administrative permissions (D-11)', () => {
@@ -151,6 +159,9 @@ describe('RoleCatalog (M02 domain core)', () => {
           // WEMP-M07-AUTHZ-001 §2.2 (D-09, sign-off 2026-08-19): cart admin grants.
           'cart.admin.read',
           'cart.admin.manage',
+          // WEMP-M08-AUTHZ-001 §2.2 (D-08, sign-off 2026-08-20): order admin grants.
+          'order.admin.read',
+          'order.admin.manage',
         ]),
       );
       // No customer self-service permission is granted to ADMIN/SUPER_ADMIN.
@@ -159,6 +170,9 @@ describe('RoleCatalog (M02 domain core)', () => {
       // No cart self-service permission is granted to ADMIN/SUPER_ADMIN.
       expect(role?.properties.grantedPermissionIds).not.toContain('cart.read');
       expect(role?.properties.grantedPermissionIds).not.toContain('cart.item.add');
+      // No order self-service permission is granted to ADMIN/SUPER_ADMIN.
+      expect(role?.properties.grantedPermissionIds).not.toContain('order.read');
+      expect(role?.properties.grantedPermissionIds).not.toContain('order.create');
       // No seller self-service permission is granted to ADMIN/SUPER_ADMIN.
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.profile.read');
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.verification.submit');

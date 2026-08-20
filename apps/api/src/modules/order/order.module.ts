@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { InventoryModule } from '../inventory/inventory.module';
 import { ProductCatalogModule } from '../product-catalog/product-catalog.module';
+import { AuthorizationCoreModule } from '../authorization/authorization-core.module';
+import { AUTHORIZATION_APPLICATION_SERVICE } from '../authorization/authorization.tokens';
 import type { ClockPort } from '../identity-authentication/application/ports/application-runtime.port';
 import type { NonProductionRateLimiterPort } from '../identity-authentication/application/ports/non-production-rate-limiter.port';
 import type { ApiIdempotencyService } from '../identity-authentication/application/services/api-idempotency.service';
@@ -17,6 +19,7 @@ import type { ProductCatalogReadPort } from '../product-catalog/domain/ports/pro
 import { PRODUCT_CATALOG_READ } from '../product-catalog/product-catalog.tokens';
 import type { CustomerProfileRepository } from '../customer/domain/ports/customer-repository.port';
 import { CUSTOMER_PROFILE_REPOSITORY } from '../customer/customer.tokens';
+import type { AuthorizationApplicationService } from '../authorization/application/services/authorization-application.service';
 import { OrderRetentionPolicy } from './domain/policy/order-retention.policy';
 import { OrderLifecycle } from './domain/lifecycle/order-lifecycle';
 import { RecordedOrderRetentionConfigurationAdapter } from './infrastructure/configuration/recorded-order-retention-configuration.adapter';
@@ -26,6 +29,10 @@ import { M07CartSnapshotReadAdapter } from './infrastructure/adapters/m07-cart-s
 import { OrderProductCatalogReadAdapter } from './infrastructure/adapters/order-product-catalog-read.adapter';
 import { OrderInventoryConfirmationAdapter } from './infrastructure/adapters/order-inventory-confirmation.adapter';
 import { Module06CustomerProfileReadAdapter } from './infrastructure/adapters/module06-customer-profile-read.adapter';
+import { Module02OrderAdminAuthorizationAdapter } from './application/adapters/module02-order-admin-authorization.adapter';
+import type { OrderAdminAuthorizationPort } from './application/ports/order-admin-authorization.port';
+import { OrderSelfServicePermissionGuard } from './presentation/guards/order-self-service-permission.guard';
+import { OrderAdminPermissionGuard } from './presentation/guards/order-admin-permission.guard';
 import {
   ORDER_RETENTION_CONFIGURATION,
   ORDER_REPOSITORY,
@@ -34,10 +41,13 @@ import {
   ORDER_INVENTORY_CONFIRMATION_ADAPTER,
   ORDER_PRODUCT_CATALOG_READ_ADAPTER,
   ORDER_CUSTOMER_PROFILE_READ_ADAPTER,
+  ORDER_ADMIN_AUTHORIZATION,
+  ORDER_SELF_SERVICE_PERMISSION_GUARD,
+  ORDER_ADMIN_PERMISSION_GUARD,
 } from './order.tokens';
 
 /**
- * WEMP-M08-PLAN-001 M08-M2/M08-M3. Module 08 wiring.
+ * WEMP-M08-PLAN-001 M08-M2/M08-M3/M08-M4. Module 08 wiring.
  *
  * M08-M2 provides:
  * - PrismaOrderRepository (implements OrderRepository port)
@@ -50,10 +60,19 @@ import {
  * - OrderProductCatalogReadAdapter (wraps M04 ProductCatalogReadPort)
  * - OrderInventoryConfirmationAdapter (wraps M05 InventoryReservationPort)
  * - Module06CustomerProfileReadAdapter (wraps M06 CustomerProfileRepository)
+ *
+ * M08-M4 adds:
+ * - Module02OrderAdminAuthorizationAdapter (real Module 02 admin authorization)
+ * - OrderSelfServicePermissionGuard (customer-identity-scoped permission guard)
+ * - OrderAdminPermissionGuard (admin permission guard)
+ *
+ * Fail closed: the admin authorization adapter denies when the engine cannot
+ * decide. The permission guards deny when no claims, no permission metadata,
+ * or denied decision.
  */
 @Global()
 @Module({
-  imports: [IdentityAuthenticationModule, InventoryModule, ProductCatalogModule],
+  imports: [IdentityAuthenticationModule, InventoryModule, ProductCatalogModule, AuthorizationCoreModule],
   providers: [
     {
       provide: ORDER_RETENTION_CONFIGURATION,
@@ -127,6 +146,25 @@ import {
           snapshotRead,
         ),
     },
+    // M08-M4 authorization
+    {
+      provide: ORDER_ADMIN_AUTHORIZATION,
+      useClass: Module02OrderAdminAuthorizationAdapter,
+    },
+    {
+      provide: ORDER_SELF_SERVICE_PERMISSION_GUARD,
+      inject: [AUTHORIZATION_APPLICATION_SERVICE, CUSTOMER_PROFILE_REPOSITORY],
+      useFactory: (
+        authorization: AuthorizationApplicationService,
+        customers: CustomerProfileRepository,
+      ) => new OrderSelfServicePermissionGuard(authorization, customers),
+    },
+    {
+      provide: ORDER_ADMIN_PERMISSION_GUARD,
+      inject: [ORDER_ADMIN_AUTHORIZATION],
+      useFactory: (adminAuth: OrderAdminAuthorizationPort) =>
+        new OrderAdminPermissionGuard(adminAuth),
+    },
   ],
   exports: [
     OrderRetentionPolicy,
@@ -135,6 +173,9 @@ import {
     ORDER_REPOSITORY,
     ORDER_APPLICATION_SERVICE,
     ORDER_SNAPSHOT_READ_ADAPTER,
+    ORDER_ADMIN_AUTHORIZATION,
+    ORDER_SELF_SERVICE_PERMISSION_GUARD,
+    ORDER_ADMIN_PERMISSION_GUARD,
   ],
 })
 // NestJS modules are declarative metadata containers and intentionally have no members.

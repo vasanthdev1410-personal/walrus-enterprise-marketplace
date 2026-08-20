@@ -42,6 +42,10 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'inventory.adjust.self',
       'inventory.audit.view',
       'inventory.read',
+      'order.admin.manage',
+      'order.admin.read',
+      'order.create',
+      'order.read',
       'product.audit.view',
       'product.close',
       'product.create',
@@ -155,6 +159,15 @@ describe('PermissionCatalog (M02 domain core)', () => {
     for (const id of ['cart.read', 'cart.item.add', 'cart.item.update', 'cart.item.remove', 'cart.clear']) {
       expect(catalog.isOrganizationScoped(id)).toBe(false);
     }
+    // WEMP-M08-AUTHZ-001 §2.1 (D-08, sign-off 2026-08-20): the CUSTOMER
+    // self-service order set is customer-identity-scoped, NOT org-scoped.
+    for (const id of ['order.read', 'order.create']) {
+      expect(catalog.isOrganizationScoped(id)).toBe(false);
+    }
+    // The administrative order permissions are never org-scoped.
+    for (const id of ['order.admin.read', 'order.admin.manage']) {
+      expect(catalog.isOrganizationScoped(id)).toBe(false);
+    }
   });
 
   it('marks exactly the approved CUSTOMER self-service set as customer-identity-scoped (WEMP-M06-AUTHZ-001 §4)', () => {
@@ -179,6 +192,8 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'customer.preference.read',
       'customer.profile.read',
       'customer.profile.update',
+      'order.create',
+      'order.read',
     ]);
     // The administrative customer permissions are never customer-identity-
     // scoped — admins evaluate without a customer-identity scope.
@@ -192,6 +207,15 @@ describe('PermissionCatalog (M02 domain core)', () => {
     }
     // The administrative cart permissions are never customer-identity-scoped.
     for (const id of ['cart.admin.read', 'cart.admin.manage']) {
+      expect(catalog.isCustomerIdentityScoped(id)).toBe(false);
+    }
+    // WEMP-M08-AUTHZ-001 §2.1 (D-08, sign-off 2026-08-20): the CUSTOMER
+    // self-service order set is customer-identity-scoped (fourth scope).
+    for (const id of ['order.read', 'order.create']) {
+      expect(catalog.isCustomerIdentityScoped(id)).toBe(true);
+    }
+    // The administrative order permissions are never customer-identity-scoped.
+    for (const id of ['order.admin.read', 'order.admin.manage']) {
       expect(catalog.isCustomerIdentityScoped(id)).toBe(false);
     }
     // No seller/product/inventory identifier is customer-identity-scoped.

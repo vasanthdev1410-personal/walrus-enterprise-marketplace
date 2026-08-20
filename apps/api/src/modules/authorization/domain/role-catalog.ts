@@ -127,6 +127,11 @@ const CUSTOMER_PERMISSIONS = [
   'cart.item.update',
   'cart.item.remove',
   'cart.clear',
+  // WEMP-M08-AUTHZ-001 §2.1 (D-08, Module 02 owner sign-off RECORDED
+  // 2026-08-20): the CUSTOMER self-service order permissions, customer-
+  // identity-scoped through the approved fourth ownership resolver.
+  'order.read',
+  'order.create',
 ] as const;
 
 /**
@@ -145,6 +150,11 @@ const CUSTOMER_ADMIN_PERMISSIONS = [
   // SUPER_ADMIN exactly as approved — no override, no hidden bypass.
   'cart.admin.read',
   'cart.admin.manage',
+  // WEMP-M08-AUTHZ-001 §2.2 (D-08, Module 02 owner sign-off RECORDED
+  // 2026-08-20): the administrative order permissions granted to ADMIN and
+  // SUPER_ADMIN exactly as approved — no override, no hidden bypass.
+  'order.admin.read',
+  'order.admin.manage',
 ] as const;
 
 const SUPER_ADMIN_PERMISSIONS = [
