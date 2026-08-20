@@ -63,6 +63,20 @@ export class PrismaPaymentRepository implements PaymentRepository {
     return record === null ? null : paymentMapper.toDomain(record);
   }
 
+  public async findByProviderOrderId(providerOrderId: string): Promise<Payment | null> {
+    const record = await this.prisma.payment.findFirst({
+      where: { providerOrderId },
+    });
+    return record === null ? null : paymentMapper.toDomain(record);
+  }
+
+  public async findByProviderPaymentId(providerPaymentId: string): Promise<Payment | null> {
+    const record = await this.prisma.payment.findFirst({
+      where: { providerPaymentId },
+    });
+    return record === null ? null : paymentMapper.toDomain(record);
+  }
+
   public async findAttempts(paymentId: UuidV7): Promise<readonly PaymentAttempt[]> {
     const records = await this.prisma.paymentAttempt.findMany({
       where: { paymentId: paymentId.value },

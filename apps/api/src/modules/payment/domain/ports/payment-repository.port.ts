@@ -21,6 +21,10 @@ export interface PaymentRepository {
   findByOrderId(orderId: UuidV7): Promise<Payment | null>;
   /** Find a payment by idempotency key, or null if none exists. */
   findByIdempotencyKey(idempotencyKey: string): Promise<Payment | null>;
+  /** Find a payment by provider order ID, or null if none exists. */
+  findByProviderOrderId(providerOrderId: string): Promise<Payment | null>;
+  /** Find a payment by provider payment ID, or null if none exists. */
+  findByProviderPaymentId(providerPaymentId: string): Promise<Payment | null>;
   /** Find all attempts for a payment. */
   findAttempts(paymentId: UuidV7): Promise<readonly PaymentAttempt[]>;
   /** Find all state transitions for a payment. */
