@@ -30,6 +30,9 @@ import type { PaymentAdminAuthorizationPort } from './application/ports/payment-
 import { PaymentApplicationService } from './application/services/payment-application.service';
 import { PaymentSelfServicePermissionGuard } from './presentation/guards/payment-self-service-permission.guard';
 import { PaymentAdminPermissionGuard } from './presentation/guards/payment-admin-permission.guard';
+import { PaymentSelfServiceController } from './presentation/payment-self-service.controller';
+import { PaymentAdminController } from './presentation/payment-admin.controller';
+import { PaymentWebhookController } from './presentation/payment-webhook.controller';
 import {
   PAYMENT_RETENTION_CONFIGURATION,
   PAYMENT_REPOSITORY,
@@ -68,6 +71,7 @@ import {
 @Global()
 @Module({
   imports: [IdentityAuthenticationModule, OrderModule, AuthorizationCoreModule],
+  controllers: [PaymentSelfServiceController, PaymentAdminController, PaymentWebhookController],
   providers: [
     {
       provide: PAYMENT_RETENTION_CONFIGURATION,
