@@ -4,7 +4,7 @@
 
 **Document ID:** WEMP-M08-SPEC-001
 **Version:** Review Draft 1.0
-**Status:** DRAFT — NOT YET AUTHORIZED
+**Status:** OWNER-APPROVED — M08-M1…M08-M5 all authorized (2026-08-19/20). Implementation complete.
 **Effective date:** 2026-08-19 (M08 planning)
 **Classification:** Confidential — Internal Use Only
 

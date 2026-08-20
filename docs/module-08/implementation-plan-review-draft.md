@@ -4,7 +4,7 @@
 
 **Document ID:** WEMP-M08-PLAN-001
 **Version:** Review Draft 1.0
-**Status:** DRAFT — NOT YET AUTHORIZED
+**Status:** M08-M1…M08-M5 AUTHORIZED (2026-08-19/20) — all milestones authorized.
 **Effective date:** 2026-08-19 (M08 planning)
 **Classification:** Confidential — Internal Use Only
 
@@ -26,7 +26,7 @@ Cart (07) → **Order (08)** → Payment (09) → Shipping (10).
 
 ### M08-M1 — Domain Foundation
 
-**Status:** NOT AUTHORIZED — awaiting owner approval
+**Status:** ✓ **AUTHORIZED** (2026-08-19)
 
 **Scope:** Pure domain layer only. No schema, no migration, no API, no UI.
 
@@ -61,7 +61,7 @@ idempotency, no rate limiting.
 
 ### M08-M2 — Persistence
 
-**Status:** NOT AUTHORIZED — gated on M08-M1 completion
+**Status:** ✓ **AUTHORIZED** (2026-08-19)
 
 **Scope:** Prisma schema, migration, repository adapters.
 
@@ -90,7 +90,7 @@ no web/mobile UI, no authorization wiring.
 
 ### M08-M3 — Application Services
 
-**Status:** NOT AUTHORIZED — gated on M08-M2 completion
+**Status:** ✓ **AUTHORIZED** (2026-08-19)
 
 **Scope:** Use cases: create order from CartSnapshot, read order,
 list orders, price revalidation, inventory confirmation.
@@ -123,7 +123,7 @@ no authorization wiring.
 
 ### M08-M4 — Authorization & Cross-Module Integration
 
-**Status:** NOT AUTHORIZED — gated on M08-M3 completion
+**Status:** ✓ **AUTHORIZED** (2026-08-20)
 
 **Scope:** Module 02 permission integration; order.* catalog; ownership
 resolver wiring.
@@ -153,7 +153,7 @@ adapter tests, error mapping tests, authorization regression tests.
 
 ### M08-M5 — APIs & Web/Mobile Integration
 
-**Status:** NOT AUTHORIZED — gated on M08-M4 completion
+**Status:** ✓ **AUTHORIZED** (2026-08-20)
 
 **Scope:** HTTP controllers, DTOs, web UI, mobile read-only surface.
 
@@ -205,11 +205,11 @@ no notifications (M11).
 
 | Milestone | Gate                                        | Status |
 | --------- | ------------------------------------------- | ------ |
-| M08-M1    | Owner approval (D-01/D-02/D-04/D-05/D-06/D-13) | NOT AUTHORIZED |
-| M08-M2    | M08-M1 complete + D-07/D-11 decisions       | NOT AUTHORIZED |
-| M08-M3    | M08-M2 complete + D-03/D-04/D-12 decisions + M04/M05/M06 ports | NOT AUTHORIZED |
-| M08-M4    | M08-M3 complete + Module 02 sign-off (D-09) | NOT AUTHORIZED |
-| M08-M5    | M08-M4 complete + Security/Platform D-10    | NOT AUTHORIZED |
+| M08-M1    | Owner approval (D-01/D-02/D-04/D-05/D-06/D-13) | ✓ SATISFIED — 2026-08-19 |
+| M08-M2    | M08-M1 complete + D-07/D-11 decisions       | ✓ SATISFIED — 2026-08-19 |
+| M08-M3    | M08-M2 complete + D-03/D-04/D-12 decisions + M04/M05/M06 ports | ✓ SATISFIED — 2026-08-19 |
+| M08-M4    | M08-M3 complete + Module 02 sign-off (D-09) | ✓ SATISFIED — 2026-08-20 |
+| M08-M5    | M08-M4 complete + Security/Platform D-10    | ✓ SATISFIED — 2026-08-20 |
 
 ---
 

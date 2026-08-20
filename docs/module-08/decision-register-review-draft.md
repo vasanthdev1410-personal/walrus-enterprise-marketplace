@@ -5,7 +5,7 @@
 **Document ID:** WEMP-M08-DECISIONS-001
 **Version:** Review Draft 1.0
 **Status:** OWNER-APPROVED (D-01…D-13) — signed by the Product/Architecture
-Owner 2026-08-19. M08-M1…M08-M4 authorized.
+Owner 2026-08-19. M08-M1…M08-M5 authorized.
 **Effective date:** 2026-08-19 (M08 planning)
 **Classification:** Confidential — Internal Use Only
 
@@ -75,7 +75,7 @@ milestones listed. Unapproved decisions remain non-implementable.
 | M08-M2 Persistence                 | ✓ **SATISFIED** — §5 approval signed 2026-08-19; D-07/D-11 OWNER-APPROVED — **M08-M2 authorized 2026-08-19** |
 | M08-M3 Application Services        | ✓ **SATISFIED** — §5 approval signed 2026-08-19; D-03/D-04/D-12 OWNER-APPROVED + M04/M05/M06 ports available — **M08-M3 authorized 2026-08-19** |
 | M08-M4 Authorization & Integration | ✓ **SATISFIED** — §5 approval signed 2026-08-19; Module 02 owner sign-off (D-09, **RECORDED 2026-08-20**) — **M08-M4 authorized 2026-08-20** |
-| M08-M5 APIs & Web/Mobile           | M08-M4 complete + D-10 Security/Platform rate-limit confirmation                       |
+| M08-M5 APIs & Web/Mobile           | ✓ **SATISFIED** — M08-M4 complete; D-10 Security/Platform confirmation (**RECORDED 2026-08-20**) — **M08-M5 authorized 2026-08-20** |
 
 ---
 
@@ -90,7 +90,11 @@ Date: 2026-08-19
 > Services), and M08-M4 (Authorization & Cross-Module Integration).
 > Module 02 owner sign-off for the additive `order.*` permission catalog
 > is RECORDED 2026-08-20 (D-09). M08-M5 is authorized via subsequent
-> sign-off (D-10 Security/Platform confirmation pending).
+> sign-off (D-10 Security/Platform confirmation RECORDED 2026-08-20;
+> D-11 retention durations OWNER-RESOLVED 2026-08-20).
+>
+> **Sign-off record (2026-08-20):** the above signatures authorize **M08-M1
+> through M08-M5**. All milestones authorized.
 
 ---
 
@@ -99,5 +103,5 @@ Date: 2026-08-19
 | Condition                                     | Required from     | Status                                                           | Date |
 | --------------------------------------------- | ----------------- | ---------------------------------------------------------------- | ---- |
 | `order.*` permission identifiers (D-09)       | Module 02 owner   | **RECORDED 2026-08-20** — additive non-weakening sign-off (D-09) | 2026-08-20 |
-| D-10 rate-limit values (60/120/50)            | Security/Platform | **PENDING — NOT RECORDED**                                       | —    |
-| D-11 retention durations (order audit)        | Owner-resolved    | **PENDING — NOT RECORDED** (configurable, per M07 D-11 precedent) | —    |
+| D-10 rate-limit values (60/120/50)            | Security/Platform | **RECORDED 2026-08-20** — 60/120/50 per hour confirmed; order buckets isolated from M06/M07 | 2026-08-20 |
+| D-11 retention durations (order audit, 365-day) | Owner-resolved    | **RECORDED 2026-08-20** — owner-resolved per M07 D-11 precedent; configurable 365-day default; Legal/Compliance review deferred to deployment-time configuration | 2026-08-20 |
