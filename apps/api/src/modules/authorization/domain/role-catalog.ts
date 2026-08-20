@@ -132,6 +132,10 @@ const CUSTOMER_PERMISSIONS = [
   // identity-scoped through the approved fourth ownership resolver.
   'order.read',
   'order.create',
+  // WEMP-M09-AUTHZ-001 §2.1: the CUSTOMER self-service payment permissions,
+  // customer-identity-scoped through the approved fourth ownership resolver.
+  'payment.initiate',
+  'payment.read',
 ] as const;
 
 /**
@@ -155,6 +159,10 @@ const CUSTOMER_ADMIN_PERMISSIONS = [
   // SUPER_ADMIN exactly as approved — no override, no hidden bypass.
   'order.admin.read',
   'order.admin.manage',
+  // WEMP-M09-AUTHZ-001 §2.2: the administrative payment permissions granted
+  // to ADMIN and SUPER_ADMIN exactly as approved — no override, no hidden bypass.
+  'payment.admin.read',
+  'payment.admin.manage',
 ] as const;
 
 const SUPER_ADMIN_PERMISSIONS = [

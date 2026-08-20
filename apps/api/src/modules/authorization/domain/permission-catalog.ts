@@ -542,6 +542,43 @@ const SEEDED_PERMISSIONS: readonly Permission[] = Object.freeze([
     allowedAction: 'MANAGE',
     status: 'ACTIVE',
   }),
+  // --- Module 09 PAYMENT self-service permissions (WEMP-M09-AUTHZ-001 §2.1) ---
+  // Every one of these is customer-identity-scoped (the approved fourth
+  // ownership-resolver scope): the decision additionally requires that the
+  // caller's authenticated Identity owns the target customer profile
+  // (CustomerProfile.identityId match, resolved server-side). Granted only
+  // to the CUSTOMER role; never administrative, never org-scoped.
+  new Permission({
+    permissionId: 'payment.initiate',
+    name: 'Initiate a payment for an own order',
+    protectedResource: 'payment',
+    allowedAction: 'CREATE',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'payment.read',
+    name: 'Read own payment details',
+    protectedResource: 'payment',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  // --- Module 09 PAYMENT administrative permissions (WEMP-M09-AUTHZ-001 §2.2) ---
+  // Granted to ADMIN and SUPER_ADMIN exactly as approved; never customer-
+  // identity-scoped and never inheritable by the CUSTOMER role.
+  new Permission({
+    permissionId: 'payment.admin.read',
+    name: 'Admin read any customer payment (non-enumerating)',
+    protectedResource: 'payment.admin',
+    allowedAction: 'READ',
+    status: 'ACTIVE',
+  }),
+  new Permission({
+    permissionId: 'payment.admin.manage',
+    name: 'Admin payment operations (refund, lifecycle management)',
+    protectedResource: 'payment.admin',
+    allowedAction: 'MANAGE',
+    status: 'ACTIVE',
+  }),
 ]);
 
 /**
@@ -623,6 +660,11 @@ const CUSTOMER_IDENTITY_SCOPED_PERMISSIONS: ReadonlySet<string> = new Set([
   // administrative order.* permissions are NOT in this set.
   'order.read',
   'order.create',
+  // WEMP-M09-AUTHZ-001 §4: the CUSTOMER self-service payment set —
+  // customer-identity-scoped through the approved fourth ownership resolver.
+  // The administrative payment.* permissions are NOT in this set.
+  'payment.initiate',
+  'payment.read',
 ]);
 
 export class PermissionCatalog {

@@ -46,6 +46,10 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'order.admin.read',
       'order.create',
       'order.read',
+      'payment.admin.manage',
+      'payment.admin.read',
+      'payment.initiate',
+      'payment.read',
       'product.audit.view',
       'product.close',
       'product.create',
@@ -194,6 +198,8 @@ describe('PermissionCatalog (M02 domain core)', () => {
       'customer.profile.update',
       'order.create',
       'order.read',
+      'payment.initiate',
+      'payment.read',
     ]);
     // The administrative customer permissions are never customer-identity-
     // scoped — admins evaluate without a customer-identity scope.
@@ -216,6 +222,15 @@ describe('PermissionCatalog (M02 domain core)', () => {
     }
     // The administrative order permissions are never customer-identity-scoped.
     for (const id of ['order.admin.read', 'order.admin.manage']) {
+      expect(catalog.isCustomerIdentityScoped(id)).toBe(false);
+    }
+    // WEMP-M09-AUTHZ-001 §2.1: the CUSTOMER self-service payment set is
+    // customer-identity-scoped (fourth scope).
+    for (const id of ['payment.initiate', 'payment.read']) {
+      expect(catalog.isCustomerIdentityScoped(id)).toBe(true);
+    }
+    // The administrative payment permissions are never customer-identity-scoped.
+    for (const id of ['payment.admin.read', 'payment.admin.manage']) {
       expect(catalog.isCustomerIdentityScoped(id)).toBe(false);
     }
     // No seller/product/inventory identifier is customer-identity-scoped.

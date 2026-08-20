@@ -68,6 +68,8 @@ describe('RoleCatalog (M02 domain core)', () => {
       'customer.profile.update',
       'order.create',
       'order.read',
+      'payment.initiate',
+      'payment.read',
     ]);
     expect(customer.properties.grantedPermissionIds).not.toContain('customer.read');
     expect(customer.properties.grantedPermissionIds).not.toContain('customer.lifecycle.manage');
@@ -129,6 +131,11 @@ describe('RoleCatalog (M02 domain core)', () => {
     expect(seller.properties.grantedPermissionIds).not.toContain('order.create');
     expect(seller.properties.grantedPermissionIds).not.toContain('order.admin.read');
     expect(seller.properties.grantedPermissionIds).not.toContain('order.admin.manage');
+    // WEMP-M09-AUTHZ-001 §3: SELLER never holds any payment permission.
+    expect(seller.properties.grantedPermissionIds).not.toContain('payment.initiate');
+    expect(seller.properties.grantedPermissionIds).not.toContain('payment.read');
+    expect(seller.properties.grantedPermissionIds).not.toContain('payment.admin.read');
+    expect(seller.properties.grantedPermissionIds).not.toContain('payment.admin.manage');
   });
 
   it('grants ADMIN and SUPER_ADMIN exactly the approved seller administrative permissions (D-11)', () => {
@@ -162,6 +169,9 @@ describe('RoleCatalog (M02 domain core)', () => {
           // WEMP-M08-AUTHZ-001 §2.2 (D-08, sign-off 2026-08-20): order admin grants.
           'order.admin.read',
           'order.admin.manage',
+          // WEMP-M09-AUTHZ-001 §2.2: payment admin grants.
+          'payment.admin.read',
+          'payment.admin.manage',
         ]),
       );
       // No customer self-service permission is granted to ADMIN/SUPER_ADMIN.
@@ -173,6 +183,9 @@ describe('RoleCatalog (M02 domain core)', () => {
       // No order self-service permission is granted to ADMIN/SUPER_ADMIN.
       expect(role?.properties.grantedPermissionIds).not.toContain('order.read');
       expect(role?.properties.grantedPermissionIds).not.toContain('order.create');
+      // No payment self-service permission is granted to ADMIN/SUPER_ADMIN.
+      expect(role?.properties.grantedPermissionIds).not.toContain('payment.initiate');
+      expect(role?.properties.grantedPermissionIds).not.toContain('payment.read');
       // No seller self-service permission is granted to ADMIN/SUPER_ADMIN.
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.profile.read');
       expect(role?.properties.grantedPermissionIds).not.toContain('seller.verification.submit');
