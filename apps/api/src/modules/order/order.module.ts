@@ -33,6 +33,8 @@ import { Module02OrderAdminAuthorizationAdapter } from './application/adapters/m
 import type { OrderAdminAuthorizationPort } from './application/ports/order-admin-authorization.port';
 import { OrderSelfServicePermissionGuard } from './presentation/guards/order-self-service-permission.guard';
 import { OrderAdminPermissionGuard } from './presentation/guards/order-admin-permission.guard';
+import { OrderSelfServiceController } from './presentation/order-self-service.controller';
+import { OrderAdminController } from './presentation/order-admin.controller';
 import {
   ORDER_RETENTION_CONFIGURATION,
   ORDER_REPOSITORY,
@@ -73,6 +75,7 @@ import {
 @Global()
 @Module({
   imports: [IdentityAuthenticationModule, InventoryModule, ProductCatalogModule, AuthorizationCoreModule],
+  controllers: [OrderSelfServiceController, OrderAdminController],
   providers: [
     {
       provide: ORDER_RETENTION_CONFIGURATION,
