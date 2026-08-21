@@ -1,9 +1,13 @@
 name: Test
+
 on:
   pull_request:
   push:
     branches: [main, develop]
-permissions: { contents: read }
+
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,7 +19,7 @@ jobs:
           POSTGRES_USER: walrus
           POSTGRES_PASSWORD: local-password
         ports:
-          - 5432:5432
+          - '5432:5432'
         options: >-
           --health-cmd "pg_isready -U walrus -d walrus"
           --health-interval 5s
@@ -25,7 +29,7 @@ jobs:
         image: redis:8.4.0-alpine
         command: ['redis-server', '--requirepass', 'local-password']
         ports:
-          - 6379:6379
+          - '6379:6379'
         options: >-
           --health-cmd "redis-cli -a local-password ping"
           --health-interval 5s
@@ -34,9 +38,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
-        with: { version: 10.34.5, run_install: false }
+        with:
+          version: '10.34.5'
+          run_install: false
       - uses: actions/setup-node@v7
-        with: { node-version: 26.6.0, cache: pnpm }
+        with:
+          node-version: '26.6.0'
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:coverage
         env:
