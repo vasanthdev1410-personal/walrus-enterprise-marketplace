@@ -27,7 +27,8 @@ jobs:
           --health-retries 10
       redis:
         image: redis:8.4.0-alpine
-        command: ['redis-server', '--requirepass', 'local-password']
+        command: >-
+          redis-server --requirepass local-password
         ports:
           - '6379:6379'
         options: >-
