@@ -10,13 +10,7 @@
  */
 
 export type PaymentState =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'CAPTURED'
-  | 'FAILED'
-  | 'REFUND_PENDING'
-  | 'REFUNDED'
-  | 'EXPIRED';
+  'PENDING' | 'PROCESSING' | 'CAPTURED' | 'FAILED' | 'REFUND_PENDING' | 'REFUNDED' | 'EXPIRED';
 
 export interface PaymentAttemptResult {
   readonly paymentAttemptId: string;

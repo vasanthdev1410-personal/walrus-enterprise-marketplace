@@ -17,15 +17,18 @@ Module 09 — Payments implements the payment lifecycle for the WALRUS Enterpris
 ## 2. Domain Model
 
 ### 2.1 Payment Aggregate Root
+
 - One Payment per order (D-02)
 - Properties: paymentId, orderId, customerProfileId, state, amountCents, currency, provider, providerOrderId, providerPaymentId, idempotencyKey, aggregateVersion
 - Logical UUIDv7 references only (A-03)
 
 ### 2.2 Payment Attempt
+
 - Append-only entity tracking provider interactions
 - Outcomes: INITIATED, SUCCESS, FAILED, TIMEOUT
 
 ### 2.3 Payment Refund
+
 - Entity with refund lifecycle (PENDING → PROCESSING → REFUNDED | FAILED)
 - Admin-initiated only (D-04)
 
@@ -42,23 +45,23 @@ Non-terminal: CAPTURED (→ REFUND_PENDING)
 
 ## 4. APIs (D-05/D-06)
 
-| Method | Path | Permission | Description |
-|--------|------|------------|-------------|
-| POST | /payments | payment.initiate | Initiate payment for order |
-| GET | /payments/:paymentId | payment.read | Read own payment |
-| GET | /payments/order/:orderId | payment.read | Read payment for order |
-| GET | /admin/payments/:paymentId | payment.admin.read | Admin payment detail |
-| POST | /admin/payments/:paymentId/refund | payment.admin.manage | Admin initiate refund |
-| POST | /webhooks/payments/razorpay | (signature) | Razorpay webhook |
+| Method | Path                              | Permission           | Description                |
+| ------ | --------------------------------- | -------------------- | -------------------------- |
+| POST   | /payments                         | payment.initiate     | Initiate payment for order |
+| GET    | /payments/:paymentId              | payment.read         | Read own payment           |
+| GET    | /payments/order/:orderId          | payment.read         | Read payment for order     |
+| GET    | /admin/payments/:paymentId        | payment.admin.read   | Admin payment detail       |
+| POST   | /admin/payments/:paymentId/refund | payment.admin.manage | Admin initiate refund      |
+| POST   | /webhooks/payments/razorpay       | (signature)          | Razorpay webhook           |
 
 ## 5. Authorization (D-08/D-09)
 
-| Permission | Scope | Roles |
-|------------|-------|-------|
-| payment.initiate | Customer-identity-scoped | CUSTOMER |
-| payment.read | Customer-identity-scoped | CUSTOMER |
-| payment.admin.read | Admin | ADMIN, SUPER_ADMIN |
-| payment.admin.manage | Admin | ADMIN, SUPER_ADMIN |
+| Permission           | Scope                    | Roles              |
+| -------------------- | ------------------------ | ------------------ |
+| payment.initiate     | Customer-identity-scoped | CUSTOMER           |
+| payment.read         | Customer-identity-scoped | CUSTOMER           |
+| payment.admin.read   | Admin                    | ADMIN, SUPER_ADMIN |
+| payment.admin.manage | Admin                    | ADMIN, SUPER_ADMIN |
 
 ## 6. Security Requirements
 

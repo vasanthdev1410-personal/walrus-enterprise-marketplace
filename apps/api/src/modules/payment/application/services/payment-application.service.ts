@@ -12,7 +12,10 @@ import { PaymentAttempt } from '../../domain/entities/payment-attempt';
 import { PaymentAuditRecord } from '../../domain/entities/payment-audit-record';
 import { PaymentRefund } from '../../domain/entities/payment-refund';
 import type { PaymentLifecycle } from '../../domain/lifecycle/payment-lifecycle';
-import type { PaymentProviderPort, PaymentWebhookEvent } from '../../domain/ports/payment-provider.port';
+import type {
+  PaymentProviderPort,
+  PaymentWebhookEvent,
+} from '../../domain/ports/payment-provider.port';
 import type { PaymentRepository } from '../../domain/ports/payment-repository.port';
 import { PaymentId } from '../../domain/value-objects/payment-id';
 import { PaymentRefundId } from '../../domain/value-objects/payment-refund-id';
@@ -290,9 +293,7 @@ export class PaymentApplicationService {
     }
 
     // Compute payload digest for audit (hash the raw payload).
-    const payloadDigest = createHash('sha256')
-      .update(command.rawPayload, 'utf8')
-      .digest('hex');
+    const payloadDigest = createHash('sha256').update(command.rawPayload, 'utf8').digest('hex');
 
     // Step 3: Find payment by provider identifiers.
     let payment: Payment | null = null;

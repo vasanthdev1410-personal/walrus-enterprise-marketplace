@@ -30,7 +30,7 @@ describe('PaymentApiClient', () => {
           }),
       });
 
-      const client = createClient(fetchMock as unknown as typeof fetch);
+      const client = createClient(fetchMock);
       const result = await client.initiatePayment({ orderId: 'order-001' });
 
       expect(result.paymentId).toBe('pay-001');
@@ -42,7 +42,7 @@ describe('PaymentApiClient', () => {
           headers: expect.objectContaining({
             'Idempotency-Key': 'test-idempotency-key',
             Authorization: 'Bearer test-token',
-          }),
+          }) as Record<string, string>,
         }),
       );
     });
@@ -60,7 +60,7 @@ describe('PaymentApiClient', () => {
           }),
       });
 
-      const client = createClient(fetchMock as unknown as typeof fetch);
+      const client = createClient(fetchMock);
       const result = await client.readPayment('pay-001');
 
       expect(result.paymentId).toBe('pay-001');
@@ -83,7 +83,7 @@ describe('PaymentApiClient', () => {
           }),
       });
 
-      const client = createClient(fetchMock as unknown as typeof fetch);
+      const client = createClient(fetchMock);
       const result = await client.readPaymentByOrder('order-001');
 
       expect(result.orderId).toBe('order-001');
@@ -101,7 +101,7 @@ describe('PaymentApiClient', () => {
         status: 404,
       });
 
-      const client = createClient(fetchMock as unknown as typeof fetch);
+      const client = createClient(fetchMock);
       await expect(client.readPayment('nonexistent')).rejects.toThrow(PaymentApiError);
       await expect(client.readPayment('nonexistent')).rejects.toMatchObject({ kind: 'NOT_FOUND' });
     });
@@ -109,7 +109,7 @@ describe('PaymentApiClient', () => {
     it('throws NETWORK for fetch failure', async () => {
       const fetchMock = vi.fn().mockRejectedValue(new Error('network'));
 
-      const client = createClient(fetchMock as unknown as typeof fetch);
+      const client = createClient(fetchMock);
       await expect(client.readPayment('pay-001')).rejects.toMatchObject({ kind: 'NETWORK' });
     });
   });

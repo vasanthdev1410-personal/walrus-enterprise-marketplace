@@ -80,54 +80,54 @@ The Order is the aggregate root keyed by `orderId`. Each order is owned by
 exactly one customer profile (identical to M07 D-02). One order is created
 from one CartSnapshot.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| orderId | UUIDv7 | Unique order identifier |
-| customerProfileId | UUIDv7 | Owner (logical reference to M06) |
-| snapshotId | UUIDv7 | Reference to the originating CartSnapshot |
-| cartId | UUIDv7 | Reference to the originating Cart (M07) |
-| state | OrderState | Current lifecycle state |
-| totalLines | number | Count of order lines |
-| totalItems | number | Sum of quantities |
-| subtotalAmountCents | number | Subtotal in cents (from CartSnapshot) |
-| subtotalCurrency | string | Currency code |
-| aggregateVersion | AggregateVersion | Optimistic concurrency version |
-| createdAt | DateTime | Creation timestamp |
-| updatedAt | DateTime | Last modification timestamp |
-| correlationId | UUIDv7? | Optional request correlation |
+| Field               | Type             | Description                               |
+| ------------------- | ---------------- | ----------------------------------------- |
+| orderId             | UUIDv7           | Unique order identifier                   |
+| customerProfileId   | UUIDv7           | Owner (logical reference to M06)          |
+| snapshotId          | UUIDv7           | Reference to the originating CartSnapshot |
+| cartId              | UUIDv7           | Reference to the originating Cart (M07)   |
+| state               | OrderState       | Current lifecycle state                   |
+| totalLines          | number           | Count of order lines                      |
+| totalItems          | number           | Sum of quantities                         |
+| subtotalAmountCents | number           | Subtotal in cents (from CartSnapshot)     |
+| subtotalCurrency    | string           | Currency code                             |
+| aggregateVersion    | AggregateVersion | Optimistic concurrency version            |
+| createdAt           | DateTime         | Creation timestamp                        |
+| updatedAt           | DateTime         | Last modification timestamp               |
+| correlationId       | UUIDv7?          | Optional request correlation              |
 
 ### 4.2 OrderLine entity
 
 Each OrderLine is owned by one Order. Lines are immutable after creation
 (price revalidation happens at order creation time, not per-line mutation).
 
-| Field | Type | Description |
-|-------|------|-------------|
-| orderLineId | UUIDv7 | Unique line identifier |
-| orderId | UUIDv7 | Parent order reference |
-| cartLineId | UUIDv7 | Reference to originating M07 CartLine |
-| skuId | UUIDv7 | SKU identity (M04) |
-| productId | UUIDv7 | Product identity (M04) |
-| skuCode | string | Human-readable SKU code |
-| quantity | number | Ordered quantity |
-| unitPriceAmount | number | Price at checkout (cents) |
-| unitPriceCurrency | string | Currency code |
-| snapshotTaxIncluded | boolean | Whether price includes tax |
-| revalidated | boolean | Whether price was revalidated at checkout |
-| createdAt | DateTime | Creation timestamp |
-| updatedAt | DateTime | Last modification timestamp |
+| Field               | Type     | Description                               |
+| ------------------- | -------- | ----------------------------------------- |
+| orderLineId         | UUIDv7   | Unique line identifier                    |
+| orderId             | UUIDv7   | Parent order reference                    |
+| cartLineId          | UUIDv7   | Reference to originating M07 CartLine     |
+| skuId               | UUIDv7   | SKU identity (M04)                        |
+| productId           | UUIDv7   | Product identity (M04)                    |
+| skuCode             | string   | Human-readable SKU code                   |
+| quantity            | number   | Ordered quantity                          |
+| unitPriceAmount     | number   | Price at checkout (cents)                 |
+| unitPriceCurrency   | string   | Currency code                             |
+| snapshotTaxIncluded | boolean  | Whether price includes tax                |
+| revalidated         | boolean  | Whether price was revalidated at checkout |
+| createdAt           | DateTime | Creation timestamp                        |
+| updatedAt           | DateTime | Last modification timestamp               |
 
 ### 4.3 OrderState value object
 
-| State | Description | Terminal |
-|-------|-------------|----------|
-| PENDING | Order created from CartSnapshot, awaiting payment | No |
-| CONFIRMED | Payment received (M09 callback) | No |
-| PAID | Payment verified and captured (M09 callback) | No |
-| SHIPPED | Shipping dispatched (M10 callback) | No |
-| DELIVERED | Customer received (M10 callback) | Yes |
-| CANCELLED | Order cancelled (before payment or by admin) | Yes |
-| CLOSED | Order fully completed (after delivery) | Yes |
+| State     | Description                                       | Terminal |
+| --------- | ------------------------------------------------- | -------- |
+| PENDING   | Order created from CartSnapshot, awaiting payment | No       |
+| CONFIRMED | Payment received (M09 callback)                   | No       |
+| PAID      | Payment verified and captured (M09 callback)      | No       |
+| SHIPPED   | Shipping dispatched (M10 callback)                | No       |
+| DELIVERED | Customer received (M10 callback)                  | Yes      |
+| CANCELLED | Order cancelled (before payment or by admin)      | Yes      |
+| CLOSED    | Order fully completed (after delivery)            | Yes      |
 
 ### 4.4 OrderSnapshot value object
 
@@ -173,6 +173,7 @@ CartSnapshot but with an Order-scoped snapshotId.
 ```
 
 **Transition rules:**
+
 - PENDING → CONFIRMED: M09 payment initiation callback
 - PENDING → CANCELLED: Customer or admin cancellation
 - CONFIRMED → PAID: M09 payment completion callback
@@ -204,6 +205,7 @@ snapshot is the authoritative input for order creation.
 8. Return OrderId to caller
 
 **Fail-closed behavior:**
+
 - Unknown/missing CartSnapshot → deny (CART_NOT_FOUND equivalent)
 - Customer profile not ACTIVE → deny (CART_CUSTOMER_NOT_FOUND equivalent)
 - Price mismatch during revalidation → deny (CART_PRICE_MISMATCH equivalent)
@@ -259,17 +261,20 @@ M08 creates orders in PENDING state. M09 (Payments) transitions orders
 through CONFIRMED → PAID via callback.
 
 **M08 provides M09:**
+
 - OrderId
 - CustomerProfileId
 - SubtotalAmountCents + SubtotalCurrency
 - OrderLines (SKU, quantity, unit price)
 
 **M09 provides M08:**
+
 - Payment initiation callback (PENDING → CONFIRMED)
 - Payment completion callback (CONFIRMED → PAID)
 - Payment failure/timeout (CONFIRMED → CANCELLED)
 
 **M08 never:**
+
 - Initiates payment
 - Stores payment tokens
 - Processes refunds
@@ -285,16 +290,19 @@ M08 provides order details to M10 (Shipping & Logistics) after payment
 confirmation (PAID state). M10 transitions orders through SHIPPED → DELIVERED.
 
 **M08 provides M10:**
+
 - OrderId
 - CustomerProfileId
 - OrderLines
 - Shipping address (from M06 CustomerProfile)
 
 **M10 provides M08:**
+
 - Shipping dispatch callback (PAID → SHIPPED)
 - Delivery confirmation callback (SHIPPED → DELIVERED)
 
 **M08 never:**
+
 - Manages shipping carriers
 - Calculates shipping costs
 - Tracks shipments
@@ -348,6 +356,7 @@ confirmation (PAID state). M10 transitions orders through SHIPPED → DELIVERED.
 ### 13.1 Audit records (M07 D-11 pattern)
 
 Append-only OrderAuditRecord for lifecycle events only:
+
 - ORDER_CREATED
 - ORDER_CONFIRMED (payment initiated)
 - ORDER_PAID
@@ -381,14 +390,14 @@ internals are ever exposed to clients.
 
 ## 15. Architecture principles
 
-| Principle | Reference |
-|-----------|-----------|
-| Cross-module storage isolation | A-03 |
-| Logical UUIDv7 references only | A-03/A-05 |
-| Fail-closed authorization | A-05 |
-| Append-only audit/transition records | A-06 |
-| Forward-only additive migrations | A-07 |
-| Configurable rate limiting | A-08 |
-| Separate module boundaries | A-09 |
-| No independent authentication | Module 01 |
-| Module 02 exclusive authorization | A-02 |
+| Principle                            | Reference |
+| ------------------------------------ | --------- |
+| Cross-module storage isolation       | A-03      |
+| Logical UUIDv7 references only       | A-03/A-05 |
+| Fail-closed authorization            | A-05      |
+| Append-only audit/transition records | A-06      |
+| Forward-only additive migrations     | A-07      |
+| Configurable rate limiting           | A-08      |
+| Separate module boundaries           | A-09      |
+| No independent authentication        | Module 01 |
+| Module 02 exclusive authorization    | A-02      |

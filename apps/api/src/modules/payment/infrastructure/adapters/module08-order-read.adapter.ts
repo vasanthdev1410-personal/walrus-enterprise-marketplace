@@ -1,9 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type { UuidV7 } from '../../../identity-authentication/domain/shared/value-objects/uuid-v7';
-import type {
-  OrderPaymentFacts,
-  OrderReadPort,
-} from '../../application/ports/order-read.port';
+import type { OrderPaymentFacts, OrderReadPort } from '../../application/ports/order-read.port';
 import type { OrderRepository } from '../../../order/domain/ports/order-repository.port';
 import { ORDER_REPOSITORY } from '../../../order/order.tokens';
 

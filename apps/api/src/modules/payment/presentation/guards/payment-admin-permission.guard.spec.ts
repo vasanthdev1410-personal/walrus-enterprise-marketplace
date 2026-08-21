@@ -15,14 +15,17 @@ interface MockContextOptions {
 }
 
 function createMockContext(overrides: MockContextOptions): ExecutionContext {
-  const handler = (): never => { throw new Error('never called'); };
+  const handler = (): never => {
+    throw new Error('never called');
+  };
   if (overrides.adminAction !== undefined) {
     Reflect.defineMetadata('payment:adminAction', overrides.adminAction, handler);
   }
 
-  const claims = overrides.hasClaims !== false
-    ? { subject: overrides.subject ?? makeIdentityId().value }
-    : undefined;
+  const claims =
+    overrides.hasClaims !== false
+      ? { subject: overrides.subject ?? makeIdentityId().value }
+      : undefined;
 
   return {
     getHandler: () => handler,

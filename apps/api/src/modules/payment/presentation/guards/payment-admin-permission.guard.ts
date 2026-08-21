@@ -50,10 +50,7 @@ export class PaymentAdminPermissionGuard implements CanActivate {
     }
     const identityId = new UuidV7(claims.subject);
     try {
-      const granted = await this.adminAuth.isGranted(
-        identityId,
-        action as PaymentAdminAction,
-      );
+      const granted = await this.adminAuth.isGranted(identityId, action as PaymentAdminAction);
       if (!granted) {
         throw new ForbiddenException('AUTHORIZATION_DENIED');
       }

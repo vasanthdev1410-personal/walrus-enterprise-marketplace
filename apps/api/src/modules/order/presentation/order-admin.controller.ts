@@ -29,7 +29,10 @@ import type { OrderApplicationService } from '../application/services/order-appl
 import { ORDER_APPLICATION_SERVICE } from '../order.tokens';
 import { correlationField } from './correlation';
 import { mapOrderError } from './order-error-mapping';
-import { OrderAdminPermissionGuard, RequireAdminAction } from './guards/order-admin-permission.guard';
+import {
+  OrderAdminPermissionGuard,
+  RequireAdminAction,
+} from './guards/order-admin-permission.guard';
 import type { OrderState } from '../domain/value-objects/order-state';
 import { AdminTransitionOrderDto } from './dto/order.dto';
 

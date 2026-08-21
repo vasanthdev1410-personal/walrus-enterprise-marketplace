@@ -74,7 +74,12 @@ import {
  */
 @Global()
 @Module({
-  imports: [IdentityAuthenticationModule, InventoryModule, ProductCatalogModule, AuthorizationCoreModule],
+  imports: [
+    IdentityAuthenticationModule,
+    InventoryModule,
+    ProductCatalogModule,
+    AuthorizationCoreModule,
+  ],
   controllers: [OrderSelfServiceController, OrderAdminController],
   providers: [
     {

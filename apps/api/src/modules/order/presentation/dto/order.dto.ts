@@ -31,7 +31,8 @@ export class CancelOrderDto {
 /** Admin order transition request body. */
 export class AdminTransitionOrderDto {
   @ApiProperty({
-    description: 'Target state for the transition (CONFIRMED, PAID, SHIPPED, DELIVERED, CLOSED, CANCELLED)',
+    description:
+      'Target state for the transition (CONFIRMED, PAID, SHIPPED, DELIVERED, CLOSED, CANCELLED)',
   })
   public readonly toState!: string;
 

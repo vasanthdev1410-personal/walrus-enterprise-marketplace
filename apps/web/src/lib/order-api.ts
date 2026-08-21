@@ -17,13 +17,7 @@
  */
 
 export type OrderState =
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'PAID'
-  | 'SHIPPED'
-  | 'DELIVERED'
-  | 'CANCELLED'
-  | 'CLOSED';
+  'PENDING' | 'CONFIRMED' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'CLOSED';
 
 export interface OrderLineResult {
   readonly orderLineId: string;
@@ -168,10 +162,7 @@ export class OrderApiClient {
   }
 
   /** Cancel own pending order (idempotent; D-01/D-12). */
-  public async cancelOrder(
-    orderId: string,
-    input: CancelOrderInput,
-  ): Promise<OrderMutationResult> {
+  public async cancelOrder(orderId: string, input: CancelOrderInput): Promise<OrderMutationResult> {
     const data = await this.request<{ mutation: OrderMutationResult }>(
       'DELETE',
       `/orders/${encodeURIComponent(orderId)}`,

@@ -160,7 +160,13 @@ describe('PermissionCatalog (M02 domain core)', () => {
     }
     // WEMP-M07-AUTHZ-001 §2.1 (D-09, sign-off 2026-08-19): the CUSTOMER
     // self-service cart set is customer-identity-scoped, NOT org-scoped.
-    for (const id of ['cart.read', 'cart.item.add', 'cart.item.update', 'cart.item.remove', 'cart.clear']) {
+    for (const id of [
+      'cart.read',
+      'cart.item.add',
+      'cart.item.update',
+      'cart.item.remove',
+      'cart.clear',
+    ]) {
       expect(catalog.isOrganizationScoped(id)).toBe(false);
     }
     // WEMP-M08-AUTHZ-001 §2.1 (D-08, sign-off 2026-08-20): the CUSTOMER
@@ -208,7 +214,13 @@ describe('PermissionCatalog (M02 domain core)', () => {
     }
     // WEMP-M07-AUTHZ-001 §2.1 (D-09, sign-off 2026-08-19): the CUSTOMER
     // self-service cart set is customer-identity-scoped (fourth scope).
-    for (const id of ['cart.read', 'cart.item.add', 'cart.item.update', 'cart.item.remove', 'cart.clear']) {
+    for (const id of [
+      'cart.read',
+      'cart.item.add',
+      'cart.item.update',
+      'cart.item.remove',
+      'cart.clear',
+    ]) {
       expect(catalog.isCustomerIdentityScoped(id)).toBe(true);
     }
     // The administrative cart permissions are never customer-identity-scoped.

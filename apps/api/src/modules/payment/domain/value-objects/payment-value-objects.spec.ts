@@ -1,11 +1,7 @@
 import { PaymentId } from './payment-id';
 import { PaymentAttemptId } from './payment-attempt-id';
 import { PaymentRefundId } from './payment-refund-id';
-import {
-  PAYMENT_STATES,
-  TERMINAL_PAYMENT_STATES,
-  isTerminalPaymentState,
-} from './payment-state';
+import { PAYMENT_STATES, TERMINAL_PAYMENT_STATES, isTerminalPaymentState } from './payment-state';
 
 describe('PaymentId', () => {
   it('extends UuidV7', () => {

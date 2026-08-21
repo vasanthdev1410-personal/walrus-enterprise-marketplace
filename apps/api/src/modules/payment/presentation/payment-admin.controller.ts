@@ -29,7 +29,10 @@ import type { PaymentApplicationService } from '../application/services/payment-
 import { PAYMENT_APPLICATION_SERVICE } from '../payment.tokens';
 import { correlationField } from './correlation';
 import { mapPaymentError } from './payment-error-mapping';
-import { PaymentAdminPermissionGuard, RequirePaymentAdminAction } from './guards/payment-admin-permission.guard';
+import {
+  PaymentAdminPermissionGuard,
+  RequirePaymentAdminAction,
+} from './guards/payment-admin-permission.guard';
 import { AdminInitiateRefundDto } from './dto/payment.dto';
 
 /**

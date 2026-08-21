@@ -193,23 +193,23 @@ no notifications (M11).
 
 ## 4. Cross-module contracts provided by M08
 
-| Contract              | Consumed by | Description                            | Gate   |
-| --------------------- | ----------- | -------------------------------------- | ------ |
-| `OrderSnapshot`       | M09, M10    | Immutable order snapshot for payment/shipping | M08-M1 |
-| `OrderReadPort`       | M09, M10    | Read order details for callbacks       | M08-M2 |
-| `OrderStateCallback`  | M09, M10    | State transition callbacks from M09/M10 | M08-M5 |
+| Contract             | Consumed by | Description                                   | Gate   |
+| -------------------- | ----------- | --------------------------------------------- | ------ |
+| `OrderSnapshot`      | M09, M10    | Immutable order snapshot for payment/shipping | M08-M1 |
+| `OrderReadPort`      | M09, M10    | Read order details for callbacks              | M08-M2 |
+| `OrderStateCallback` | M09, M10    | State transition callbacks from M09/M10       | M08-M5 |
 
 ---
 
 ## 5. Milestone gating
 
-| Milestone | Gate                                        | Status |
-| --------- | ------------------------------------------- | ------ |
-| M08-M1    | Owner approval (D-01/D-02/D-04/D-05/D-06/D-13) | ✓ SATISFIED — 2026-08-19 |
-| M08-M2    | M08-M1 complete + D-07/D-11 decisions       | ✓ SATISFIED — 2026-08-19 |
+| Milestone | Gate                                                           | Status                   |
+| --------- | -------------------------------------------------------------- | ------------------------ |
+| M08-M1    | Owner approval (D-01/D-02/D-04/D-05/D-06/D-13)                 | ✓ SATISFIED — 2026-08-19 |
+| M08-M2    | M08-M1 complete + D-07/D-11 decisions                          | ✓ SATISFIED — 2026-08-19 |
 | M08-M3    | M08-M2 complete + D-03/D-04/D-12 decisions + M04/M05/M06 ports | ✓ SATISFIED — 2026-08-19 |
-| M08-M4    | M08-M3 complete + Module 02 sign-off (D-09) | ✓ SATISFIED — 2026-08-20 |
-| M08-M5    | M08-M4 complete + Security/Platform D-10    | ✓ SATISFIED — 2026-08-20 |
+| M08-M4    | M08-M3 complete + Module 02 sign-off (D-09)                    | ✓ SATISFIED — 2026-08-20 |
+| M08-M5    | M08-M4 complete + Security/Platform D-10                       | ✓ SATISFIED — 2026-08-20 |
 
 ---
 

@@ -9,7 +9,9 @@ import { OrderSelfServicePermissionGuard } from './order-self-service-permission
 const IDENTITY_ID = new UuidV7('0191310f-789a-7000-8000-000000000010');
 const CUSTOMER_PROFILE_ID = new UuidV7('0191310f-789a-7000-8000-000000000020');
 
-function createMockProfile(): { properties: { customerProfileId: UuidV7; identityId: UuidV7; state: 'ACTIVE' } } {
+function createMockProfile(): {
+  properties: { customerProfileId: UuidV7; identityId: UuidV7; state: 'ACTIVE' };
+} {
   return {
     properties: {
       customerProfileId: CUSTOMER_PROFILE_ID,

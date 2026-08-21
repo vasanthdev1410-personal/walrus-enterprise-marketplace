@@ -29,15 +29,17 @@ function makePayment(overrides?: Partial<Parameters<typeof createPayment>[0]>): 
   });
 }
 
-function createPayment(opts: {
-  state?: string;
-  amountCents?: number;
-  currency?: string;
-  provider?: string;
-  idempotencyKey?: string;
-  providerOrderId?: string | null;
-  providerPaymentId?: string | null;
-} = {}): Payment {
+function createPayment(
+  opts: {
+    state?: string;
+    amountCents?: number;
+    currency?: string;
+    provider?: string;
+    idempotencyKey?: string;
+    providerOrderId?: string | null;
+    providerPaymentId?: string | null;
+  } = {},
+): Payment {
   return new Payment({
     paymentId: PAYMENT_UUID,
     orderId: ORDER_UUID,
@@ -71,7 +73,9 @@ describe('Payment', () => {
   });
 
   it('rejects negative amount', () => {
-    expect(() => makePayment({ amountCents: -1 })).toThrow('amountCents must be a non-negative safe integer');
+    expect(() => makePayment({ amountCents: -1 })).toThrow(
+      'amountCents must be a non-negative safe integer',
+    );
   });
 
   it('rejects invalid currency code', () => {

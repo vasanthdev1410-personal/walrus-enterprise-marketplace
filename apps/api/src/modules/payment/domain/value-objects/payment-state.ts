@@ -31,11 +31,7 @@ export type PaymentState = (typeof PAYMENT_STATES)[number];
  * are permitted out of a terminal state. CAPTURED is NOT terminal: it
  * can transition to REFUND_PENDING (admin-initiated refund).
  */
-export const TERMINAL_PAYMENT_STATES: readonly PaymentState[] = [
-  'FAILED',
-  'EXPIRED',
-  'REFUNDED',
-];
+export const TERMINAL_PAYMENT_STATES: readonly PaymentState[] = ['FAILED', 'EXPIRED', 'REFUNDED'];
 
 export function isTerminalPaymentState(state: PaymentState): boolean {
   return TERMINAL_PAYMENT_STATES.includes(state);

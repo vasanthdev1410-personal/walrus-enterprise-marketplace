@@ -27,7 +27,7 @@ describe('Module 01 Limited Phase 1 persistence model', () => {
   it('contains the approved Module 01, Module 02 and Module 03 persistence records', () => {
     const models = [...schema.matchAll(/^model\s+(\w+)\s+\{/gm)].map((match) => match[1]);
 
-    expect(models).toHaveLength(74);
+    expect(models).toHaveLength(83);
     expect(models).toEqual(
       expect.arrayContaining([
         'Identity',
@@ -94,6 +94,17 @@ describe('Module 01 Limited Phase 1 persistence model', () => {
         'CartLine',
         'CartStateTransition',
         'CartAuditRecord',
+        // Approved Module 08 (order management, WEMP-M08-SPEC-001 §13).
+        'Order',
+        'OrderLine',
+        'OrderStateTransition',
+        'OrderAuditRecord',
+        // Approved Module 09 (payment processing, WEMP-M09-SPEC-001 §13).
+        'Payment',
+        'PaymentAttempt',
+        'PaymentRefund',
+        'PaymentStateTransition',
+        'PaymentAuditRecord',
       ]),
     );
   });

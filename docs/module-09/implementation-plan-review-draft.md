@@ -12,14 +12,14 @@
 
 ## 1. Milestone Structure
 
-| Milestone | Scope | Gate | Status |
-|-----------|-------|------|--------|
-| M09-M1 | Domain Foundation | D-02/D-03/D-13 | AUTHORIZED |
-| M09-M2 | Persistence | D-07/D-11/D-12 | AUTHORIZED |
-| M09-M3 | Application Services | D-01/D-04/D-05/D-06/D-07 | AUTHORIZED |
-| M09-M4 | Authorization & Cross-Module Integration | D-08/D-09 | AUTHORIZED |
-| M09-M5 | APIs & Web/Mobile Integration | D-10 | AUTHORIZED |
-| M09-M6 | Production Hardening & Documentation | All | AUTHORIZED |
+| Milestone | Scope                                    | Gate                     | Status     |
+| --------- | ---------------------------------------- | ------------------------ | ---------- |
+| M09-M1    | Domain Foundation                        | D-02/D-03/D-13           | AUTHORIZED |
+| M09-M2    | Persistence                              | D-07/D-11/D-12           | AUTHORIZED |
+| M09-M3    | Application Services                     | D-01/D-04/D-05/D-06/D-07 | AUTHORIZED |
+| M09-M4    | Authorization & Cross-Module Integration | D-08/D-09                | AUTHORIZED |
+| M09-M5    | APIs & Web/Mobile Integration            | D-10                     | AUTHORIZED |
+| M09-M6    | Production Hardening & Documentation     | All                      | AUTHORIZED |
 
 ## 2. M09-M1 Domain Foundation
 

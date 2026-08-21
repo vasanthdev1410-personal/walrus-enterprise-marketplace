@@ -11,7 +11,10 @@ import type { PaymentRepository } from '../../domain/ports/payment-repository.po
 import type { PaymentProviderPort } from '../../domain/ports/payment-provider.port';
 import type { OrderReadPort } from '../ports/order-read.port';
 import type { OrderWritePort } from '../ports/order-write.port';
-import type { ClockPort, UuidV7GenerationPort } from '../../../identity-authentication/application/ports/application-runtime.port';
+import type {
+  ClockPort,
+  UuidV7GenerationPort,
+} from '../../../identity-authentication/application/ports/application-runtime.port';
 import type { NonProductionRateLimiterPort } from '../../../identity-authentication/application/ports/non-production-rate-limiter.port';
 import type { ApiIdempotencyService } from '../../../identity-authentication/application/services/api-idempotency.service';
 
@@ -88,7 +91,9 @@ function createMocks() {
     },
   };
   const rateLimiter: jest.Mocked<NonProductionRateLimiterPort> = {
-    consume: jest.fn().mockResolvedValue({ allowed: true, limit: 120, remaining: 119, resetAt: new Date() }),
+    consume: jest
+      .fn()
+      .mockResolvedValue({ allowed: true, limit: 120, remaining: 119, resetAt: new Date() }),
   };
   const idempotency = {
     execute: async <T>(execution: { execute: () => Promise<T> }): Promise<T> => execution.execute(),
@@ -133,11 +138,28 @@ function createMocks() {
   const lifecycle = new PaymentLifecycle();
 
   const service = new PaymentApplicationService(
-    repository, lifecycle, clock, identifiers, idempotency,
-    rateLimiter, provider, orderRead, orderWrite,
+    repository,
+    lifecycle,
+    clock,
+    identifiers,
+    idempotency,
+    rateLimiter,
+    provider,
+    orderRead,
+    orderWrite,
   );
 
-  return { service, repository, provider, orderRead, orderWrite, lifecycle, clock, identifiers, rateLimiter };
+  return {
+    service,
+    repository,
+    provider,
+    orderRead,
+    orderWrite,
+    lifecycle,
+    clock,
+    identifiers,
+    rateLimiter,
+  };
 }
 
 describe('PaymentApplicationService', () => {
@@ -153,8 +175,10 @@ describe('PaymentApplicationService', () => {
       repository.findById.mockResolvedValue(makeProcessingPayment());
 
       const result = await service.initiatePayment({
-        customerProfileId, actorIdentityId: customerProfileId,
-        orderId, idempotencyKey: 'idem-key-001',
+        customerProfileId,
+        actorIdentityId: customerProfileId,
+        orderId,
+        idempotencyKey: 'idem-key-001',
       });
 
       expect(result.state).toBe('PROCESSING');
@@ -162,7 +186,11 @@ describe('PaymentApplicationService', () => {
       expect(repository.save).toHaveBeenCalledTimes(1);
       expect(provider.createProviderOrder).toHaveBeenCalledTimes(1);
       expect(orderWrite.transitionOrder).toHaveBeenCalledWith(
-        expect.objectContaining({ orderId, toState: 'CONFIRMED', reasonReference: 'payment_initiated' }),
+        expect.objectContaining({
+          orderId,
+          toState: 'CONFIRMED',
+          reasonReference: 'payment_initiated',
+        }),
       );
     });
 
@@ -170,10 +198,14 @@ describe('PaymentApplicationService', () => {
       const { service, orderRead } = createMocks();
       orderRead.readOrderFacts.mockResolvedValue(null);
 
-      await expect(service.initiatePayment({
-        customerProfileId: makeId(), actorIdentityId: makeId(),
-        orderId: makeId(), idempotencyKey: 'idem-key-002',
-      })).rejects.toThrow('PAYMENT_ORDER_NOT_FOUND');
+      await expect(
+        service.initiatePayment({
+          customerProfileId: makeId(),
+          actorIdentityId: makeId(),
+          orderId: makeId(),
+          idempotencyKey: 'idem-key-002',
+        }),
+      ).rejects.toThrow('PAYMENT_ORDER_NOT_FOUND');
     });
 
     it('rejects when customer does not own the order', async () => {
@@ -181,14 +213,20 @@ describe('PaymentApplicationService', () => {
       orderRead.readOrderFacts.mockResolvedValue({
         orderId: makeId(),
         customerProfileId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
-        state: 'PENDING', subtotalAmountCents: 1000, subtotalCurrency: 'INR', aggregateVersion: 1,
+        state: 'PENDING',
+        subtotalAmountCents: 1000,
+        subtotalCurrency: 'INR',
+        aggregateVersion: 1,
       });
 
-      await expect(service.initiatePayment({
-        customerProfileId: new UuidV7('0192a000-9999-7000-8000-000000000001'),
-        actorIdentityId: new UuidV7('0192a000-9999-7000-8000-000000000001'),
-        orderId: makeId(), idempotencyKey: 'idem-key-003',
-      })).rejects.toThrow('PAYMENT_OWNERSHIP_DENIED');
+      await expect(
+        service.initiatePayment({
+          customerProfileId: new UuidV7('0192a000-9999-7000-8000-000000000001'),
+          actorIdentityId: new UuidV7('0192a000-9999-7000-8000-000000000001'),
+          orderId: makeId(),
+          idempotencyKey: 'idem-key-003',
+        }),
+      ).rejects.toThrow('PAYMENT_OWNERSHIP_DENIED');
     });
 
     it('rejects when order is not PENDING', async () => {
@@ -196,37 +234,51 @@ describe('PaymentApplicationService', () => {
       orderRead.readOrderFacts.mockResolvedValue({
         orderId: makeId(),
         customerProfileId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
-        state: 'CONFIRMED', subtotalAmountCents: 1000, subtotalCurrency: 'INR', aggregateVersion: 2,
+        state: 'CONFIRMED',
+        subtotalAmountCents: 1000,
+        subtotalCurrency: 'INR',
+        aggregateVersion: 2,
       });
 
-      await expect(service.initiatePayment({
-        customerProfileId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
-        actorIdentityId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
-        orderId: makeId(), idempotencyKey: 'idem-key-004',
-      })).rejects.toThrow('PAYMENT_ORDER_NOT_PENDING');
+      await expect(
+        service.initiatePayment({
+          customerProfileId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
+          actorIdentityId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
+          orderId: makeId(),
+          idempotencyKey: 'idem-key-004',
+        }),
+      ).rejects.toThrow('PAYMENT_ORDER_NOT_PENDING');
     });
 
     it('rejects when a payment already exists for the order', async () => {
       const { service, repository } = createMocks();
       repository.findByOrderId.mockResolvedValue(makePendingPayment());
 
-      await expect(service.initiatePayment({
-        customerProfileId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
-        actorIdentityId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
-        orderId: makeId(), idempotencyKey: 'idem-key-005',
-      })).rejects.toThrow('PAYMENT_DUPLICATE');
+      await expect(
+        service.initiatePayment({
+          customerProfileId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
+          actorIdentityId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
+          orderId: makeId(),
+          idempotencyKey: 'idem-key-005',
+        }),
+      ).rejects.toThrow('PAYMENT_DUPLICATE');
     });
 
     it('rejects when provider order creation fails', async () => {
       const { service, repository, provider } = createMocks();
       repository.findByOrderId.mockResolvedValue(null);
-      provider.createProviderOrder.mockRejectedValue(new PaymentDomainError('PAYMENT_PROVIDER_ERROR'));
+      provider.createProviderOrder.mockRejectedValue(
+        new PaymentDomainError('PAYMENT_PROVIDER_ERROR'),
+      );
 
-      await expect(service.initiatePayment({
-        customerProfileId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
-        actorIdentityId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
-        orderId: makeId(), idempotencyKey: 'idem-key-006',
-      })).rejects.toThrow('PAYMENT_PROVIDER_ERROR');
+      await expect(
+        service.initiatePayment({
+          customerProfileId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
+          actorIdentityId: new UuidV7('0192a000-3000-7000-8000-000000000001'),
+          orderId: makeId(),
+          idempotencyKey: 'idem-key-006',
+        }),
+      ).rejects.toThrow('PAYMENT_PROVIDER_ERROR');
     });
   });
 
@@ -297,11 +349,13 @@ describe('PaymentApplicationService', () => {
       const { service, provider } = createMocks();
       provider.verifyWebhookSignature.mockReturnValue(false);
 
-      await expect(service.processWebhook({
-        rawPayload: '{"event":"payment.captured"}',
-        signatureHeader: 'invalid_sig',
-        actorIdentityId: makeId(),
-      })).rejects.toThrow('PAYMENT_WEBHOOK_SIGNATURE_INVALID');
+      await expect(
+        service.processWebhook({
+          rawPayload: '{"event":"payment.captured"}',
+          signatureHeader: 'invalid_sig',
+          actorIdentityId: makeId(),
+        }),
+      ).rejects.toThrow('PAYMENT_WEBHOOK_SIGNATURE_INVALID');
     });
 
     it('rejects when payment is not found', async () => {
@@ -317,11 +371,13 @@ describe('PaymentApplicationService', () => {
       repository.findByProviderOrderId.mockResolvedValue(null);
       repository.findByProviderPaymentId.mockResolvedValue(null);
 
-      await expect(service.processWebhook({
-        rawPayload: '{"event":"payment.captured"}',
-        signatureHeader: 'valid_sig',
-        actorIdentityId: makeId(),
-      })).rejects.toThrow('PAYMENT_NOT_FOUND');
+      await expect(
+        service.processWebhook({
+          rawPayload: '{"event":"payment.captured"}',
+          signatureHeader: 'valid_sig',
+          actorIdentityId: makeId(),
+        }),
+      ).rejects.toThrow('PAYMENT_NOT_FOUND');
     });
 
     it('rejects unrecognized event types', async () => {
@@ -330,15 +386,19 @@ describe('PaymentApplicationService', () => {
         eventType: 'unknown.event',
         providerPaymentId: 'pay_rzp_999',
         providerOrderId: 'order_rzp_999',
-        providerRefundId: null, amountCents: null, rawPayloadDigest: '',
+        providerRefundId: null,
+        amountCents: null,
+        rawPayloadDigest: '',
       });
       repository.findByProviderOrderId.mockResolvedValue(makeProcessingPayment());
 
-      await expect(service.processWebhook({
-        rawPayload: '{"event":"unknown.event"}',
-        signatureHeader: 'valid_sig',
-        actorIdentityId: makeId(),
-      })).rejects.toThrow('PAYMENT_WEBHOOK_EVENT_UNRECOGNIZED');
+      await expect(
+        service.processWebhook({
+          rawPayload: '{"event":"unknown.event"}',
+          signatureHeader: 'valid_sig',
+          actorIdentityId: makeId(),
+        }),
+      ).rejects.toThrow('PAYMENT_WEBHOOK_EVENT_UNRECOGNIZED');
     });
   });
 
@@ -364,33 +424,45 @@ describe('PaymentApplicationService', () => {
       const { service, repository } = createMocks();
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.initiateRefund({
-        actorIdentityId: makeId(), paymentId: makePaymentId(),
-        amountCents: 500, reasonReference: 'customer_request',
-        idempotencyKey: 'idem-refund-002',
-      })).rejects.toThrow('PAYMENT_NOT_FOUND');
+      await expect(
+        service.initiateRefund({
+          actorIdentityId: makeId(),
+          paymentId: makePaymentId(),
+          amountCents: 500,
+          reasonReference: 'customer_request',
+          idempotencyKey: 'idem-refund-002',
+        }),
+      ).rejects.toThrow('PAYMENT_NOT_FOUND');
     });
 
     it('rejects when payment is not CAPTURED', async () => {
       const { service, repository } = createMocks();
       repository.findById.mockResolvedValue(makeProcessingPayment());
 
-      await expect(service.initiateRefund({
-        actorIdentityId: makeId(), paymentId: makePaymentId(),
-        amountCents: 500, reasonReference: 'customer_request',
-        idempotencyKey: 'idem-refund-003',
-      })).rejects.toThrow('PAYMENT_REFUND_NOT_ALLOWED');
+      await expect(
+        service.initiateRefund({
+          actorIdentityId: makeId(),
+          paymentId: makePaymentId(),
+          amountCents: 500,
+          reasonReference: 'customer_request',
+          idempotencyKey: 'idem-refund-003',
+        }),
+      ).rejects.toThrow('PAYMENT_REFUND_NOT_ALLOWED');
     });
 
     it('rejects when refund amount exceeds captured amount', async () => {
       const { service, repository } = createMocks();
       repository.findById.mockResolvedValue(makeCapturedPayment());
 
-      await expect(service.initiateRefund({
-        actorIdentityId: makeId(), paymentId: makePaymentId(),
-        amountCents: 2000, reasonReference: 'customer_request',
-        idempotencyKey: 'idem-refund-004',
-      })).rejects.toThrow('PAYMENT_REFUND_EXCEEDS_CAPTURED');
+      await expect(
+        service.initiateRefund({
+          actorIdentityId: makeId(),
+          paymentId: makePaymentId(),
+          amountCents: 2000,
+          reasonReference: 'customer_request',
+          idempotencyKey: 'idem-refund-004',
+        }),
+      ).rejects.toThrow('PAYMENT_REFUND_EXCEEDS_CAPTURED');
     });
   });
 
@@ -400,7 +472,8 @@ describe('PaymentApplicationService', () => {
       repository.findById.mockResolvedValue(makePendingPayment());
 
       const result = await service.readPayment({
-        paymentId: makePaymentId(), callerIdentityId: makeId(),
+        paymentId: makePaymentId(),
+        callerIdentityId: makeId(),
       });
 
       expect(result.paymentId).toBe(makePaymentId().value);
@@ -411,9 +484,12 @@ describe('PaymentApplicationService', () => {
       const { service, repository } = createMocks();
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.readPayment({
-        paymentId: makePaymentId(), callerIdentityId: makeId(),
-      })).rejects.toThrow('PAYMENT_NOT_FOUND');
+      await expect(
+        service.readPayment({
+          paymentId: makePaymentId(),
+          callerIdentityId: makeId(),
+        }),
+      ).rejects.toThrow('PAYMENT_NOT_FOUND');
     });
   });
 
@@ -434,9 +510,12 @@ describe('PaymentApplicationService', () => {
       const { service, repository } = createMocks();
       repository.findByOrderId.mockResolvedValue(null);
 
-      await expect(service.readPaymentByOrder({
-        orderId: makeId(), callerIdentityId: makeId(),
-      })).rejects.toThrow('PAYMENT_NOT_FOUND');
+      await expect(
+        service.readPaymentByOrder({
+          orderId: makeId(),
+          callerIdentityId: makeId(),
+        }),
+      ).rejects.toThrow('PAYMENT_NOT_FOUND');
     });
   });
 
@@ -444,24 +523,37 @@ describe('PaymentApplicationService', () => {
     it('rejects when rate limit is exceeded on mutate', async () => {
       const mocks = createMocks();
       mocks.rateLimiter.consume.mockResolvedValueOnce({
-        allowed: false, limit: 120, remaining: 0, resetAt: new Date(),
+        allowed: false,
+        limit: 120,
+        remaining: 0,
+        resetAt: new Date(),
       });
 
-      await expect(mocks.service.initiatePayment({
-        customerProfileId: makeId(), actorIdentityId: makeId(),
-        orderId: makeId(), idempotencyKey: 'idem-key-rl-001',
-      })).rejects.toThrow('PAYMENT_RATE_LIMITED');
+      await expect(
+        mocks.service.initiatePayment({
+          customerProfileId: makeId(),
+          actorIdentityId: makeId(),
+          orderId: makeId(),
+          idempotencyKey: 'idem-key-rl-001',
+        }),
+      ).rejects.toThrow('PAYMENT_RATE_LIMITED');
     });
 
     it('rejects when rate limit is exceeded on read', async () => {
       const mocks = createMocks();
       mocks.rateLimiter.consume.mockResolvedValueOnce({
-        allowed: false, limit: 60, remaining: 0, resetAt: new Date(),
+        allowed: false,
+        limit: 60,
+        remaining: 0,
+        resetAt: new Date(),
       });
 
-      await expect(mocks.service.readPayment({
-        paymentId: makePaymentId(), callerIdentityId: makeId(),
-      })).rejects.toThrow('PAYMENT_RATE_LIMITED');
+      await expect(
+        mocks.service.readPayment({
+          paymentId: makePaymentId(),
+          callerIdentityId: makeId(),
+        }),
+      ).rejects.toThrow('PAYMENT_RATE_LIMITED');
     });
   });
 });

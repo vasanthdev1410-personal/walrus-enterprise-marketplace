@@ -18,17 +18,20 @@ interface MockContextOptions {
 }
 
 function createMockContext(overrides: MockContextOptions): ExecutionContext {
-  const handler = (): never => { throw new Error('never called'); };
+  const handler = (): never => {
+    throw new Error('never called');
+  };
   if (overrides.permissionId !== undefined) {
     Reflect.defineMetadata(PERMISSION_METADATA_KEY, overrides.permissionId, handler);
   }
 
-  const claims = overrides.hasClaims !== false
-    ? {
-        subject: overrides.subject ?? makeIdentityId().value,
-        sessionId: overrides.sessionId ?? 'session-001',
-      }
-    : undefined;
+  const claims =
+    overrides.hasClaims !== false
+      ? {
+          subject: overrides.subject ?? makeIdentityId().value,
+          sessionId: overrides.sessionId ?? 'session-001',
+        }
+      : undefined;
 
   return {
     getHandler: () => handler,
@@ -48,11 +51,11 @@ function createMockAuthorization(outcome: 'GRANTED' | 'DENIED'): AuthorizationAp
 
 function createMockCustomers(profileId?: UuidV7): CustomerProfileRepository {
   return {
-    findByIdentityId: jest.fn().mockResolvedValue(
-      profileId !== undefined
-        ? { properties: { customerProfileId: profileId } }
-        : null,
-    ),
+    findByIdentityId: jest
+      .fn()
+      .mockResolvedValue(
+        profileId !== undefined ? { properties: { customerProfileId: profileId } } : null,
+      ),
   } as unknown as CustomerProfileRepository;
 }
 
